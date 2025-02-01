@@ -99,21 +99,21 @@ const JobIdPage = async ({ params }: { params: Params }) => {
   const locationFlag = getFlagEmoji(jobData.location);
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid lg:grid-cols-[1fr,400px] gap-8">
+    <div className="mx-auto py-8 container">
+      <div className="gap-8 grid lg:grid-cols-[1fr,400px]">
         {/* Main Content */}
         <div className="space-y-8">
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold">{jobData.jobTitle}</h1>
+              <h1 className="font-bold text-3xl">{jobData.jobTitle}</h1>
               <div className="flex items-center gap-2 mt-2">
                 <span className="font-medium">{jobData.company.name}</span>
 
                 <Badge className="rounded-full" variant="secondary">
                   {jobData.employmentType}
                 </Badge>
-                <span className="hidden md:inline text-muted-foreground">
+                <span className="md:inline hidden text-muted-foreground">
                   •
                 </span>
                 <Badge className="rounded-full">
@@ -136,7 +136,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
             ) : (
               <Button variant="outline" asChild>
                 <Link href="/login">
-                  <Heart className="size-4 mr-2" />
+                  <Heart className="mr-2 size-4" />
                   Save Job
                 </Link>
               </Button>
@@ -148,9 +148,9 @@ const JobIdPage = async ({ params }: { params: Params }) => {
           </section>
 
           <section>
-            <h3 className="font-semibold mb-4">
+            <h3 className="mb-4 font-semibold">
               Benefits{" "}
-              <span className="text-sm text-muted-foreground font-normal">
+              <span className="font-normal text-muted-foreground text-sm">
                 (green is offered and red is not offered)
               </span>
             </h3>
@@ -182,10 +182,10 @@ const JobIdPage = async ({ params }: { params: Params }) => {
           <Card className="p-6">
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <h3 className="font-semibold">Apply now</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-muted-foreground text-sm">
                   Please let {jobData.company.name} know you found this job on
                   JobMarshal. This helps us grow!
                 </p>
@@ -204,7 +204,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
 
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     Apply before
                   </span>
                   <span className="text-sm">
@@ -219,7 +219,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     Posted on
                   </span>
                   <span className="text-sm">
@@ -231,13 +231,13 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     Employment type
                   </span>
                   <span className="text-sm">{jobData.employmentType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     Location
                   </span>
                   <Badge variant="secondary">{jobData.location}</Badge>
@@ -262,7 +262,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                 />
                 <div>
                   <h3 className="font-semibold">{jobData.company.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3">
+                  <p className="line-clamp-3 text-muted-foreground text-sm">
                     {jobData.company.about}
                   </p>
                 </div>

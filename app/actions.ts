@@ -25,6 +25,10 @@ const aj = arcjet
     })
   );
 
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://your-production-domain.com'  // Replace with your actual production domain
+  : 'http://localhost:3000';
+
 export async function createCompany(data: z.infer<typeof companySchema>) {
   const user = await requireUser();
 
@@ -143,6 +147,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       salaryTo: validatedData.salaryTo,
       listingDuration: validatedData.listingDuration,
       benefits: validatedData.benefits,
+      status: "ACTIVE",
     },
   });
 
@@ -177,7 +182,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
             ],
           },
           currency: "USD",
-          unit_amount: pricingTier.price * 100, // Convert to cents for Stripe
+          unit_amount: pricingTier.price * 100,
         },
         quantity: 1,
       },
@@ -186,11 +191,15 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
     metadata: {
       jobId: jobPost.id,
     },
-    success_url: `${process.env.NEXT_PUBLIC_URL}/payment/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/payment/cancel`,
+    success_url: `${BASE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${BASE_URL}/payment/cancel`,
   });
 
-  return redirect(session.url as string);
+  if (!session.url) {
+    throw new Error("Failed to create Stripe checkout session");
+  }
+
+  return redirect(session.url);
 }
 
 export async function updateJobPost(
@@ -265,4 +274,35 @@ export async function unsaveJobPost(savedJobPostId: string) {
   });
 
   revalidatePath(`/job/${data.jobId}`);
+}
+
+export async function getActiveJobs() {
+  const jobs = await prisma.jobPost.findMany({
+    where: {
+      status: "ACTIVE",
+    },
+    select: {
+      id: true,
+      jobTitle: true,
+      salaryFrom: true,
+      salaryTo: true,
+      employmentType: true,
+      location: true,
+      createdAt: true,
+      company: {
+        select: {
+          logo: true,
+          name: true,
+          about: true,
+          location: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  console.log("Active jobs found:", jobs.length);
+  return jobs;
 }

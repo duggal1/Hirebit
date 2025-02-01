@@ -18,7 +18,7 @@ interface iAppProps {
     location: string;
     createdAt: Date;
     company: {
-      logo: string | null;
+      logo: string;
       name: string;
       about: string;
       location: string;
@@ -29,42 +29,42 @@ interface iAppProps {
 export function JobCard({ job }: iAppProps) {
   return (
     <Link href={`/job/${job.id}`}>
-      <Card className="hover:shadow-lg transition-all duration-300 hover:border-primary relative">
+      <Card className="relative hover:border-primary hover:shadow-lg transition-all duration-300">
         <CardHeader>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex md:flex-row flex-col gap-4">
             {job.company.logo ? (
               <Image
                 src={job.company.logo}
                 alt={job.company.name}
                 width={48}
                 height={48}
-                className="size-12 rounded-lg"
+                className="rounded-lg size-12"
               />
             ) : (
-              <div className="bg-red-500 size-12 rounded-lg flex items-center justify-center">
-                <User2 className="size-6 text-white" />
+              <div className="flex justify-center items-center bg-red-500 rounded-lg size-12">
+                <User2 className="text-white size-6" />
               </div>
             )}
             <div className="flex flex-col flex-grow">
-              <h1 className="text-xl md:text-2xl font-bold">{job.jobTitle}</h1>
+              <h1 className="font-bold text-xl md:text-2xl">{job.jobTitle}</h1>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {job.company.name}
                 </p>
-                <span className="hidden md:inline text-muted-foreground">
+                <span className="md:inline hidden text-muted-foreground">
                   •
                 </span>
                 <Badge className="rounded-full" variant="secondary">
                   {job.employmentType}
                 </Badge>
-                <span className="hidden md:inline text-muted-foreground">
+                <span className="md:inline hidden text-muted-foreground">
                   •
                 </span>
                 <Badge className="rounded-full">{job.location}</Badge>
-                <span className="hidden md:inline text-muted-foreground">
+                <span className="md:inline hidden text-muted-foreground">
                   •
                 </span>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {formatCurrency(job.salaryFrom)} -
                   {formatCurrency(job.salaryTo)}
                 </p>
@@ -74,17 +74,17 @@ export function JobCard({ job }: iAppProps) {
             <div className="md:ml-auto">
               <div className="flex items-center gap-2">
                 <MapPin className="size-4" />
-                <h1 className="text-base md:text-lg font-semibold whitespace-nowrap">
+                <h1 className="font-semibold text-base md:text-lg whitespace-nowrap">
                   {job.location}
                 </h1>
               </div>
-              <p className="text-sm text-muted-foreground md:text-right">
+              <p className="md:text-right text-muted-foreground text-sm">
                 {formatRelativeTime(job.createdAt)}
               </p>
             </div>
           </div>
           <div className="!mt-5">
-            <p className="text-base text-muted-foreground line-clamp-2">
+            <p className="line-clamp-2 text-base text-muted-foreground">
               {job.company.about}
             </p>
           </div>
