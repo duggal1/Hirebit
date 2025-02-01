@@ -190,10 +190,17 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                   JobMarshal. This helps us grow!
                 </p>
               </div>
-              <form>
-                <input type="hidden" name="jobId" value={jobId} />
-                <GeneralSubmitButton text="Apply now" />
-              </form>
+              {session?.user ? (
+                <form action={`/job/${jobId}/apply`}>
+                  <Button className="w-full" size="lg">
+                    Apply Now
+                  </Button>
+                </form>
+              ) : (
+                <Button asChild className="w-full" size="lg">
+                  <Link href="/login">Sign in to Apply</Link>
+                </Button>
+              )}
             </div>
           </Card>
 

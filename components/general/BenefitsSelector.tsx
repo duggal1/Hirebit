@@ -27,7 +27,7 @@ export default function BenefitsSelector({ field }: BenefitsSelectorProps) {
             <Badge
               key={benefit.id}
               variant={isSelected ? "default" : "outline"}
-              className="cursor-pointer transition-all hover:scale-105 active:scale-95 select-none text-sm px-4 py-1.5 rounded-full"
+              className="transition-all cursor-pointer hover:scale-105 active:scale-95 px-4 py-1.5 rounded-full text-sm select-none"
               onClick={() => toggleBenefit(benefit.id)}
             >
               <span className="flex items-center gap-2">
@@ -38,7 +38,7 @@ export default function BenefitsSelector({ field }: BenefitsSelectorProps) {
           );
         })}
       </div>
-      <div className="mt-4 text-sm text-muted-foreground">
+      <div className="mt-4 text-muted-foreground text-sm">
         Selected benefits:{" "}
         <span className="text-primary">{(field.value || []).length}</span>
       </div>

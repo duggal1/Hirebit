@@ -15,6 +15,18 @@ export const jobSeekerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   about: z.string().min(10, "Please provide more information about yourself"),
   resume: z.string().min(1, "Please upload a resume"),
+  skills: z.array(z.string()).min(1, "Please select at least one skill"),
+  experience: z.number().min(0, "Experience cannot be negative"),
+  education: z.array(z.object({
+    degree: z.string(),
+    institution: z.string(),
+    year: z.number()
+  })).min(1, "Please add your education"),
+  location: z.string().min(2, "Please enter your location"),
+  phoneNumber: z.string().optional(),
+  linkedin: z.string().url().optional(),
+  github: z.string().url().optional(),
+  portfolio: z.string().url().optional(),
 });
 
 export const jobSchema = z.object({

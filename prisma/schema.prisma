@@ -109,15 +109,23 @@ model Company {
 }
 
 model JobSeeker {
-  id     String @id @default(uuid())
-  name   String
-  about  String
-  resume String
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String           @id @default(uuid())
+  name         String
+  about        String
+  resume       String
+  skills       String[]
+  experience   Int // Years of experience
+  education    Json // Store education history
+  location     String
+  phoneNumber  String?
+  linkedin     String?
+  github       String?
+  portfolio    String?
+  user         User             @relation(fields: [userId], references: [id])
+  userId       String           @unique
+  applications JobApplication[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 }
 
 model JobPost {
@@ -138,9 +146,10 @@ model JobPost {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId String
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  SavedJobPost SavedJobPost[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  SavedJobPost   SavedJobPost[]
+  JobApplication JobApplication[]
 }
 
 enum JobPostStatus {
@@ -161,4 +170,29 @@ model SavedJobPost {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, jobId])
+}
+
+model JobApplication {
+  id          String            @id @default(uuid())
+  jobSeeker   JobSeeker         @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String
+  job         JobPost           @relation(fields: [jobId], references: [id])
+  jobId       String
+  status      ApplicationStatus @default(PENDING)
+  coverLetter String?
+  resume      String // URL to resume
+  answers     Json? // Store screening questions answers
+  aiScore     Int? // AI evaluation score
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([jobSeekerId, jobId])
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
+  ACCEPTED
 }

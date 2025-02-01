@@ -69,31 +69,47 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
 
   // Access the request object so Arcjet can analyze it
   const req = await request();
-  // Call Arcjet protect
   const decision = await aj.protect(req);
 
   if (decision.isDenied()) {
     throw new Error("Forbidden");
   }
 
-  const validatedData = jobSeekerSchema.parse(data);
+  try {
+    const validatedData = jobSeekerSchema.parse(data);
 
-  await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      onboardingCompleted: true,
-      userType: "JOB_SEEKER",
-      JobSeeker: {
-        create: {
-          ...validatedData,
+    // Create the job seeker profile
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        onboardingCompleted: true,
+        userType: "JOB_SEEKER",
+        JobSeeker: {
+          create: {
+            name: validatedData.name,
+            about: validatedData.about,
+            resume: validatedData.resume,
+            skills: validatedData.skills,
+            experience: validatedData.experience,
+            education: validatedData.education,
+            location: validatedData.location,
+            phoneNumber: validatedData.phoneNumber,
+            linkedin: validatedData.linkedin,
+            github: validatedData.github,
+            portfolio: validatedData.portfolio,
+          },
         },
       },
-    },
-  });
+    });
 
-  return redirect("/");
+    // After successful profile creation, redirect to the coding test
+    return redirect("/assessment/coding-test");
+  } catch (error) {
+    console.error("Error creating job seeker profile:", error);
+    throw new Error("Failed to create profile");
+  }
 }
 
 export async function createJob(data: z.infer<typeof jobSchema>) {
@@ -305,4 +321,41 @@ export async function getActiveJobs() {
 
   console.log("Active jobs found:", jobs.length);
   return jobs;
+}
+
+export async function submitJobApplication(jobId: string, formData: FormData) {
+  const user = await requireUser();
+  
+  // Validate user has completed profile
+  const jobSeeker = await prisma.jobSeeker.findUnique({
+    where: { userId: user.id },
+    select: {
+      id: true,
+      resume: true,
+    }
+  });
+
+  if (!jobSeeker) {
+    throw new Error("Please complete your profile first");
+  }
+
+  // Create application
+  const application = await prisma.jobApplication.create({
+    data: {
+      jobSeekerId: jobSeeker.id,
+      jobId,
+      coverLetter: formData.get("coverLetter") as string,
+      resume: jobSeeker.resume,
+      status: "PENDING",
+    }
+  });
+
+  // Trigger AI evaluation
+  await inngest.send({
+    name: "application/submitted",
+    data: { applicationId: application.id }
+  });
+
+  revalidatePath(`/job/${jobId}`);
+  return { success: true };
 }
