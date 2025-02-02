@@ -6,16 +6,17 @@ import { JobApplicationForm } from "@/components/forms/JobApplicationForm";
 //import { JobSeekerOnboarding } from "@/components/forms/JobSeekerOnboarding";
 
 export default async function ApplyPage({ params }: { params: { jobId: string } }) {
+  // First await the user check
   const user = await requireUser();
-  
-  if (!user.id) {
-    return redirect('/login');
-  }
+  if (!user.id) return redirect('/login');
 
-  // Check if job exists and is active
+  // Then destructure jobId from params
+  const { jobId } = params;
+
+  // Now use the jobId variable for all subsequent operations
   const job = await prisma.jobPost.findUnique({
     where: { 
-      id: params.jobId,
+      id: jobId,
       status: "ACTIVE"
     },
     select: {
@@ -30,32 +31,28 @@ export default async function ApplyPage({ params }: { params: { jobId: string } 
     }
   });
 
-  if (!job) {
-    return redirect('/');
-  }
+  if (!job) return redirect('/');
 
-  // Check if user has already applied
   const existingApplication = await prisma.jobApplication.findUnique({
     where: {
       jobSeekerId_jobId: {
-        jobId: params.jobId,
+        jobId,
         jobSeekerId: user.id
       }
     }
   });
 
   if (existingApplication) {
-    return redirect(`/job/${params.jobId}?error=already_applied`);
+    return redirect(`/job/${jobId}?error=already_applied`);
   }
 
-  // Get job seeker profile if exists
   const jobSeeker = await prisma.jobSeeker.findUnique({
     where: { userId: user.id }
   });
 
   if (!jobSeeker) {
-    return <JobSeekerOnboarding jobId={params.jobId} job={job} />;
+    return <JobSeekerOnboarding jobId={jobId} job={job} />;
   }
 
-  return <JobApplicationForm jobSeeker={jobSeeker} jobId={params.jobId} job={job} />;
+  return <JobApplicationForm jobSeeker={jobSeeker} jobId={jobId} job={job} />;
 } //

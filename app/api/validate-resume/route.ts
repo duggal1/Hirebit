@@ -30,21 +30,41 @@ export async function POST(req: Request) {
       ? `https://utfs.io/f/${resumeUrl.split('/f/')[1]}`
       : resumeUrl;
 
-    // Fetch PDF
-    const pdfResponse = await fetch(normalizedUrl, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
-    
-    // Validate content type
-    const contentType = pdfResponse.headers.get('Content-Type');
-    if (!contentType?.includes('application/pdf')) {
+    // Add additional validation for UTFS.io URLs
+    if (!normalizedUrl.startsWith('https://utfs.io/f/')) {
       return NextResponse.json(
-        { error: "Invalid file type - PDF required" },
+        { error: "Invalid resume URL format" },
         { status: 400 }
       );
     }
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
+    // Modify the PDF fetch with better error handling
+    let pdfBuffer: ArrayBuffer;
+    try {
+      const pdfResponse = await fetch(normalizedUrl, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        redirect: 'follow',
+        timeout: 10000 // 10 second timeout
+      });
+
+      if (!pdfResponse.ok) throw new Error(`HTTP ${pdfResponse.status}`);
+      
+      const contentType = pdfResponse.headers.get('Content-Type');
+      if (!contentType?.includes('application/pdf')) {
+        throw new Error('Invalid PDF content type');
+      }
+
+      pdfBuffer = await pdfResponse.arrayBuffer();
+    } catch (error) {
+      console.error('PDF fetch error:', error);
+      return NextResponse.json(
+        { 
+          error: "Failed to download resume", 
+          details: error instanceof Error ? error.message : "Unknown error" 
+        },
+        { status: 400 }
+      );
+    }
     
     // Load PDF content
     const loader = new PDFLoader(new Blob([pdfBuffer]), {

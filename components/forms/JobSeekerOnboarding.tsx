@@ -97,10 +97,22 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
     try {
       setAnalyzing(true);
       
-      // Normalize the URL first
-      const directUrl = url.startsWith('https://utfs.io/f/') 
-        ? `https://utfs.io/f/${url.split('/f/')[1]}` 
+      // Correct the URL normalization
+      const directUrl = url.startsWith('https://uploadthing.com/f/') 
+        ? `https://utfs.io/f/${url.split('/f/')[1]}`
         : url;
+
+      // Update the URL validation
+      function isValidHttpUrl(url: string) {
+        try {
+          const newUrl = new URL(url);
+          return newUrl.hostname === 'uploadthing.com' || 
+                 newUrl.hostname.endsWith('.uploadthing.com') ||
+                 newUrl.hostname === 'utfs.io';
+        } catch (err) {
+          return false;
+        }
+      }
 
       if (!isValidHttpUrl(directUrl)) {
         toast.error('Invalid Resume URL', {
@@ -150,17 +162,6 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
       setAnalyzing(false);
     }
   };
-
-  // Update the URL validation to handle UploadThing's shortened URLs
-  function isValidHttpUrl(url: string) {
-    try {
-      const newUrl = new URL(url);
-      return newUrl.hostname.endsWith('.uploadthing.com') || 
-             newUrl.hostname === 'utfs.io';
-    } catch (err) {
-      return false;
-    }
-  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -344,9 +345,9 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
                           </TabsList>
 
                           <TabsContent value="feedback">
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="gap-4 grid md:grid-cols-2">
                               {/* Strengths Card */}
-                              <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-100 dark:border-green-800/60">
+                              <div className="border-green-100 dark:border-green-800/60 bg-green-50 dark:bg-green-900/20 p-6 border rounded-xl">
                                 <div className="flex items-center gap-3 mb-4">
                                   <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                                   <h3 className="font-semibold text-lg">Resume Strengths</h3>
@@ -355,9 +356,9 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
                                   {resumeAnalysis.feedback.strengths.map((strength, index) => (
                                     <li 
                                       key={index}
-                                      className="flex items-start gap-3 p-3 bg-white dark:bg-green-950/30 rounded-lg"
+                                      className="flex items-start gap-3 bg-white dark:bg-green-950/30 p-3 rounded-lg"
                                     >
-                                      <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0" />
+                                      <div className="flex-shrink-0 bg-green-600 mt-2 rounded-full w-2 h-2" />
                                       <p className="text-sm leading-relaxed">{strength}</p>
                                     </li>
                                   ))}
@@ -365,7 +366,7 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
                               </div>
 
                               {/* Improvements Card */}
-                              <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-xl border border-amber-100 dark:border-amber-800/60">
+                              <div className="border-amber-100 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 p-6 border rounded-xl">
                                 <div className="flex items-center gap-3 mb-4">
                                   <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                                   <h3 className="font-semibold text-lg">Improvement Suggestions</h3>
@@ -374,9 +375,9 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
                                   {resumeAnalysis.feedback.improvements.map((improvement, index) => (
                                     <li
                                       key={index}
-                                      className="flex items-start gap-3 p-3 bg-white dark:bg-amber-950/30 rounded-lg"
+                                      className="flex items-start gap-3 bg-white dark:bg-amber-950/30 p-3 rounded-lg"
                                     >
-                                      <div className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
+                                      <div className="flex-shrink-0 bg-amber-600 mt-2 rounded-full w-2 h-2" />
                                       <p className="text-sm leading-relaxed">{improvement}</p>
                                     </li>
                                   ))}
