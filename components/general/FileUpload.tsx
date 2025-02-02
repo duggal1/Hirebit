@@ -8,11 +8,13 @@ import { Button } from "../ui/button";
 interface FileUploadProps {
   onChange: (url: string) => void;
   value?: string;
+  disabled?: boolean;
+  className?: string;
 }
 
-export function FileUpload({ onChange, value }: FileUploadProps) {
+export function FileUpload({ onChange, value, disabled, className }: FileUploadProps) {
   return (
-    <div className="w-full">
+    <div className={className}>
       {value ? (
         <div className="flex items-center gap-4 p-4 border rounded-lg">
           <FileText className="w-8 h-8 text-primary" />
@@ -25,6 +27,7 @@ export function FileUpload({ onChange, value }: FileUploadProps) {
             variant="ghost"
             size="sm"
             onClick={() => onChange("")}
+            disabled={disabled}
           >
             <XIcon className="w-4 h-4" />
           </Button>
@@ -74,6 +77,7 @@ export function FileUpload({ onChange, value }: FileUploadProps) {
             toast.error(error.message || "Upload failed");
           }}
           className="ut-button:bg-primary ut-button:hover:bg-primary/90 ut-button:text-white ut-label:text-muted-foreground"
+          disabled={disabled}
         />
       )}
     </div>

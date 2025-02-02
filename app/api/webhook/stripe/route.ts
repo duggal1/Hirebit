@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.text();
     const headersList = headers();
-    const signature = (await headersList).get("Stripe-Signature");
+    const signature = headersList.get("Stripe-Signature");
 
     if (!signature) {
       console.error("No Stripe signature found");
@@ -33,11 +33,8 @@ export async function POST(req: Request) {
       return new Response("Webhook signature verification failed", { status: 400 });
     }
 
-    const session = event.data.object as Stripe.Checkout.Session;
-
     if (event.type === "checkout.session.completed") {
-      console.log("Payment successful, processing webhook...");
-      const customerId = session.customer as string;
+      const session = event.data.object as Stripe.Checkout.Session;
       const jobId = session.metadata?.jobId;
 
       if (!jobId) {
@@ -45,19 +42,6 @@ export async function POST(req: Request) {
         return new Response("No job ID found", { status: 400 });
       }
 
-      const user = await prisma.user.findUnique({
-        where: {
-          stripeCustomerId: customerId,
-        },
-      });
-
-      if (!user) {
-        console.error("User not found for customer:", customerId);
-        return new Response("User not found", { status: 404 });
-      }
-
-      console.log(`Updating job ${jobId} to ACTIVE status...`);
-      
       try {
         // Update the job post status to ACTIVE
         const updatedJob = await prisma.jobPost.update({
@@ -69,11 +53,13 @@ export async function POST(req: Request) {
           },
         });
 
-        console.log("Job updated successfully:", updatedJob);
-        
-        // Revalidate the jobs page to show the new active job
+        console.log("Job activated successfully:", updatedJob);
+
+        // Revalidate the necessary pages
         revalidatePath('/');
-        
+        revalidatePath('/my-jobs');
+        revalidatePath(`/job/${jobId}`);
+
         return new Response(null, { status: 200 });
       } catch (error) {
         console.error("Error updating job status:", error);

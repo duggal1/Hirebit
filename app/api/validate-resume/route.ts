@@ -4,17 +4,52 @@ import { NextResponse } from "next/server";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+function isValidUrl(url: string) {
+  try {
+    const newUrl = new URL(url);
+    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { resumeUrl } = await req.json();
+    
+    // Validate URL
+    if (!resumeUrl || !isValidUrl(resumeUrl)) {
+      return NextResponse.json(
+        { error: "Invalid or missing resume URL" },
+        { status: 400 }
+      );
+    }
 
-    // Download PDF
-    const pdfResponse = await fetch(resumeUrl);
+    // Normalize UploadThing URLs
+    const normalizedUrl = resumeUrl.startsWith('https://uploadthing.com/f/') 
+      ? `https://utfs.io/f/${resumeUrl.split('/f/')[1]}`
+      : resumeUrl;
+
+    // Fetch PDF
+    const pdfResponse = await fetch(normalizedUrl, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    
+    // Validate content type
+    const contentType = pdfResponse.headers.get('Content-Type');
+    if (!contentType?.includes('application/pdf')) {
+      return NextResponse.json(
+        { error: "Invalid file type - PDF required" },
+        { status: 400 }
+      );
+    }
+
     const pdfBuffer = await pdfResponse.arrayBuffer();
-
-    // Convert to Buffer and load PDF
+    
+    // Load PDF content
     const loader = new PDFLoader(new Blob([pdfBuffer]), {
       parsedItemSeparator: " ",
+      splitPages: false
     });
     
     const docs = await loader.load();

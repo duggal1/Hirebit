@@ -76,8 +76,9 @@ async function getCompany(userId: string) {
 const PostJobPage = async () => {
   const session = await requireUser();
   const data = await getCompany(session.id as string);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
+    <div className="gap-4 grid grid-cols-1 lg:grid-cols-3 mt-5">
       <CreateJobForm
         companyAbout={data.about}
         companyLocation={data.location}
@@ -88,7 +89,7 @@ const PostJobPage = async () => {
       />
 
       <div className="col-span-1">
-        <Card className="lg:sticky lg:top-4">
+        <Card className="lg:top-4 lg:sticky">
           <CardHeader>
             <CardTitle className="text-xl">
               Trusted by Industry Leaders
@@ -99,18 +100,18 @@ const PostJobPage = async () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Company Logos */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="gap-4 grid grid-cols-3">
               {companies.map((company) => (
                 <div
                   key={company.id}
-                  className="flex items-center justify-center"
+                  className="flex justify-center items-center"
                 >
                   <Image
                     src={company.logo}
                     alt={company.name}
                     height={80}
                     width={80}
-                    className="opacity-75 transition-opacity hover:opacity-100 rounded-lg"
+                    className="opacity-75 hover:opacity-100 rounded-lg transition-opacity"
                   />{" "}
                 </div>
               ))}
@@ -121,12 +122,12 @@ const PostJobPage = async () => {
               {testimonials.map((testimonial, index) => (
                 <blockquote
                   key={index}
-                  className="border-l-2 border-primary pl-4"
+                  className="border-primary pl-4 border-l-2"
                 >
-                  <p className="text-sm italic text-muted-foreground">
+                  <p className="text-muted-foreground text-sm italic">
                     "{testimonial.quote}"
                   </p>
-                  <footer className="mt-2 text-sm font-medium">
+                  <footer className="mt-2 font-medium text-sm">
                     - {testimonial.author}, {testimonial.company}
                   </footer>
                 </blockquote>
@@ -134,11 +135,11 @@ const PostJobPage = async () => {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="gap-4 grid grid-cols-2">
               {stats.map((stat, index) => (
-                <div key={index} className="rounded-lg bg-muted p-4">
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">
+                <div key={index} className="bg-muted p-4 rounded-lg">
+                  <div className="font-bold text-2xl">{stat.value}</div>
+                  <div className="text-muted-foreground text-sm">
                     {stat.label}
                   </div>
                 </div>

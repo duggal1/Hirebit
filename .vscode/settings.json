@@ -2,6 +2,7 @@
     "WillLuke.nextjs.hasPrompted": true,
     "git.ignoreLimitWarning": true,
     "cSpell.words": [
+        "cooldown",
         "langchain"
     ]
 }

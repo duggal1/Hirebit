@@ -93,52 +93,94 @@ export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
     },
   });
 
+  const handleResumeUpload = async (url: string) => {
+    try {
+      setAnalyzing(true);
+      
+      // Normalize the URL first
+      const directUrl = url.startsWith('https://utfs.io/f/') 
+        ? `https://utfs.io/f/${url.split('/f/')[1]}` 
+        : url;
 
-const handleResumeUpload = async (url: string) => {
-  try {
-    setAnalyzing(true);
-    form.setValue("resume", url);
-    
-    const response = await fetch('/api/validate-resume', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeUrl: url })
-    });
+      if (!isValidHttpUrl(directUrl)) {
+        toast.error('Invalid Resume URL', {
+          description: 'Please upload a valid PDF file'
+        });
+        return;
+      }
 
-    if (!response.ok) throw new Error('Analysis failed');
-    
-    const analysis = await response.json();
-    setResumeAnalysis(analysis);
-
-    if (!analysis.isValid) {
-      toast.error('Resume Validation Failed', {
-        description: analysis.feedback.overallFeedback
+      form.setValue("resume", directUrl);
+      
+      const response = await fetch('/api/validate-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl: directUrl })
       });
-      return;
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+      
+      const analysis = await response.json();
+      setResumeAnalysis(analysis);
+
+      if (!analysis.isValid) {
+        toast.error('Resume Validation Failed', {
+          description: analysis.feedback.overallFeedback
+        });
+        return;
+      }
+
+      // Auto-populate form fields
+      form.setValue('skills', analysis.skills);
+      form.setValue('experience', analysis.experience.years);
+      form.setValue('education', analysis.education);
+      
+      toast.success('Resume Analysis Complete');
+
+    } catch (error) {
+      console.error('Resume analysis error:', error);
+      toast.error('Analysis Failed', {
+        description: error instanceof Error ? 
+          error.message : 'Please upload a valid resume PDF'
+      });
+      form.setValue("resume", "");
+    } finally {
+      setAnalyzing(false);
     }
+  };
 
-    // Auto-populate form fields
-    form.setValue('skills', analysis.skills);
-    form.setValue('experience', analysis.experience.years);
-    form.setValue('education', analysis.education);
-    
-    toast.success('Resume Analysis Complete');
-
-  } catch (error) {
-    toast.error('Analysis Failed', {
-      description: 'Please upload a valid resume PDF'
-    });
-  } finally {
-    setAnalyzing(false);
+  // Update the URL validation to handle UploadThing's shortened URLs
+  function isValidHttpUrl(url: string) {
+    try {
+      const newUrl = new URL(url);
+      return newUrl.hostname.endsWith('.uploadthing.com') || 
+             newUrl.hostname === 'utfs.io';
+    } catch (err) {
+      return false;
+    }
   }
-};
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setPending(true);
-      await createJobSeeker(values);
-      toast.success("Profile completed successfully!");
-      router.push(`/assessment/coding-test?jobId=${jobId}`);
+      
+      // Validate resume is uploaded and analyzed
+      if (!resumeAnalysis?.isValid) {
+        toast.error("Please upload and validate your resume first");
+        return;
+      }
+
+      const result = await createJobSeeker(values);
+      
+      if (result.success) {
+        toast.success("Profile completed successfully!");
+        // Redirect to the coding test page with the job ID
+        router.push(`/job/${jobId}/apply/coding-test`);
+      } else {
+        throw new Error("Failed to create profile");
+      }
     } catch (error) {
       toast.error("Failed to create profile. Please try again.");
     } finally {
@@ -293,15 +335,18 @@ const handleResumeUpload = async (url: string) => {
                             <TabsTrigger value="feedback" className="data-[state=active]:bg-primary/10 rounded-lg">
                               Feedback
                             </TabsTrigger>
+                            <TabsTrigger value="skills" className="data-[state=active]:bg-primary/10 rounded-lg">
+                              Skills
+                            </TabsTrigger>
                             <TabsTrigger value="details" className="data-[state=active]:bg-primary/10 rounded-lg">
-                              Extracted Details
+                              Details
                             </TabsTrigger>
                           </TabsList>
 
                           <TabsContent value="feedback">
-                            <div className="gap-4 grid md:grid-cols-2">
+                            <div className="grid gap-4 md:grid-cols-2">
                               {/* Strengths Card */}
-                              <div className="border-green-100 dark:border-green-800/60 bg-green-50 dark:bg-green-900/20 p-6 border rounded-xl">
+                              <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-100 dark:border-green-800/60">
                                 <div className="flex items-center gap-3 mb-4">
                                   <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                                   <h3 className="font-semibold text-lg">Resume Strengths</h3>
@@ -310,9 +355,9 @@ const handleResumeUpload = async (url: string) => {
                                   {resumeAnalysis.feedback.strengths.map((strength, index) => (
                                     <li 
                                       key={index}
-                                      className="flex items-start gap-3 bg-white dark:bg-green-950/30 p-3 rounded-lg"
+                                      className="flex items-start gap-3 p-3 bg-white dark:bg-green-950/30 rounded-lg"
                                     >
-                                      <div className="flex-shrink-0 bg-green-600 mt-2 rounded-full w-2 h-2" />
+                                      <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0" />
                                       <p className="text-sm leading-relaxed">{strength}</p>
                                     </li>
                                   ))}
@@ -320,25 +365,33 @@ const handleResumeUpload = async (url: string) => {
                               </div>
 
                               {/* Improvements Card */}
-                              {resumeAnalysis.feedback.improvements.length > 0 && (
-                                <div className="border-amber-100 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 p-6 border rounded-xl">
-                                  <div className="flex items-center gap-3 mb-4">
-                                    <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                                    <h3 className="font-semibold text-lg">Improvement Suggestions</h3>
-                                  </div>
-                                  <ul className="space-y-3">
-                                    {resumeAnalysis.feedback.improvements.map((improvement, index) => (
-                                      <li
-                                        key={index}
-                                        className="flex items-start gap-3 bg-white dark:bg-amber-950/30 p-3 rounded-lg"
-                                      >
-                                        <div className="flex-shrink-0 bg-amber-600 mt-2 rounded-full w-2 h-2" />
-                                        <p className="text-sm leading-relaxed">{improvement}</p>
-                                      </li>
-                                    ))}
-                                  </ul>
+                              <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-xl border border-amber-100 dark:border-amber-800/60">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                                  <h3 className="font-semibold text-lg">Improvement Suggestions</h3>
                                 </div>
-                              )}
+                                <ul className="space-y-3">
+                                  {resumeAnalysis.feedback.improvements.map((improvement, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start gap-3 p-3 bg-white dark:bg-amber-950/30 rounded-lg"
+                                    >
+                                      <div className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
+                                      <p className="text-sm leading-relaxed">{improvement}</p>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="skills">
+                            <div className="flex flex-wrap gap-3">
+                              {resumeAnalysis.skills.map((skill, index) => (
+                                <Badge key={index} variant="outline" className="text-sm">
+                                  {skill}
+                                </Badge>
+                              ))}
                             </div>
                           </TabsContent>
 

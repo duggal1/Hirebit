@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import arcjet, { detectBot, shield } from "./utils/arcjet";
 import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
+import { Prisma, UserType } from "@prisma/client";
 
 const aj = arcjet
   .withRule(
@@ -78,34 +79,39 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
   try {
     const validatedData = jobSeekerSchema.parse(data);
 
-    // Create the job seeker profile
-    await prisma.user.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        onboardingCompleted: true,
-        userType: "JOB_SEEKER",
-        JobSeeker: {
-          create: {
-            name: validatedData.name,
-            about: validatedData.about,
-            resume: validatedData.resume,
-            skills: validatedData.skills,
-            experience: validatedData.experience,
-            education: validatedData.education,
-            location: validatedData.location,
-            phoneNumber: validatedData.phoneNumber,
-            linkedin: validatedData.linkedin,
-            github: validatedData.github,
-            portfolio: validatedData.portfolio,
-          },
-        },
-      },
+    // Create the job seeker profile using a transaction
+    const jobSeeker = await prisma.$transaction(async (tx) => {
+      // Update user first with correct type
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          userType: UserType.JOB_SEEKER,
+          onboardingCompleted: true
+        }
+      });
+
+      // Then create job seeker profile
+      return await tx.jobSeeker.create({
+        data: {
+          name: validatedData.name,
+          about: validatedData.about,
+          resume: validatedData.resume,
+          skills: validatedData.skills,
+          experience: validatedData.experience,
+          education: validatedData.education,
+          location: validatedData.location,
+          phoneNumber: validatedData.phoneNumber || null,
+          linkedin: validatedData.linkedin || null,
+          github: validatedData.github || null,
+          portfolio: validatedData.portfolio || null,
+          user: {
+            connect: { id: updatedUser.id }
+          }
+        }
+      });
     });
 
-    // After successful profile creation, redirect to the coding test
-    return redirect("/assessment/coding-test");
+    return { success: true, jobSeekerId: jobSeeker.id };
   } catch (error) {
     console.error("Error creating job seeker profile:", error);
     throw new Error("Failed to create profile");
@@ -152,10 +158,10 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
     });
   }
 
+  // Create job post with ACTIVE status and job description
   const jobPost = await prisma.jobPost.create({
     data: {
       companyId: company.id,
-      jobDescription: validatedData.jobDescription,
       jobTitle: validatedData.jobTitle,
       employmentType: validatedData.employmentType,
       location: validatedData.location,
@@ -163,16 +169,8 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       salaryTo: validatedData.salaryTo,
       listingDuration: validatedData.listingDuration,
       benefits: validatedData.benefits,
-      status: "ACTIVE",
-    },
-  });
-
-  // Trigger the job expiration function
-  await inngest.send({
-    name: "job/created",
-    data: {
-      jobId: jobPost.id,
-      expirationDays: validatedData.listingDuration,
+      jobDescription: validatedData.jobDescription, // Make sure this is stored
+      status: "ACTIVE", // Temporarily set to ACTIVE directly
     },
   });
 
@@ -300,6 +298,7 @@ export async function getActiveJobs() {
     select: {
       id: true,
       jobTitle: true,
+      jobDescription: true,
       salaryFrom: true,
       salaryTo: true,
       employmentType: true,
@@ -359,3 +358,140 @@ export async function submitJobApplication(jobId: string, formData: FormData) {
   revalidatePath(`/job/${jobId}`);
   return { success: true };
 }
+
+// Add the type definitions
+export interface CodeEvaluation {
+  score: number;
+  feedback: string;
+  correctness: boolean;
+  efficiency: "low" | "medium" | "high";
+}
+
+export interface TestQuestion {
+  question: string;
+  starterCode: string;
+  testCases: { input: string; output: string }[];
+  difficulty: "easy" | "medium" | "hard";
+}
+
+export interface GeneratedTest {
+  questions: TestQuestion[];
+  duration: number;
+  skillsTested: string[];
+}
+
+// Remove the first duplicate submitTest function and evaluateCode function
+// Keep only the more complete version
+
+async function evaluateCode(code: string, question: any): Promise<CodeEvaluation> {
+  try {
+    const evaluationRes = await fetch(`${BASE_URL}/api/evaluate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        question: question // Pass the question context
+      })
+    });
+
+    if (!evaluationRes.ok) throw new Error('Evaluation failed');
+    
+    return evaluationRes.json();
+  } catch (error) {
+    console.error('Code evaluation error:', error);
+    return { 
+      score: 0, 
+      feedback: 'Evaluation service unavailable',
+      correctness: false,
+      efficiency: "low"
+    };
+  }
+}
+
+export async function submitTest(
+  jobId: string, 
+  data: { code?: string; status: 'completed' | 'cheated' | 'timed_out' }
+) {
+  const user = await requireUser();
+
+  // Get job details for evaluation context
+  const job = await prisma.jobPost.findUnique({
+    where: { id: jobId },
+    select: { jobDescription: true }
+  });
+
+  if (!job) throw new Error("Job not found");
+
+  // Get the job seeker
+  const jobSeeker = await prisma.jobSeeker.findUnique({
+    where: { userId: user.id }
+  });
+
+  if (!jobSeeker) throw new Error("Job seeker profile not found");
+
+  // Validate test attempt
+  const existing = await prisma.jobApplication.findFirst({
+    where: {
+      jobId,
+      jobSeekerId: jobSeeker.id,
+      status: { in: ['PENDING', 'ACCEPTED'] }
+    }
+  });
+
+  if (existing) {
+    throw new Error("You've already completed this test");
+  }
+
+  // Generate test questions based on job description
+  const testRes = await fetch(`${BASE_URL}/api/generate-test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobDescription: job.jobDescription })
+  });
+
+  const testData = await testRes.json();
+
+  // AI Evaluation
+  let score = 0;
+  if (data.status === 'completed' && data.code) {
+    const evaluation = await evaluateCode(data.code, testData.questions[0]);
+    score = evaluation.score;
+  }
+
+  // Store results
+  const application = await prisma.jobApplication.create({
+    data: {
+      jobSeeker: {
+        connect: { id: jobSeeker.id }
+      },
+      job: {
+        connect: { id: jobId }
+      },
+      status: data.status === 'completed' ? 
+        (score >= 70 ? 'ACCEPTED' : 'REJECTED') : 'REJECTED',
+      aiScore: score,
+      answers: data.code ? { code: data.code } : undefined,
+      resume: jobSeeker.resume
+    }
+  });
+
+  // Apply cooldown if failed
+  if (score < 70) {
+    await prisma.jobSeeker.update({
+      where: { id: jobSeeker.id },
+      data: { 
+        lastAttemptAt: new Date()
+      }
+    });
+  }
+
+  return { score };
+}
+
+function isInCooldown(lastAttemptAt: Date | null): boolean {
+  if (!lastAttemptAt) return false;
+  const cooldownHours = 24;
+  const cooldownEnds = new Date(lastAttemptAt.getTime() + cooldownHours * 60 * 60 * 1000);
+  return new Date() < cooldownEnds;
+}
+

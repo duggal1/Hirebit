@@ -8,27 +8,119 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  // Optional for WebAuthn support
-  Authenticator Authenticator[]
+  id                  String          @id @default(cuid())
+  email               String?         @unique
+  emailVerified       DateTime?
+  name                String?
+  image               String?
+  hashedPassword      String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  userType            UserType?
+  stripeCustomerId    String?
+  onboardingCompleted Boolean         @default(false)
+  Account             Account[]
+  Session             Session[]
+  Authenticator       Authenticator[]
+  Company             Company?
+  JobSeeker          JobSeeker?
+  SavedJobPost        SavedJobPost[]
+  Resume             Resume?
 
-  onboardingCompleted Boolean @default(false)
+  @@map("users")
+}
 
-  userType UserType?
+model Resume {
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalInfo   PersonalInfo?
+  workExperience WorkExperience[]
+  projects       Project[]
+  education      Education[]
+  skills         Skill[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  stripeCustomerId String? @unique
+  @@map("resumes")
+}
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  Company      Company?
-  JobSeeker    JobSeeker?
-  SavedJobPost SavedJobPost[]
+model PersonalInfo {
+  id        String   @id @default(cuid())
+  resumeId  String   @unique
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  fullName  String
+  email     String
+  location  String
+  portfolio String?
+  github    String?
+  linkedin  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("personal_info")
+}
+
+model WorkExperience {
+  id           String    @id @default(cuid())
+  resumeId     String
+  resume       Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  position     String
+  company      String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  highlights   String[]
+  technologies String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("work_experience")
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name         String
+  description  String
+  url          String?
+  technologies String[]
+  highlights   String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model Education {
+  id           String   @id @default(cuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  degree       String
+  field        String?
+  institution  String
+  location     String?
+  year         Int
+  achievements String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("education")
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  resumeId    String
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  proficiency Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("skills")
 }
 
 model Account {
@@ -43,13 +135,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
@@ -57,9 +148,10 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -68,6 +160,7 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+  @@map("verification_tokens")
 }
 
 // Optional for WebAuthn support
@@ -80,10 +173,10 @@ model Authenticator {
   credentialDeviceType String
   credentialBackedUp   Boolean
   transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+  @@map("authenticators")
 }
 
 enum UserType {
@@ -92,45 +185,47 @@ enum UserType {
 }
 
 model Company {
-  id String @id @default(uuid())
-
-  name     String
-  location String
-  logo     String
-  website  String
-  xAccount String?
-  about    String
-  user     User    @relation(fields: [userId], references: [id])
-  userId   String  @unique
-
+  id        String    @id @default(uuid())
+  name      String
+  location  String
+  logo      String
+  website   String
+  xAccount  String?
+  about     String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   JobPost   JobPost[]
+
+  @@map("companies")
 }
 
 model JobSeeker {
-  id           String           @id @default(uuid())
-  name         String
-  about        String
-  resume       String
-  skills       String[]
-  experience   Int // Years of experience
-  education    Json // Store education history
-  location     String
-  phoneNumber  String?
-  linkedin     String?
-  github       String?
-  portfolio    String?
-  user         User             @relation(fields: [userId], references: [id])
-  userId       String           @unique
-  applications JobApplication[]
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id            String           @id @default(uuid())
+  name          String
+  about         String
+  resume        String           @db.VarChar(2048)  // Increased length for URLs
+  skills        String[]
+  experience    Int
+  education     Json
+  location      String
+  phoneNumber   String?
+  linkedin      String?          @db.VarChar(2048)
+  github        String?          @db.VarChar(2048)
+  portfolio     String?          @db.VarChar(2048)
+  lastAttemptAt DateTime?
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String           @unique
+  applications  JobApplication[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("job_seekers")
 }
 
 model JobPost {
-  id String @id @default(uuid())
-
+  id              String           @id @default(uuid())
   jobTitle        String
   employmentType  String
   location        String
@@ -139,17 +234,16 @@ model JobPost {
   jobDescription  String
   listingDuration Int
   benefits        String[]
+  status          JobPostStatus    @default(DRAFT)
+  applications    Int              @default(0)
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId       String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  SavedJobPost    SavedJobPost[]
+  JobApplication  JobApplication[]
 
-  status       JobPostStatus @default(DRAFT)
-  applications Int           @default(0)
-
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId String
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  SavedJobPost   SavedJobPost[]
-  JobApplication JobApplication[]
+  @@map("job_posts")
 }
 
 enum JobPostStatus {
@@ -159,34 +253,34 @@ enum JobPostStatus {
 }
 
 model SavedJobPost {
-  id     String @id @default(uuid())
-  jobId  String
-  userId String
-
-  job  JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  jobId     String
+  userId    String
+  job       JobPost  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, jobId])
+  @@map("saved_job_posts")
 }
 
 model JobApplication {
   id          String            @id @default(uuid())
-  jobSeeker   JobSeeker         @relation(fields: [jobSeekerId], references: [id])
+  jobSeeker   JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
   jobSeekerId String
-  job         JobPost           @relation(fields: [jobId], references: [id])
+  job         JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId       String
   status      ApplicationStatus @default(PENDING)
   coverLetter String?
-  resume      String // URL to resume
-  answers     Json? // Store screening questions answers
-  aiScore     Int? // AI evaluation score
+  resume      String
+  answers     Json?
+  aiScore     Int?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
   @@unique([jobSeekerId, jobId])
+  @@map("job_applications")
 }
 
 enum ApplicationStatus {
