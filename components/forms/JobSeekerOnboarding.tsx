@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import type { FieldValues } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -10,18 +11,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUpload } from "../general/FileUpload";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, GraduationCap, MapPin, User2, Wand2, CheckCircle, AlertCircle, Loader2, Rocket } from "lucide-react";
+import { Briefcase, GraduationCap, MapPin, User2, Wand2, CheckCircle, AlertCircle, Loader2, Rocket, MessageSquare, Code2, FileText, UploadCloud } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createJobSeeker } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useActionState } from "react";
+import { submitJobSeeker } from "@/app/actions";
 
 // Updated ResumeAnalysis interface to match backend response
 interface ResumeAnalysis {
@@ -43,22 +46,44 @@ interface ResumeAnalysis {
   }>;
 }
 
+// Update the form schema to remove unused fields
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  about: z.string().min(100, "Please provide at least 100 characters about yourself"),
-  skills: z.array(z.string()).min(1, "Please select at least one skill"),
-  experience: z.number().min(0, "Experience cannot be negative"),
+  about: z.string().min(10, "Please provide at least 10 characters about yourself"),
+  resume: z.string().url("Invalid resume URL").min(1, "Resume is required"),
+  location: z.string().min(1, "Location is required"),
+  skills: z.array(z.string()).min(1, "At least one skill is required"),
+  experience: z.number().min(0, "Experience is required").default(0),
   education: z.array(z.object({
-    degree: z.string(),
-    institution: z.string(),
-    year: z.number()
-  })).min(1, "Please add your education"),
-  resume: z.string().url("Invalid resume URL"),
-  location: z.string().min(2, "Please enter your location"),
-  linkedin: z.string().url().optional().or(z.literal("")),
-  github: z.string().url().optional().or(z.literal("")),
-  portfolio: z.string().url().optional().or(z.literal("")),
+    degree: z.string().min(1, "Degree required"),
+    institution: z.string().min(1, "Institution required"),
+    year: z.number().min(1900).max(new Date().getFullYear() + 5)
+  })).min(1, "At least one education entry required")
 });
+
+const glowStyles = {
+  backgroundImage: 'radial-gradient(circle at center, var(--primary) 0%, transparent 70%)',
+  filter: 'blur(80px)',
+  opacity: 0.15,
+  zIndex: -1
+};
+
+
+// Add type for job seeker creation
+interface CreateJobSeekerData {
+  name: string;
+  about: string;
+  resume: string;
+  location: string;
+  skills: string[];
+  experience: number;
+  education: Array<{
+    degree: string;
+    institution: string;
+    year: number;
+  }>;
+  jobId: string;
+}
 
 interface JobSeekerOnboardingProps {
   jobId: string;
@@ -71,416 +96,540 @@ interface JobSeekerOnboardingProps {
   };
 }
 
+interface FormState {
+  message: string;
+  success: boolean;
+}
+
 export function JobSeekerOnboarding({ jobId, job }: JobSeekerOnboardingProps) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysis | null>(null);
 
+  // Use action state for form handling
+  const [state, formAction] = useActionState<FormState, FormData>(submitJobSeeker, {
+    message: '',
+    success: false
+  });
+
+  // Initialize form with proper validation schema
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       about: "",
-      skills: [],
-      experience: 0,
-      education: [],
       resume: "",
       location: "",
-      linkedin: "",
-      github: "",
-      portfolio: "",
+      skills: [],
+      experience: 0,
+      education: [{
+        degree: "",
+        institution: "",
+        year: new Date().getFullYear()
+      }]
     },
+    mode: "onChange"
   });
+
+  // Watch form values for validation
+  const formValues = form.watch();
+  const isFormValid = useMemo(() => {
+    return !!(formValues.name && formValues.about && formValues.resume && formValues.location);
+  }, [formValues]);
+
+  // Handle form submission
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    try {
+      // Validate form
+      const isValid = await form.trigger();
+      if (!isValid) {
+        toast.error("Please fix validation errors", {
+          description: "All fields must be filled correctly"
+        });
+        return;
+      }
+
+      // Prepare form data
+      const formData = new FormData();
+      const values = form.getValues();
+      
+      // Add all form values
+      Object.entries(values).forEach(([key, value]) => {
+        if (key === 'skills' || key === 'education') {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
+        }
+      });
+      formData.append('jobId', jobId);
+
+      // Submit form using action
+      formAction(formData);
+
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit form");
+    }
+  };
+
+  // Handle successful submission
+  useEffect(() => {
+    if (state.success) {
+      toast.success(state.message);
+      router.push(`/coding-test/${jobId}`);
+    } else if (state.message) {
+      toast.error(state.message);
+    }
+  }, [state, router, jobId]);
 
   const handleResumeUpload = async (url: string) => {
     try {
       setAnalyzing(true);
       
-      // Correct the URL normalization
-      const directUrl = url.startsWith('https://uploadthing.com/f/') 
-        ? `https://utfs.io/f/${url.split('/f/')[1]}`
-        : url;
-
-      // Update the URL validation
-      function isValidHttpUrl(url: string) {
-        try {
-          const newUrl = new URL(url);
-          return newUrl.hostname === 'uploadthing.com' || 
-                 newUrl.hostname.endsWith('.uploadthing.com') ||
-                 newUrl.hostname === 'utfs.io';
-        } catch (err) {
-          return false;
-        }
-      }
-
-      if (!isValidHttpUrl(directUrl)) {
+      // Validate URL format
+      if (!url.startsWith('https://uploadthing.com/f/') && !url.startsWith('https://utfs.io/f/')) {
         toast.error('Invalid Resume URL', {
-          description: 'Please upload a valid PDF file'
+          description: 'Please upload a valid PDF file through our uploader'
         });
         return;
       }
 
-      form.setValue("resume", directUrl);
-      
       const response = await fetch('/api/validate-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeUrl: directUrl })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ resumeUrl: url })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Analysis failed');
+        throw new Error(data.error || 'Failed to analyze resume');
       }
-      
-      const analysis = await response.json();
-      setResumeAnalysis(analysis);
 
-      if (!analysis.isValid) {
-        toast.error('Resume Validation Failed', {
-          description: analysis.feedback.overallFeedback
+      // Set resume URL and analysis data
+      form.setValue("resume", url, { 
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      
+      // Fix education year data and set state
+      const fixedData = {
+        ...data,
+        education: data.education.map((edu: any) => ({
+          ...edu,
+          year: edu.year === "20xx" ? new Date().getFullYear() : Number(edu.year)
+        }))
+      };
+      
+      setResumeAnalysis(fixedData);
+      
+      // Auto-populate form fields with validation
+      if (data.skills?.length > 0) {
+        form.setValue('skills', data.skills, { 
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
         });
-        return;
+      }
+      if (typeof data.experience?.years === 'number') {
+        form.setValue('experience', data.experience.years, { 
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
+      if (data.education?.length > 0) {
+        form.setValue('education', data.education.map((edu: { year: any; }) => ({
+          ...edu,
+          year: Number(edu.year) || new Date().getFullYear()
+        })), { 
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
       }
 
-      // Auto-populate form fields
-      form.setValue('skills', analysis.skills);
-      form.setValue('experience', analysis.experience.years);
-      form.setValue('education', analysis.education);
-      
-      toast.success('Resume Analysis Complete');
+      toast.success('Resume Uploaded Successfully', {
+        description: 'Your resume has been analyzed and form fields have been populated.'
+      });
 
     } catch (error) {
-      console.error('Resume analysis error:', error);
-      toast.error('Analysis Failed', {
-        description: error instanceof Error ? 
-          error.message : 'Please upload a valid resume PDF'
+      console.error('Resume upload error:', error);
+      toast.error('Upload Failed', {
+        description: error instanceof Error ? error.message : 'Failed to analyze resume'
       });
-      form.setValue("resume", "");
     } finally {
       setAnalyzing(false);
     }
   };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setPending(true);
-      
-      // Validate resume is uploaded and analyzed
-      if (!resumeAnalysis?.isValid) {
-        toast.error("Please upload and validate your resume first");
-        return;
-      }
-
-      const result = await createJobSeeker(values);
-      
-      if (result.success) {
-        toast.success("Profile completed successfully!");
-        // Redirect to the coding test page with the job ID
-        router.push(`/job/${jobId}/apply/coding-test`);
-      } else {
-        throw new Error("Failed to create profile");
-      }
-    } catch (error) {
-      toast.error("Failed to create profile. Please try again.");
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
-    <div className="mx-auto px-4 py-8 max-w-4xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="bg-gradient-to-b from-background/80 to-background/30 shadow-2xl backdrop-blur-lg border-none">
-          <CardHeader className="pb-0">
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-xl">
+    <div className="relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background min-h-screen">
+      {/* Ambient background effects */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+      
+      <div className="relative mx-auto px-4 py-12 max-w-4xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-8"
+        >
+          {/* Header */}
+          <div className="flex items-center gap-6">
+            <motion.div 
+              className="group relative"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-primary/30 opacity-30 group-hover:opacity-50 blur rounded-2xl transition" />
+              <div className="relative border-primary/10 bg-card/50 backdrop-blur-xl p-4 border rounded-xl">
                 {job.company.logo ? (
                   <img 
                     src={job.company.logo} 
                     alt={job.company.name}
-                    className="rounded-lg w-14 h-14 object-contain"
+                    className="w-16 h-16 object-contain"
                   />
                 ) : (
-                  <div className="flex justify-center items-center bg-primary/10 rounded-lg w-14 h-14">
-                    <Rocket className="w-8 h-8 text-primary" />
+                  <div className="flex justify-center items-center w-16 h-16">
+                    <Rocket className="w-8 h-8 text-primary animate-pulse" />
                   </div>
                 )}
               </div>
-              <div>
-                <CardTitle className="bg-clip-text bg-gradient-to-r from-primary to-purple-600 font-bold text-3xl text-transparent">
-                  Complete Your Profile
-                </CardTitle>
-                <p className="mt-1 text-muted-foreground">
-                  Applying for <span className="font-medium text-foreground">{job.jobTitle}</span> at {job.company.name}
-                </p>
-              </div>
+            </motion.div>
+            
+            <div>
+              <motion.h1 
+                className="bg-clip-text bg-gradient-to-r from-primary to-primary/70 font-bold text-3xl text-transparent"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Complete Your Profile
+              </motion.h1>
+              <motion.p 
+                className="mt-1 text-muted-foreground"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                Applying for <span className="font-medium text-foreground">{job.jobTitle}</span> at {job.company.name}
+              </motion.p>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="pt-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {/* Personal Information Section */}
-                <section className="space-y-4">
-                  <div className="flex items-center gap-3">
+          {/* Form */}
+          <Form {...form}>
+            <form onSubmit={onSubmit} className="space-y-6">
+              <input type="hidden" name="jobId" value={jobId} />
+
+              {/* Personal Information */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="group relative"
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-primary/10 opacity-20 group-hover:opacity-30 blur rounded-2xl transition" />
+                <div className="relative border-primary/10 bg-card/50 backdrop-blur-xl p-6 border rounded-xl">
+                  <div className="flex items-center gap-3 mb-6">
                     <div className="bg-primary/10 p-2 rounded-lg">
-                      <User2 className="w-6 h-6 text-primary" />
+                      <User2 className="w-5 h-5 text-primary" />
                     </div>
                     <h2 className="font-semibold text-xl">Personal Information</h2>
                   </div>
-                  <Separator className="bg-border/50" />
-                  
-                  <div className="gap-4 grid md:grid-cols-2">
+
+                  <div className="gap-6 grid md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-sm">Full Name</FormLabel>
+                          <FormLabel className="font-medium text-muted-foreground text-sm">
+                            Full Name
+                          </FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="John Doe" 
                               {...field} 
-                              className="rounded-xl h-12"
+                              placeholder="John Doe"
+                              className="border-primary/20 focus:border-primary bg-background/50 rounded-lg h-10 transition-all"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="location"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-sm">Location</FormLabel>
+                          <FormLabel className="font-medium text-muted-foreground text-sm">
+                            Location
+                          </FormLabel>
                           <FormControl>
-                            <div className="relative">
-                              <MapPin className="top-3.5 left-3 absolute w-5 h-5 text-muted-foreground" />
-                              <Input 
-                                placeholder="City, Country" 
-                                {...field} 
-                                className="pl-10 rounded-xl h-12"
-                              />
-                            </div>
+                            <Input 
+                              {...field} 
+                              placeholder="City, Country"
+                              className="border-primary/20 focus:border-primary bg-background/50 rounded-lg h-10 transition-all"
+                            />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
                     />
                   </div>
-                </section>
 
-                {/* Resume Upload Section */}
-                <section className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-lg">
-                        <Briefcase className="w-6 h-6 text-primary" />
-                      </div>
-                      <h2 className="font-semibold text-xl">Resume Analysis</h2>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      asChild
-                      className="gap-2 rounded-xl"
-                    >
-                      <Link href="/resume-builder">
-                        <Wand2 className="w-4 h-4" />
-                        Create Resume
-                      </Link>
-                    </Button>
-                  </div>
-                  <Separator className="bg-border/50" />
-                  
-                  <div className="space-y-6">
+                  <div className="mt-6">
                     <FormField
                       control={form.control}
-                      name="resume"
+                      name="about"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel className="font-medium text-muted-foreground text-sm">
+                            About You
+                          </FormLabel>
                           <FormControl>
+                            <Textarea 
+                              {...field}
+                              placeholder="Tell us about yourself..."
+                              className="border-primary/20 focus:border-primary bg-background/50 rounded-lg min-h-[120px] transition-all resize-none"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </motion.section>
+
+              {/* Resume Upload */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="group relative"
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-primary/10 opacity-20 group-hover:opacity-30 blur rounded-2xl transition" />
+                <div className="relative border-primary/10 bg-card/50 backdrop-blur-xl p-6 border rounded-xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <h2 className="font-semibold text-xl">Resume Upload</h2>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="resume"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="group/upload relative">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-primary/10 opacity-0 group-hover/upload:opacity-30 blur rounded-xl transition" />
                             <FileUpload
                               value={field.value}
                               onChange={handleResumeUpload}
                               disabled={analyzing}
-                              className="border-2 hover:border-primary/50 bg-background/50 border-dashed rounded-2xl h-48 transition-colors"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                              className="group-hover/upload:scale-[0.99] relative border-primary/20 hover:border-primary bg-background/50 border-dashed rounded-lg h-44 transition-all"
+                            >
+                              <div className="space-y-3 text-center">
+                                <div className="bg-primary/10 mx-auto p-3 rounded-full w-fit">
+                                  <UploadCloud className="w-8 h-8 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">Drop your resume here</p>
+                                  <p className="text-muted-foreground text-sm">PDF format • Max 4MB</p>
+                                </div>
+                              </div>
+                            </FileUpload>
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-                    {analyzing && (
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Analyzing your resume...</span>
+                  {analyzing && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="border-primary/10 bg-primary/5 mt-4 p-4 border rounded-lg"
+                    >
+                      <div className="flex justify-center items-center gap-3">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-primary/20 blur-sm rounded-full animate-pulse" />
+                          <Loader2 className="relative w-5 h-5 text-primary animate-spin" />
+                        </div>
+                        <p className="font-medium text-primary text-sm">Analyzing your resume...</p>
                       </div>
-                    )}
+                    </motion.div>
+                  )}
 
-                    {resumeAnalysis && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                      >
-                        <Tabs defaultValue="feedback" className="space-y-4">
-                          <TabsList className="gap-2 bg-background/50 backdrop-blur p-1.5 rounded-xl">
-                            <TabsTrigger value="feedback" className="data-[state=active]:bg-primary/10 rounded-lg">
-                              Feedback
-                            </TabsTrigger>
-                            <TabsTrigger value="skills" className="data-[state=active]:bg-primary/10 rounded-lg">
-                              Skills
-                            </TabsTrigger>
-                            <TabsTrigger value="details" className="data-[state=active]:bg-primary/10 rounded-lg">
-                              Details
-                            </TabsTrigger>
-                          </TabsList>
+                  {resumeAnalysis && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-4 mt-6"
+                    >
+                      {/* Experience */}
+                      <div className="flex justify-between items-center bg-background/50 p-4 border border-border/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-sm">{resumeAnalysis.experience.level} Level</p>
+                            <p className="text-muted-foreground text-xs">{resumeAnalysis.experience.years}+ Years Experience</p>
+                          </div>
+                        </div>
+                      </div>
 
-                          <TabsContent value="feedback">
-                            <div className="gap-4 grid md:grid-cols-2">
-                              {/* Strengths Card */}
-                              <div className="border-green-100 dark:border-green-800/60 bg-green-50 dark:bg-green-900/20 p-6 border rounded-xl">
-                                <div className="flex items-center gap-3 mb-4">
-                                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                                  <h3 className="font-semibold text-lg">Resume Strengths</h3>
-                                </div>
-                                <ul className="space-y-3">
-                                  {resumeAnalysis.feedback.strengths.map((strength, index) => (
-                                    <li 
-                                      key={index}
-                                      className="flex items-start gap-3 bg-white dark:bg-green-950/30 p-3 rounded-lg"
-                                    >
-                                      <div className="flex-shrink-0 bg-green-600 mt-2 rounded-full w-2 h-2" />
-                                      <p className="text-sm leading-relaxed">{strength}</p>
-                                    </li>
-                                  ))}
-                                </ul>
+                      {/* Skills */}
+                      <div className="bg-background/50 p-4 border border-border/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Code2 className="w-4 h-4 text-primary" />
+                          <p className="font-medium text-sm">Skills</p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resumeAnalysis.skills.map((skill, index) => (
+                            <Badge 
+                              key={index}
+                              variant="secondary"
+                              className="bg-primary/5 text-xs"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Feedback Grid */}
+                      <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+                        {/* Strengths */}
+                        <div className="bg-background/50 p-4 border border-border/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            <p className="font-medium text-sm">Strengths</p>
+                          </div>
+                          <ul className="space-y-2">
+                            {resumeAnalysis.feedback.strengths.map((strength, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="mt-1.5 text-emerald-500 text-xs">•</span>
+                                <span className="text-muted-foreground text-xs">{strength}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Areas to Improve */}
+                        <div className="bg-background/50 p-4 border border-border/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                            <p className="font-medium text-sm">Areas to Improve</p>
+                          </div>
+                          <ul className="space-y-2">
+                            {resumeAnalysis.feedback.improvements.map((improvement, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="mt-1.5 text-amber-500 text-xs">•</span>
+                                <span className="text-muted-foreground text-xs">{improvement}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Overall Feedback */}
+                      <div className="bg-background/50 p-4 border border-border/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <MessageSquare className="w-4 h-4 text-primary" />
+                          <p className="font-medium text-sm">Overall Feedback</p>
+                        </div>
+                        <p className="text-muted-foreground text-xs leading-relaxed">
+                          {resumeAnalysis.feedback.overallFeedback}
+                        </p>
+                      </div>
+
+                      {/* Education */}
+                      <div className="bg-background/50 p-4 border border-border/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <GraduationCap className="w-4 h-4 text-primary" />
+                          <p className="font-medium text-sm">Education</p>
+                        </div>
+                        <div className="space-y-3">
+                          {resumeAnalysis.education.map((edu, index) => (
+                            <div 
+                              key={index}
+                              className="flex justify-between items-center last:border-0 pb-3 last:pb-0 border-b border-border/50"
+                            >
+                              <div>
+                                <p className="font-medium text-sm">{edu.degree}</p>
+                                <p className="text-muted-foreground text-xs">{edu.institution}</p>
                               </div>
-
-                              {/* Improvements Card */}
-                              <div className="border-amber-100 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 p-6 border rounded-xl">
-                                <div className="flex items-center gap-3 mb-4">
-                                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                                  <h3 className="font-semibold text-lg">Improvement Suggestions</h3>
-                                </div>
-                                <ul className="space-y-3">
-                                  {resumeAnalysis.feedback.improvements.map((improvement, index) => (
-                                    <li
-                                      key={index}
-                                      className="flex items-start gap-3 bg-white dark:bg-amber-950/30 p-3 rounded-lg"
-                                    >
-                                      <div className="flex-shrink-0 bg-amber-600 mt-2 rounded-full w-2 h-2" />
-                                      <p className="text-sm leading-relaxed">{improvement}</p>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {edu.year}
+                              </Badge>
                             </div>
-                          </TabsContent>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.section>
 
-                          <TabsContent value="skills">
-                            <div className="flex flex-wrap gap-3">
-                              {resumeAnalysis.skills.map((skill, index) => (
-                                <Badge key={index} variant="outline" className="text-sm">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="details">
-                            <div className="gap-6 grid md:grid-cols-2">
-                              <div className="space-y-4">
-                                <h3 className="flex items-center gap-2 font-semibold">
-                                  <GraduationCap className="w-5 h-5 text-primary" />
-                                  Education
-                                </h3>
-                                <div className="space-y-3">
-                                  {resumeAnalysis.education.map((edu, i) => (
-                                    <div key={i} className="bg-muted/30 p-4 rounded-xl">
-                                      <p className="font-medium text-sm">{edu.degree}</p>
-                                      <p className="text-muted-foreground text-sm">{edu.institution}</p>
-                                      <p className="mt-1 text-muted-foreground text-xs">
-                                        Graduated: {edu.year}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              <div className="space-y-4">
-                                <h3 className="flex items-center gap-2 font-semibold">
-                                  <Briefcase className="w-5 h-5 text-primary" />
-                                  Experience
-                                </h3>
-                                <div className="bg-muted/30 p-4 rounded-xl">
-                                  <div className="flex items-center gap-3">
-                                    <span className="font-bold text-2xl text-primary">
-                                      {resumeAnalysis.experience.years}
-                                    </span>
-                                    <div>
-                                      <p className="font-medium">Years Experience</p>
-                                      <Badge 
-                                        variant="outline" 
-                                        className={cn(
-                                          "mt-1 capitalize",
-                                          resumeAnalysis.experience.level === 'senior' && 'bg-purple-500/10 text-purple-500',
-                                          resumeAnalysis.experience.level === 'mid' && 'bg-blue-500/10 text-blue-500',
-                                          resumeAnalysis.experience.level === 'entry' && 'bg-green-500/10 text-green-500',
-                                        )}
-                                      >
-                                        {resumeAnalysis.experience.level} level
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      </motion.div>
-                    )}
-                  </div>
-                </section>
-
-                {/* Final CTA */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
+              {/* Submit Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bottom-4 sticky border-primary/10 bg-background/80 shadow-lg backdrop-blur-xl p-4 border rounded-xl"
+              >
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary/50 opacity-50 group-hover:opacity-70 blur rounded-lg transition" />
                   <Button
                     type="submit"
                     size="lg"
-                    className="gap-2 rounded-xl w-full h-14 font-semibold text-lg"
-                    disabled={pending || !form.formState.isValid || !resumeAnalysis?.isValid}
-                  >
-                    {pending ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Finalizing Your Profile...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5" />
-                        Complete Application
-                      </>
+                    className={cn(
+                      "relative w-full h-12",
+                      "bg-primary hover:bg-primary/90",
+                      "font-medium rounded-lg",
+                      !isFormValid && "opacity-50 cursor-not-allowed"
                     )}
+                    disabled={!isFormValid}
+                  >
+                    <div className="flex justify-center items-center gap-2">
+                      <Rocket className="w-4 h-4" />
+                      <span>{isFormValid ? "Complete Application" : "Fill Required Fields"}</span>
+                    </div>
                   </Button>
-                </motion.div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </motion.div>
+                </div>
+
+                {state.message && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "mt-4 text-center text-sm p-3 rounded-lg",
+                      state.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                    )}
+                  >
+                    {state.message}
+                  </motion.p>
+                )}
+              </motion.div>
+            </form>
+          </Form>
+        </motion.div>
+      </div>
     </div>
   );
 }

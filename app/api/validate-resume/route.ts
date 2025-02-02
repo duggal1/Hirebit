@@ -7,7 +7,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 function isValidUrl(url: string) {
   try {
     const newUrl = new URL(url);
-    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
+    // Allow both uploadthing.com and utfs.io URLs
+    return (newUrl.hostname === 'uploadthing.com' || 
+            newUrl.hostname.endsWith('.uploadthing.com') ||
+            newUrl.hostname === 'utfs.io');
   } catch (e) {
     return false;
   }
@@ -15,12 +18,22 @@ function isValidUrl(url: string) {
 
 export async function POST(req: Request) {
   try {
-    const { resumeUrl } = await req.json();
+    const body = await req.json();
+    const { resumeUrl } = body;
+    
+    console.log('Received resume URL:', resumeUrl); // Debug log
     
     // Validate URL
-    if (!resumeUrl || !isValidUrl(resumeUrl)) {
+    if (!resumeUrl) {
       return NextResponse.json(
-        { error: "Invalid or missing resume URL" },
+        { error: "Missing resume URL" },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidUrl(resumeUrl)) {
+      return NextResponse.json(
+        { error: "Invalid resume URL format. Must be from UploadThing." },
         { status: 400 }
       );
     }
@@ -30,31 +43,37 @@ export async function POST(req: Request) {
       ? `https://utfs.io/f/${resumeUrl.split('/f/')[1]}`
       : resumeUrl;
 
-    // Add additional validation for UTFS.io URLs
-    if (!normalizedUrl.startsWith('https://utfs.io/f/')) {
-      return NextResponse.json(
-        { error: "Invalid resume URL format" },
-        { status: 400 }
-      );
-    }
-
-    // Modify the PDF fetch with better error handling
+    // Fetch PDF with improved error handling
     let pdfBuffer: ArrayBuffer;
     try {
+      console.log('Fetching PDF from:', normalizedUrl); // Debug log
+      
       const pdfResponse = await fetch(normalizedUrl, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          'Accept': 'application/pdf',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         redirect: 'follow',
-        timeout: 10000 // 10 second timeout
+        cache: 'no-cache'
       });
 
-      if (!pdfResponse.ok) throw new Error(`HTTP ${pdfResponse.status}`);
+      if (!pdfResponse.ok) {
+        console.error('PDF fetch failed:', pdfResponse.status, await pdfResponse.text());
+        throw new Error(`HTTP ${pdfResponse.status}`);
+      }
       
       const contentType = pdfResponse.headers.get('Content-Type');
       if (!contentType?.includes('application/pdf')) {
+        console.error('Invalid content type:', contentType);
         throw new Error('Invalid PDF content type');
       }
 
       pdfBuffer = await pdfResponse.arrayBuffer();
+      
+      if (!pdfBuffer || pdfBuffer.byteLength === 0) {
+        throw new Error('Empty PDF buffer');
+      }
+      
     } catch (error) {
       console.error('PDF fetch error:', error);
       return NextResponse.json(
@@ -66,71 +85,155 @@ export async function POST(req: Request) {
       );
     }
     
-    // Load PDF content
-    const loader = new PDFLoader(new Blob([pdfBuffer]), {
-      parsedItemSeparator: " ",
-      splitPages: false
-    });
-    
-    const docs = await loader.load();
-    const resumeText = docs.map(doc => doc.pageContent).join('\n');
+    // Load PDF content with error handling
+    let resumeText: string;
+    try {
+      const loader = new PDFLoader(new Blob([pdfBuffer], { type: 'application/pdf' }), {
+        parsedItemSeparator: " ",
+        splitPages: false
+      });
+      
+      const docs = await loader.load();
+      resumeText = docs.map(doc => doc.pageContent).join('\n');
 
-    if (!resumeText.trim()) {
+      if (!resumeText.trim()) {
+        return NextResponse.json({
+          isValid: false,
+          feedback: {
+            strengths: [],
+            improvements: ["The PDF appears to be empty or unreadable"],
+            overallFeedback: "Please upload a valid resume PDF file"
+          }
+        });
+      }
+    } catch (error) {
+      console.error('PDF parsing error:', error);
       return NextResponse.json({
         isValid: false,
         feedback: {
           strengths: [],
-          improvements: ["The PDF appears to be empty or unreadable"],
-          overallFeedback: "Please upload a valid resume PDF file"
+          improvements: ["Failed to parse PDF content"],
+          overallFeedback: "Please ensure you've uploaded a valid PDF file"
         }
-      }, { status: 400 });
+      });
     }
 
     // Analyze with Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Analyze this resume and provide structured feedback. Follow these rules:
-    1. ALWAYS provide 3-5 strengths even if resume needs improvements
-    2. Focus on technical skills, experience, and education
-    3. Provide actionable improvement suggestions
-    
-    Resume text:
-    ${resumeText.substring(0, 30000)}
-    
-    Respond with JSON:{
-      "isValid": boolean,
-      "feedback": {
-        "strengths": string[],  // Minimum 3 items
-        "improvements": string[],  // Minimum 3 items
-        "overallFeedback": string
-      },
-      "skills": string[],
-      "experience": { "years": number, "level": "entry"|"mid"|"senior" },
-      "education": { "degree": string, "institution": string, "year": number }[]
-    }`;
-
-    const result = await model.generateContent(prompt);
-    const analysisText = (await result.response.text()).trim();
-    
-    const cleanedResponse = analysisText
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-
     try {
-      const analysis = JSON.parse(cleanedResponse);
-      return NextResponse.json(analysis);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const prompt = `You are a resume analyzer. Your task is to analyze the resume and return ONLY a JSON object with no additional text or explanation. The JSON must follow this exact structure:
+      {
+        "isValid": boolean,
+        "feedback": {
+          "strengths": string[],
+          "improvements": string[],
+          "overallFeedback": string
+        },
+        "skills": string[],
+        "experience": {
+          "years": number,
+          "level": "entry"|"mid"|"senior"
+        },
+        "education": [{
+          "degree": string,
+          "institution": string,
+          "year": number
+        }]
+      }
+
+      Rules for analysis:
+      1. ALWAYS provide 3-5 strengths even if resume needs improvements
+      2. Focus on technical skills, experience, and education
+      3. Provide actionable improvement suggestions
+      
+      Resume text to analyze:
+      ${resumeText.substring(0, 30000)}`;
+
+      const result = await model.generateContent(prompt);
+      const analysisText = (await result.response.text()).trim();
+      
+      // Improved JSON cleaning
+      let cleanedResponse = analysisText
+        .replace(/```json\s*/g, '') // Remove JSON code block markers with any whitespace
+        .replace(/```\s*/g, '')     // Remove any other code block markers
+        .replace(/[\u201C\u201D]/g, '"') // Replace smart quotes with straight quotes
+        .trim();
+
+      // Find the first { and last } to extract just the JSON object
+      const startIndex = cleanedResponse.indexOf('{');
+      const endIndex = cleanedResponse.lastIndexOf('}') + 1;
+      
+      if (startIndex === -1 || endIndex === 0) {
+        throw new Error('No valid JSON object found in response');
+      }
+
+      cleanedResponse = cleanedResponse.slice(startIndex, endIndex);
+
+      try {
+        const analysis = JSON.parse(cleanedResponse);
+
+        // Convert string years to number if needed
+        if (typeof analysis.experience?.years === 'string') {
+          const yearsStr = analysis.experience.years;
+          analysis.experience.years = parseInt(yearsStr.replace('+', ''));
+        }
+
+        // Fix education year if it's "20xx"
+        if (analysis.education?.length > 0) {
+          analysis.education = analysis.education.map(edu => ({
+            ...edu,
+            year: edu.year === '20xx' ? new Date().getFullYear() : edu.year
+          }));
+        }
+
+        // Validate and ensure all required fields
+        const validatedAnalysis = {
+          isValid: Boolean(analysis.isValid),
+          feedback: {
+            strengths: Array.isArray(analysis.feedback?.strengths) ? analysis.feedback.strengths : [],
+            improvements: Array.isArray(analysis.feedback?.improvements) ? analysis.feedback.improvements : [],
+            overallFeedback: analysis.feedback?.overallFeedback || "Resume analyzed successfully"
+          },
+          skills: Array.isArray(analysis.skills) ? analysis.skills : [],
+          experience: {
+            years: typeof analysis.experience?.years === 'number' ? analysis.experience.years : 0,
+            level: ['entry', 'mid', 'senior'].includes(analysis.experience?.level) ? analysis.experience.level : 'entry'
+          },
+          education: Array.isArray(analysis.education) ? analysis.education : []
+        };
+
+        return NextResponse.json(validatedAnalysis);
+      } catch (error) {
+        console.error('JSON parsing error:', error);
+        console.error('Cleaned response:', cleanedResponse);
+        return NextResponse.json({
+          isValid: false,
+          feedback: {
+            strengths: [],
+            improvements: ["Failed to analyze resume content"],
+            overallFeedback: "Our analysis system encountered an error. Please try again."
+          },
+          skills: [],
+          experience: { years: 0, level: "entry" },
+          education: []
+        });
+      }
     } catch (error) {
+      console.error('Gemini analysis error:', error);
       return NextResponse.json({
         isValid: false,
         feedback: {
           strengths: [],
-          improvements: ["Failed to analyze resume content"],
-          overallFeedback: "Invalid resume format or structure"
-        }
-      }, { status: 400 });
+          improvements: ["Error analyzing resume content"],
+          overallFeedback: "Our AI system encountered an error. Please try again later."
+        },
+        skills: [],
+        experience: { years: 0, level: "entry" },
+        education: []
+      });
     }
   } catch (error) {
-    console.error('Resume validation error:', error);
+    console.error('General error:', error);
     return NextResponse.json({
       isValid: false,
       feedback: {

@@ -5,18 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export function QuestionCard({ question, index }: { question: any; index: number }) {
+interface QuestionCardProps {
+  question: any;
+  index: number;
+  isCurrent: boolean;
+}
+
+export function QuestionCard({ question, index, isCurrent }: QuestionCardProps) {
   const [open, setOpen] = useState(index === 0);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card rounded-xl p-6 border"
+      className="bg-card p-6 border rounded-xl"
     >
-      <div className="flex items-start justify-between cursor-pointer" onClick={() => setOpen(!open)}>
+      <div className="flex justify-between items-start cursor-pointer" onClick={() => setOpen(!open)}>
         <div>
-          <h3 className="font-semibold flex items-center gap-3">
+          <h3 className="flex items-center gap-3 font-semibold">
             Question {index + 1}
             <Badge variant="outline" className={cn(
               "capitalize",
@@ -32,19 +38,19 @@ export function QuestionCard({ question, index }: { question: any; index: number
       </div>
       
       {open && (
-        <div className="mt-4 space-y-4">
-          <div className="prose prose-invert">
+        <div className="space-y-4 mt-4">
+          <div className="prose-invert prose">
             <pre className="whitespace-pre-wrap">{question.question}</pre>
           </div>
           
           <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Starter Code</h4>
-            <code className="text-sm font-mono">{question.starterCode}</code>
+            <h4 className="mb-2 font-medium text-sm">Starter Code</h4>
+            <code className="font-mono text-sm">{question.starterCode}</code>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Test Cases</h4>
-            <div className="grid gap-2">
+            <h4 className="mb-2 font-medium text-sm">Test Cases</h4>
+            <div className="gap-2 grid">
               {question.testCases.map((tc: any, i: number) => (
                 <div key={i} className="flex gap-4 text-sm">
                   <span className="font-medium">Input:</span>

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { requireUser } from "./utils/hooks";
-import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas";
+import { companySchema, jobSchema } from "./utils/zodSchemas"; 
 import { prisma } from "./utils/db";
 import { redirect } from "next/navigation";
 import { stripe } from "./utils/stripe";
@@ -65,56 +65,59 @@ export async function createCompany(data: z.infer<typeof companySchema>) {
   return redirect("/");
 }
 
-export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
+const jobSeekerSchema = z.object({
+  name: z.string(),
+  about: z.string(),
+  resume: z.string(),
+  location: z.string(),
+  skills: z.array(z.string()),
+  experience: z.number(),
+  education: z.array(z.object({
+    degree: z.string(),
+    institution: z.string(),
+    year: z.number()
+  }))
+});
+
+export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema> & { jobId: string }) {
   const user = await requireUser();
 
-  // Access the request object so Arcjet can analyze it
-  const req = await request();
-  const decision = await aj.protect(req);
-
-  if (decision.isDenied()) {
-    throw new Error("Forbidden");
-  }
-
   try {
+    // Validate with Zod schema
     const validatedData = jobSeekerSchema.parse(data);
-
-    // Create the job seeker profile using a transaction
-    const jobSeeker = await prisma.$transaction(async (tx) => {
-      // Update user first with correct type
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          userType: UserType.JOB_SEEKER,
-          onboardingCompleted: true
-        }
-      });
-
-      // Then create job seeker profile
-      return await tx.jobSeeker.create({
-        data: {
-          name: validatedData.name,
-          about: validatedData.about,
-          resume: validatedData.resume,
-          skills: validatedData.skills,
-          experience: validatedData.experience,
-          education: validatedData.education,
-          location: validatedData.location,
-          phoneNumber: validatedData.phoneNumber || null,
-          linkedin: validatedData.linkedin || null,
-          github: validatedData.github || null,
-          portfolio: validatedData.portfolio || null,
-          user: {
-            connect: { id: updatedUser.id }
-          }
-        }
-      });
+    
+    // Create profile
+    const jobSeeker = await prisma.jobSeeker.create({
+      data: {
+        name: validatedData.name,
+        about: validatedData.about,
+        resume: validatedData.resume,
+        location: validatedData.location,
+        skills: validatedData.skills,
+        experience: Number(validatedData.experience) || 0,
+        education: validatedData.education as Prisma.JsonArray,
+        user: { connect: { id: user.id } }
+      }
     });
 
-    return { success: true, jobSeekerId: jobSeeker.id };
+    // Create application record
+    await prisma.jobApplication.create({
+      data: {
+        jobSeekerId: jobSeeker.id,
+        jobId: data.jobId,
+        status: "PENDING",
+        resume: validatedData.resume
+      }
+    });
+
+    return { success: true };
   } catch (error) {
-    console.error("Error creating job seeker profile:", error);
-    throw new Error("Failed to create profile");
+    console.error('Server error:', error);
+    throw new Error(
+      error instanceof z.ZodError 
+        ? "Invalid form data" 
+        : "Failed to create profile"
+    );
   }
 }
 
@@ -494,4 +497,66 @@ function isInCooldown(lastAttemptAt: Date | null): boolean {
   const cooldownEnds = new Date(lastAttemptAt.getTime() + cooldownHours * 60 * 60 * 1000);
   return new Date() < cooldownEnds;
 }
+
+export type FormState = {
+  message: string;
+  success: boolean;
+};
+
+export const submitJobSeeker = async (
+  prevState: FormState,
+  formData: FormData
+) => {
+  try {
+    const rawData = {
+      name: formData.get('name') as string,
+      about: formData.get('about') as string,
+      resume: formData.get('resume') as string,
+      location: formData.get('location') as string,
+      skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
+      experience: Number(formData.get('experience')) || 0,
+      education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
+      jobId: formData.get('jobId') as string
+    };
+
+    // Validate required fields
+    if (!rawData.name || !rawData.about || !rawData.resume || !rawData.location) {
+      throw new Error('Please fill in all required fields');
+    }
+
+    // Create job seeker with validated data
+    const jobSeeker = await prisma.jobSeeker.create({
+      data: {
+        name: rawData.name,
+        about: rawData.about,
+        resume: rawData.resume,
+        location: rawData.location,
+        skills: rawData.skills,
+        experience: rawData.experience,
+        education: rawData.education as Prisma.JsonArray,
+        user: { connect: { id: (await requireUser()).id } }
+      }
+    });
+
+    // Create job application
+    if (rawData.jobId) {
+      await prisma.jobApplication.create({
+        data: {
+          jobSeekerId: jobSeeker.id,
+          jobId: rawData.jobId,
+          status: "PENDING",
+          resume: rawData.resume
+        }
+      });
+    }
+
+    return { message: 'Profile created successfully! Redirecting to coding test...', success: true };
+  } catch (error) {
+    console.error('Error:', error);
+    return { 
+      message: error instanceof Error ? error.message : 'Failed to create profile',
+      success: false 
+    };
+  }
+};
 

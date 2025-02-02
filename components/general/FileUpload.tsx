@@ -10,9 +10,11 @@ interface FileUploadProps {
   value?: string;
   disabled?: boolean;
   className?: string;
+  children?: React.ReactNode;
+  accept?: string;
 }
 
-export function FileUpload({ onChange, value, disabled, className }: FileUploadProps) {
+export function FileUpload({ onChange, value, disabled, className, children }: FileUploadProps) {
   return (
     <div className={className}>
       {value ? (
@@ -33,52 +35,21 @@ export function FileUpload({ onChange, value, disabled, className }: FileUploadP
           </Button>
         </div>
       ) : (
-        <UploadDropzone
-          endpoint="resumeUploader"
-          onClientUploadComplete={async (res) => {
-            try {
-              // Validate resume
-              const response = await fetch('/api/validate-resume', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resumeUrl: res[0].url }),
-              });
-              
-              const analysis = await response.json();
-              
-              if (analysis.isValid) {
-                onChange(res[0].url);
-                toast.success("Resume uploaded successfully!");
-                
-                // Show feedback
-                if (analysis.feedback.improvements.length > 0) {
-                  toast.info(
-                    <div>
-                      <p className="mb-1 font-medium">Resume Feedback:</p>
-                      <ul className="pl-4 text-sm list-disc">
-                        {analysis.feedback.improvements.map((item: string, i: number) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>,
-                    { duration: 5000 }
-                  );
-                }
-              } else {
-                toast.error(analysis.feedback.overallFeedback);
-                onChange("");
-              }
-            } catch (error) {
-              toast.error("Failed to process resume");
-              onChange("");
-            }
-          }}
-          onUploadError={(error: Error) => {
-            toast.error(error.message || "Upload failed");
-          }}
-          className="ut-button:bg-primary ut-button:hover:bg-primary/90 ut-button:text-white ut-label:text-muted-foreground"
-          disabled={disabled}
-        />
+        <div className="flex flex-col justify-center items-center w-full h-full">
+          <UploadDropzone
+            endpoint="resumeUploader"
+            onClientUploadComplete={(res) => {
+              onChange(res[0].url); // Just pass the URL to parent component
+              toast.success("Resume uploaded successfully!");
+            }}
+            onUploadError={(error: Error) => {
+              toast.error(error.message || "Upload failed");
+            }}
+            className="ut-button:bg-primary ut-button:hover:bg-primary/90 ut-button:text-white ut-label:text-muted-foreground"
+            disabled={disabled}
+          />
+          {children}
+        </div>
       )}
     </div>
   );
