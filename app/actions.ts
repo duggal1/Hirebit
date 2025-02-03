@@ -172,8 +172,8 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       salaryTo: validatedData.salaryTo,
       listingDuration: validatedData.listingDuration,
       benefits: validatedData.benefits,
-      jobDescription: validatedData.jobDescription, // Make sure this is stored
-      status: "ACTIVE", // Temporarily set to ACTIVE directly
+      jobDescription: validatedData.jobDescription,
+      status: "ACTIVE",
     },
   });
 

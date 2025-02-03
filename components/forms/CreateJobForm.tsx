@@ -90,14 +90,14 @@ export function CreateJobForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="col-span-1   lg:col-span-2  flex flex-col gap-8"
+        className="flex flex-col gap-8 col-span-1 lg:col-span-2"
       >
         <Card>
           <CardHeader>
             <CardTitle>Job Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="gap-6 grid md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="jobTitle"
@@ -143,7 +143,7 @@ export function CreateJobForm({
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="gap-6 grid md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="location"
@@ -207,7 +207,11 @@ export function CreateJobForm({
                 <FormItem>
                   <FormLabel>Job Description</FormLabel>
                   <FormControl>
-                    <JobDescriptionEditor field={field} />
+                    <JobDescriptionEditor 
+                      field={field}
+                    //  minLength={200}
+                      //requiredSkills={["requirements", "responsibilities"]}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -235,7 +239,7 @@ export function CreateJobForm({
             <CardTitle>Company Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="gap-6 grid md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="companyName"
@@ -290,7 +294,7 @@ export function CreateJobForm({
                 )}
               />
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="gap-6 grid md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="companyWebsite"
@@ -298,8 +302,8 @@ export function CreateJobForm({
                   <FormItem>
                     <FormLabel>Company Website</FormLabel>
                     <FormControl>
-                      <div className="flex ">
-                        <span className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md bg-muted text-muted-foreground text-sm">
+                      <div className="flex">
+                        <span className="flex justify-center items-center border-input bg-muted px-3 border border-r-0 rounded-l-md text-muted-foreground text-sm">
                           https://
                         </span>
                         <Input
@@ -321,8 +325,8 @@ export function CreateJobForm({
                   <FormItem>
                     <FormLabel>Company X Account</FormLabel>
                     <FormControl>
-                      <div className="flex ">
-                        <span className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md bg-muted text-muted-foreground text-sm">
+                      <div className="flex">
+                        <span className="flex justify-center items-center border-input bg-muted px-3 border border-r-0 rounded-l-md text-muted-foreground text-sm">
                           @
                         </span>
                         <Input
@@ -377,10 +381,10 @@ export function CreateJobForm({
                             type="button"
                             variant="destructive"
                             size="icon"
-                            className="absolute -top-2 -right-2 "
+                            className="-top-2 -right-2 absolute"
                             onClick={() => field.onChange("")}
                           >
-                            <XIcon className="h-4 w-4" />
+                            <XIcon className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (

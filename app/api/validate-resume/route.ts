@@ -180,7 +180,7 @@ export async function POST(req: Request) {
 
         // Fix education year if it's "20xx"
         if (analysis.education?.length > 0) {
-          analysis.education = analysis.education.map(edu => ({
+          analysis.education = analysis.education.map((edu: { year: string; }) => ({
             ...edu,
             year: edu.year === '20xx' ? new Date().getFullYear() : edu.year
           }));

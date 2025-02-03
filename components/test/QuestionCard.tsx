@@ -1,6 +1,6 @@
 "use client";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,18 @@ export function QuestionCard({ question, index, isCurrent }: QuestionCardProps) 
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="bg-blue-500/10 p-4 border border-blue-500/30 rounded-lg">
+            <h4 className="mb-2 font-medium text-blue-500 text-sm">Job-Specific Hints</h4>
+            <ul className="space-y-2">
+              {question.realTimeHints.map((hint: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => (
+                <li key={i} className="flex items-start gap-2 text-blue-300 text-sm">
+                  <span className="text-blue-500">💡</span>
+                  <span className="flex-1">{hint}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}

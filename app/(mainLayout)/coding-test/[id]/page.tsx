@@ -15,13 +15,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ClockIcon, RocketIcon } from "@/components/icons";
 import { ArrowRightIcon } from "lucide-react";
+import { CheckCircleIcon, AlertTriangleIcon } from "lucide-react";
 
 interface TestQuestion {
   question: string;
-  starterCode: string;
-  testCases: { input: string; output: string }[];
-  difficulty: string;
-  skillsTested: string[];
+  technicalRequirements: string[];
+  performanceThresholds: {
+    maxCpu: string;
+    maxMemory: string;
+    throughput: string;
+  };
+  debuggingSection: {
+    preWrittenCode: string;
+    knownIssues: number;
+    failureScenarios: string[];
+  };
+  submissionArtifacts: string[];
 }
 
 interface QuestionCardProps {
@@ -41,6 +50,37 @@ interface TestData {
   evaluationCriteria: string[];
 }
 
+interface CodeEvaluation {
+  score: number;
+  feedback: string;
+  correctness: boolean;
+  efficiency: string;
+  quality: string;
+  realTimeSuggestions: string[];
+  jobFitAnalysis: {
+    strengthsForRole: string[];
+    areasToImprove: string[];
+    overallJobFit: string;
+  };
+  scalabilityScore: number;
+  faultToleranceScore: number;
+}
+
+interface EvaluationResult {
+  scores: {
+    code_quality: number;
+    performance: number;
+    architecture: number;
+    testing: number;
+    documentation: number;
+  };
+  analysis: {
+    technical_skills: string[];
+    missing_requirements: string[];
+    architecture_validation: string[];
+  };
+}
+
 export default function CodingTestPage() {
   const params = useParams();
   const testId = params.id as string;
@@ -53,39 +93,20 @@ export default function CodingTestPage() {
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [realTimeFeedback, setRealTimeFeedback] = useState<CodeEvaluation | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const jobPost = await getJobForTest(testId);
+        const jobData = await getJobForTest(testId);
         
-        if (!jobPost) return notFound();
+        if (!jobData) return notFound();
         
-        const response = await fetch('/api/generate-test', {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ jobDescription: jobPost.jobDescription })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to generate test');
-        }
-        
-        const test = await response.json();
-        
-        const validatedTest: TestData = {
-          questions: test.questions || [],
-          duration: test.duration || 90,
-          skillsTested: Array.isArray(test.skillsTested) ? test.skillsTested : [],
-          evaluationCriteria: test.evaluationCriteria || []
-        };
-        
-        setJob(jobPost);
-        setTestData(validatedTest);
-        setTimeLeft(validatedTest.duration * 60);
-        setCode(validatedTest.questions[0]?.starterCode || '');
+        setJob(jobData);
+        setTestData(jobData.test);
+        setTimeLeft(jobData.test.duration * 60);
+        setCode(jobData.test.questions[0]?.debuggingSection?.preWrittenCode || '');
         setLoading(false);
       } catch (err) {
         console.error('Error:', err);
@@ -120,7 +141,8 @@ export default function CodingTestPage() {
         },
         body: JSON.stringify({
           code,
-          question: testData.questions[currentQuestion].question
+          requirements: job.test.requirements,
+          evaluation_matrix: job.test.evaluation_matrix
         })
       });
 
@@ -131,7 +153,7 @@ export default function CodingTestPage() {
       const nextQuestion = testData.questions[currentQuestion + 1];
       if (nextQuestion) {
         setCurrentQuestion(prev => prev + 1);
-        setCode(nextQuestion.starterCode);
+        setCode(nextQuestion.debuggingSection.preWrittenCode);
       } else {
         const totalScore = newResults.reduce((acc, curr) => acc + curr.score, 0) / newResults.length;
         await submitTestResults({
@@ -165,6 +187,36 @@ export default function CodingTestPage() {
     return () => clearInterval(timer);
   }, [timeLeft, completed, handleSubmit]);
 
+  useEffect(() => {
+    if (!code || !testData?.questions[currentQuestion]) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsEvaluating(true);
+        const response = await fetch("/api/evaluate-code", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            requirements: job.test.requirements,
+            evaluation_matrix: job.test.evaluation_matrix
+          })
+        });
+
+        if (response.ok) {
+          const evaluation = await response.json();
+          setRealTimeFeedback(evaluation);
+        }
+      } catch (error) {
+        console.error('Real-time evaluation error:', error);
+      } finally {
+        setIsEvaluating(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [code, currentQuestion, testData, job]);
+
   if (loading) return <div className="p-8 text-center">Generating test...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!testData) return notFound();
@@ -197,9 +249,10 @@ export default function CodingTestPage() {
 
       <Tabs defaultValue="question" className="gap-8 grid md:grid-cols-[1fr_2fr]">
         <div className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="question">Problem</TabsTrigger>
-            <TabsTrigger value="submissions">Your Submissions</TabsTrigger>
+            <TabsTrigger value="feedback">Real-time Feedback</TabsTrigger>
+            <TabsTrigger value="submissions">Submissions</TabsTrigger>
           </TabsList>
           
           <TabsContent value="question" className="space-y-6">
@@ -211,6 +264,77 @@ export default function CodingTestPage() {
                 isCurrent={i === currentQuestion}
               />
             ))}
+          </TabsContent>
+
+          <TabsContent value="feedback" className="space-y-4">
+            {isEvaluating ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="bg-muted rounded w-3/4 h-4"></div>
+                <div className="bg-muted rounded w-1/2 h-4"></div>
+              </div>
+            ) : realTimeFeedback ? (
+              <div className="space-y-6">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="mb-2 font-medium">Real-time Suggestions</h3>
+                  <ul className="space-y-2">
+                    {realTimeFeedback.realTimeSuggestions.map((suggestion, i) => (
+                      <li key={i} className="flex items-start gap-2 text-muted-foreground text-sm">
+                        <span className="text-primary">•</span>
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="mb-2 font-medium">Architecture Review</h3>
+                  <div className="gap-4 grid grid-cols-2">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-green-500 text-sm">Strengths</h4>
+                      {realTimeFeedback.jobFitAnalysis.strengthsForRole.map((strength, i) => (
+                        <div key={i} className="flex items-start gap-2 text-sm">
+                          <CheckCircleIcon className="mt-1 w-4 h-4 text-green-500" />
+                          <span>{strength}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-yellow-500">Improvements</h4>
+                      {realTimeFeedback.jobFitAnalysis.areasToImprove.map((area, i) => (
+                        <div key={i} className="flex items-start gap-2 text-sm">
+                          <AlertTriangleIcon className="mt-1 w-4 h-4 text-yellow-500" />
+                          <span>{area}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {job?.test?.expertise?.level === 'senior' && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="mb-2 font-medium text-sm">System Design Evaluation</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Scalability</span>
+                          <Badge variant={realTimeFeedback.scalabilityScore >= 4 ? 'secondary' : 'destructive'}>
+                            {realTimeFeedback.scalabilityScore}/5
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fault Tolerance</span>
+                          <Badge variant={realTimeFeedback.faultToleranceScore >= 4 ? 'secondary' : 'destructive'}>
+                            {realTimeFeedback.faultToleranceScore}/5
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground">
+                Start coding to see real-time feedback
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="submissions">
@@ -261,7 +385,7 @@ export default function CodingTestPage() {
                 onClick={() => {
                   if (!testData?.questions?.[currentQuestion - 1]) return;
                   setCurrentQuestion(prev => prev - 1);
-                  setCode(testData.questions[currentQuestion - 1].starterCode);
+                  setCode(testData.questions[currentQuestion - 1].debuggingSection.preWrittenCode);
                 }}
               >
                 ← Previous
