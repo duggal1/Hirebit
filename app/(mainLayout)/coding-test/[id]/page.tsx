@@ -230,7 +230,7 @@ export default function CodingTestPage() {
                     padding: { top: 20 },
                     smoothScrolling: true,
                     cursorBlinking: "smooth",
-                    cursorSmoothCaretAnimation: true
+                    cursorSmoothCaretAnimation: "on"
                   }}
                 />
               </div>
