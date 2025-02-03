@@ -17,6 +17,12 @@ interface TestCase {
   output: string;
 }
 
+interface GeneratedTestCase {
+  input: string;
+  expected_output: string;
+  explanation: string;
+}
+
 export async function POST(req: Request) {
   try {
     const { jobDescription } = await req.json();
@@ -144,22 +150,41 @@ Return JSON with:
 
       // Normalize and validate the data
       const validatedTestData = {
-        questions: testData.questions.map((q: any) => ({
-          question: String(q.question || "").trim(),
-          starterCode: String(q.starterCode || "// Code here").trim(),
-          testCases: Array.isArray(q.testCases) 
-            ? q.testCases.map((tc: any) => ({
-                input: String(tc.input || "").trim(),
-                output: String(tc.output || "").trim()
-              }))
-            : [{ input: "example", output: "example" }],
-          difficulty: String(q.difficulty || "medium"),
-          skillsTested: Array.isArray(q.skillsTested) ? q.skillsTested.map(String) : jobAnalysis.keySkills,
-          realTimeHints: Array.isArray(q.realTimeHints) ? q.realTimeHints.map(String) : []
-        })),
-        duration: Number(testData.duration) || 90,
-        skillsTested: Array.isArray(testData.skillsTested) ? testData.skillsTested.map(String) : jobAnalysis.keySkills,
-        evaluationCriteria: Array.isArray(testData.evaluationCriteria) ? testData.evaluationCriteria : ["code_quality", "best_practices"]
+        problem_statement: String(testData.problem_statement || "").trim(),
+        requirements: {
+          functional: Array.isArray(testData.requirements?.functional) 
+            ? testData.requirements.functional.map(String)
+            : [],
+          technical: Array.isArray(testData.requirements?.technical) 
+            ? testData.requirements.technical.map(String)
+            : jobAnalysis.keySkills,
+          constraints: Array.isArray(testData.requirements?.constraints) 
+            ? testData.requirements.constraints.map(String)
+            : []
+        },
+        starter_code: typeof testData.starter_code === 'object'
+          ? JSON.stringify(testData.starter_code, null, 2)
+          : String(testData.starter_code || "// Code here").trim(),
+        test_cases: Array.isArray(testData.test_cases) 
+          ? testData.test_cases.map((tc: GeneratedTestCase) => ({
+              input: String(tc.input || "")
+                .trim()
+                .replace(/"/g, '\\"'),
+              expected_output: String(tc.expected_output || "")
+                .trim()
+                .replace(/"/g, '\\"'),
+              explanation: String(tc.explanation || "")
+                .trim()
+                .replace(/"/g, '\\"')
+            }))
+          : [],
+        evaluation_criteria: {
+          code_quality: Number(testData.evaluation_criteria?.code_quality || 30),
+          performance: Number(testData.evaluation_criteria?.performance || 25),
+          architecture: Number(testData.evaluation_criteria?.architecture || 20),
+          testing: Number(testData.evaluation_criteria?.testing || 15),
+          documentation: Number(testData.evaluation_criteria?.documentation || 10)
+        }
       };
 
       return NextResponse.json(validatedTestData);

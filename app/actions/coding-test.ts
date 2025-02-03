@@ -6,96 +6,200 @@ import { requireUser } from "@/app/utils/hooks";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { JobRequirements, jobRequirementsSchema } from "@/lib/job-schema";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { createStructuredOutput } from "@/lib/structured-chain";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { StringOutputParser } from "@langchain/core/output_parsers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-async function analyzeJobDescription(jobDescription: string) {
+async function analyzeJobDescription(jobDescription: string): Promise<JobRequirements> {
   try {
-    const model = new ChatGoogleGenerativeAI({
-      modelName: "gemini-1.5-pro-latest",
-      maxOutputTokens: 4096,
-      apiKey: process.env.GEMINI_API_KEY
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const prompt = ChatPromptTemplate.fromMessages([
-      ["system", "You are an expert HR technical analyst. Extract requirements in JSON format."],
-      ["human", `Extract these fields from the job description:
-      {input}
+    const prompt = `Analyze this job description and extract key technical requirements:
+
+${jobDescription}
+
+Return a JSON object with this structure (no markdown):
+{
+  "technical_skills": ["required technical skills"],
+  "role_type": "frontend|backend|fullstack|other",
+  "technical_requirements": {
+    "languages": ["main programming languages"],
+    "frameworks": ["main frameworks"],
+    "tools": ["main tools"]
+  }
+}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    try {
+      const cleanedJson = text
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
       
-      Required JSON format:
-      {
-        "technical_skills": ["skill1", "skill2"],
-        "experience": {
-          "years": number,
-          "domains": ["industry1", "industry2"]
-        },
-        "technical_requirements": {
-          "languages": ["lang1", "lang2"],
-          "frameworks": ["framework1", "framework2"],
-          "tools": ["tool1", "tool2"]
+      const parsedRequirements = JSON.parse(cleanedJson);
+      return jobRequirementsSchema.parse(parsedRequirements);
+    } catch (parseError) {
+      console.error("Failed to parse requirements:", parseError);
+      return {
+        technical_skills: [],
+        role_type: "fullstack",
+        technical_requirements: {
+          languages: [],
+          frameworks: [],
+          tools: []
         }
-      }`]
-    ]);
-
-    const chain = prompt.pipe(model);
-    
-    return await createStructuredOutput(
-      jobRequirementsSchema,
-      chain,
-      jobDescription
-    );
+      };
+    }
   } catch (error) {
     console.error('Analysis error:', error);
-    throw new Error('Job requirements analysis failed. Please ensure the description contains technical details like programming languages, frameworks, and experience requirements.');
+    return {
+      technical_skills: [],
+      role_type: "fullstack",
+      technical_requirements: {
+        languages: [],
+        frameworks: [],
+        tools: []
+      }
+    };
   }
 }
 
 async function generateTest(requirements: JobRequirements) {
-  const model = new ChatGoogleGenerativeAI({
-    modelName: "gemini-pro",
-    maxOutputTokens: 4096,
-    apiKey: process.env.GEMINI_API_KEY
-  });
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-  const testPrompt = `Generate an expert-level coding test based on these EXACT requirements:
-  
-  ${JSON.stringify(requirements, null, 2)}
+    // Clean and normalize the requirements
+    const normalizedSkills = requirements.technical_skills
+      .map(skill => skill.toLowerCase())
+      .map(skill => skill.split(/[,\s]+/)) // Split on commas and spaces
+      .flat()
+      .filter(skill => skill.length > 2); // Filter out very short terms
 
-  The test must:
-  1. Require implementation of ${requirements.technical_requirements.languages[0]} 
-  2. Cover ${requirements.technical_skills.join(', ')}
-  3. Include real-world constraints: ${requirements.performance_metrics?.join(', ') || "N/A"}
-  4. Validate ${requirements.experience.domains[0]} domain knowledge
-  5. Test ${requirements.experience.years}+ years experience level
+    const normalizedTech = [
+      ...requirements.technical_requirements.languages,
+      ...requirements.technical_requirements.frameworks,
+      ...requirements.technical_requirements.tools
+    ]
+      .map(tech => tech.toLowerCase())
+      .map(tech => tech.split(/[,\s]+/))
+      .flat()
+      .filter(tech => tech.length > 2);
 
-  Return JSON with:
-  {
-    "problem_statement": "complex real-world problem",
-    "technical_requirements": ["specific implementation needs"],
-    "acceptance_criteria": {
-      "functional": ["core requirements"],
-      "non_functional": ["performance", "security", "scalability"]
-    },
-    "evaluation_matrix": {
-      "code_quality": 30,
-      "performance": 25,
-      "architecture": 20,
-      "testing": 15,
-      "documentation": 10
+    const prompt = `You are a technical interviewer creating a coding test for a ${requirements.role_type} position.
+
+Required skills and technologies:
+${[...new Set([...normalizedSkills, ...normalizedTech])].map(skill => `- ${skill}`).join('\n')}
+
+Create a challenging technical test that:
+1. Tests their proficiency with these technologies
+2. Presents real-world problems they'll face in this role
+3. Evaluates their system design and implementation skills
+4. Challenges their problem-solving abilities
+
+The test should focus on practical implementation and system design.
+Return a JSON response with:
+{
+  "problem_statement": "detailed problem description",
+  "duration": number of minutes,
+  "requirements": {
+    "functional": ["what the system should do"],
+    "technical": ["specific technical requirements"],
+    "constraints": ["performance and scalability requirements"]
+  },
+  "questions": [
+    {
+      "title": "question title",
+      "description": "detailed description",
+      "difficulty": "Easy|Medium|Hard",
+      "category": "category name",
+      "hints": ["helpful hints"],
+      "solution_approach": "high-level approach",
+      "time_complexity": "if applicable",
+      "space_complexity": "if applicable"
     }
-  }`;
+  ],
+  "test_cases": [
+    {
+      "input": "test input",
+      "expected_output": "expected output",
+      "explanation": "why this test matters"
+    }
+  ],
+  "evaluation_criteria": {
+    "code_quality": number,
+    "performance": number,
+    "architecture": number,
+    "testing": number
+  }
+}`;
 
-  const { content } = await model.invoke(testPrompt);
-  return JSON.parse(content.toString());
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response");
+      }
+
+      const cleanedJson = jsonMatch[0]
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/\\n/g, '\n')
+        .trim();
+
+      const parsed = JSON.parse(cleanedJson);
+
+      // More flexible validation
+      const testContent = JSON.stringify(parsed).toLowerCase();
+      const requiredKeywords = [...new Set([...normalizedSkills, ...normalizedTech])]
+        .filter(keyword => keyword.length > 3); // Only check significant keywords
+
+      const missingKeywords = requiredKeywords.filter(keyword => {
+        // Check for variations of the keyword
+        const variations = [
+          keyword,
+          keyword.replace(/s$/, ''), // Remove trailing s
+          keyword.replace(/ing$/, ''), // Remove ing
+          keyword.replace(/ed$/, '') // Remove ed
+        ];
+        return !variations.some(v => testContent.includes(v));
+      });
+
+      // Only fail if missing critical keywords
+      if (missingKeywords.length > requiredKeywords.length * 0.5) {
+        console.warn("Missing keywords:", missingKeywords);
+        // Instead of failing, try to regenerate with missing keywords
+        const retryPrompt = prompt + `\n\nMake sure to include these specific technologies: ${missingKeywords.join(', ')}`;
+        const retryResult = await model.generateContent(retryPrompt);
+        const retryText = await retryResult.response.text();
+        const retryJson = retryText.match(/\{[\s\S]*\}/)?.[0];
+        if (retryJson) {
+          return JSON.parse(retryJson);
+        }
+      }
+
+      return parsed;
+    } catch (error) {
+      console.error("Test generation error:", error);
+      throw new Error("Failed to generate appropriate test");
+    }
+  } catch (error) {
+    console.error("Test generation error:", error);
+    throw new Error("Failed to generate test");
+  }
 }
 
 export async function getJobForTest(jobId: string) {
   const user = await requireUser();
   
-  // Get the job seeker profile
   const jobSeeker = await prisma.jobSeeker.findUnique({
     where: { userId: user.id }
   });
@@ -104,7 +208,6 @@ export async function getJobForTest(jobId: string) {
     throw new Error("Please complete your profile first");
   }
 
-  // Get job with full details including description
   const jobPost = await prisma.jobPost.findUnique({
     where: { id: jobId },
     select: {
@@ -121,15 +224,11 @@ export async function getJobForTest(jobId: string) {
     }
   });
 
-  if (!jobPost) {
-    throw new Error("Job not found");
+  if (!jobPost?.jobDescription) {
+    throw new Error("Job not found or missing description");
   }
 
-  if (!jobPost.jobDescription) {
-    throw new Error("Job description is required to generate the test");
-  }
-
-  // Check for existing completed application
+  // Check for existing application
   const existingApplication = await prisma.jobApplication.findUnique({
     where: {
       jobSeekerId_jobId: {
@@ -139,12 +238,10 @@ export async function getJobForTest(jobId: string) {
     }
   });
 
-  // If there's an existing application that's not pending, prevent retaking
-  if (existingApplication && existingApplication.status !== "PENDING") {
+  if (existingApplication?.status !== "PENDING") {
     throw new Error("You have already completed this test");
   }
 
-  // If no application exists, create one
   if (!existingApplication) {
     await prisma.jobApplication.create({
       data: {
@@ -156,8 +253,9 @@ export async function getJobForTest(jobId: string) {
     });
   }
 
-  // Generate the test based on job description
-  const test = await generateTest(await analyzeJobDescription(jobPost.jobDescription));
+  // Generate test based on analyzed requirements
+  const requirements = await analyzeJobDescription(jobPost.jobDescription);
+  const test = await generateTest(requirements);
 
   return {
     ...jobPost,
@@ -182,7 +280,7 @@ export async function submitTestResults(data: {
   }
 
   try {
-    const result = await prisma.jobApplication.update({
+    return await prisma.jobApplication.update({
       where: {
         jobSeekerId_jobId: {
           jobId: data.jobId,
@@ -196,8 +294,6 @@ export async function submitTestResults(data: {
         resume: data.code
       }
     });
-
-    return result;
   } catch (error) {
     console.error("Test submission error:", error);
     throw new Error("Failed to submit test results");

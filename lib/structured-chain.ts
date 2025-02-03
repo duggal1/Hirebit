@@ -3,28 +3,47 @@ import { ZodSchema } from "zod";
 
 export async function createStructuredOutput<T>(
   schema: ZodSchema<T>,
-  llm: any,
+  output: string,
   input: string
 ): Promise<T> {
   try {
-    const result = await llm.invoke(input);
-    
-    // Handle different response formats
-    const message = result?.message ?? result?.lc_kwargs?.content;
-    
-    if (!message) {
-      throw new Error("Invalid LLM response format - missing message");
-    }
-
-    const jsonString = typeof message === "string" ? message : message.content;
-    
-    // Clean JSON response
-    const cleanedJson = jsonString
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
+    // Clean and parse JSON response
+    const cleanedJson = output
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .replace(/^[\s\n]*\{/, '{')
+      .replace(/\}[\s\n]*$/, '}')
+      .replace(/\n/g, ' ')
       .trim();
 
-    return schema.parse(JSON.parse(cleanedJson));
+    try {
+      const parsedJson = JSON.parse(cleanedJson);
+      
+      // Ensure numbers are properly formatted
+      if (parsedJson.experience?.years) {
+        parsedJson.experience.years = Number(parsedJson.experience.years);
+      }
+      
+      // Ensure arrays are properly formatted
+      ['technical_skills', 'performance_metrics'].forEach(field => {
+        if (parsedJson[field] && !Array.isArray(parsedJson[field])) {
+          parsedJson[field] = [parsedJson[field]];
+        }
+      });
+      
+      if (parsedJson.technical_requirements) {
+        ['languages', 'frameworks', 'tools'].forEach(field => {
+          if (parsedJson.technical_requirements[field] && !Array.isArray(parsedJson.technical_requirements[field])) {
+            parsedJson.technical_requirements[field] = [parsedJson.technical_requirements[field]];
+          }
+        });
+      }
+
+      return schema.parse(parsedJson);
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError, "\nCleaned JSON:", cleanedJson);
+      throw new Error("Failed to parse LLM response as JSON");
+    }
   } catch (error) {
     console.error("Structured output error:", error);
     throw new Error(`Failed to process job requirements: ${error instanceof Error ? error.message : 'Unknown error'}`);
