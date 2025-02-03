@@ -14,7 +14,7 @@ export function CheatGuard({ onViolation }: {
   const [lastFocusTime, setLastFocusTime] = useState(Date.now());
 
   useEffect(() => {
-    let violationTimeout: NodeJS.Timeout;
+    let violationTimeout: number | null = null;
 
     const detectCheating = async () => {
       const now = Date.now();
@@ -28,7 +28,7 @@ export function CheatGuard({ onViolation }: {
 
         // Auto-hide overlay after 5 seconds
         clearTimeout(violationTimeout);
-        violationTimeout = setTimeout(() => {
+        violationTimeout = window.setTimeout(() => {
           setShowOverlay(false);
         }, 5000);
 
@@ -80,7 +80,7 @@ export function CheatGuard({ onViolation }: {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
-      clearTimeout(violationTimeout);
+      if (violationTimeout) clearTimeout(violationTimeout);
     };
   }, [violations, lastFocusTime, onViolation]);
 

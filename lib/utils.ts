@@ -10,3 +10,6 @@ export function formatTime(seconds: number) {
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+
+
+export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms)); 

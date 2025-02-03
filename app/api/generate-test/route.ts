@@ -1,208 +1,209 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { jobRequirementsSchema } from "@/lib/job-schema";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-interface TestQuestion {
-  question: string;
-  starterCode: string;
-  testCases: { input: string; output: string }[];
-  difficulty: string;
-  skillsTested: string[];
-  realTimeHints: string[];
-}
-
-interface TestCase {
-  input: string;
-  output: string;
-}
-
-interface GeneratedTestCase {
-  input: string;
-  expected_output: string;
-  explanation: string;
-}
 
 export async function POST(req: Request) {
   try {
     const { jobDescription } = await req.json();
-
-    if (!jobDescription) {
-      return NextResponse.json(
-        { error: "Job description is required" },
-        { status: 400 }
-      );
-    }
-
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // First, analyze the job description to identify required skills
-    const analysisPrompt = `Analyze this job description and extract:
-1. Primary programming languages
-2. Frameworks and technologies
-3. Type of role (frontend, backend, full-stack, etc.)
-4. Key technical skills required
-5. Main job responsibilities
+    // First analyze job requirements
+    const requirementsPrompt = `Analyze this job description and extract key technical requirements:
+    ${jobDescription}
+    Return a JSON object with technical skills and requirements.`;
 
-Job Description:
+    const requirementsResult = await model.generateContent(requirementsPrompt);
+    const requirements = jobRequirementsSchema.parse(
+      JSON.parse(requirementsResult.response.text().replace(/```json\s*|```/g, '').trim())
+    );
+
+    // Then generate complex coding challenges
+    const prompt = `Generate 5 expert-level coding challenges based EXCLUSIVELY on these job requirements:
 ${jobDescription}
 
-Return the analysis in this JSON format (no markdown):
-{
-  "primaryLanguages": ["language1", "language2"],
-  "frameworks": ["framework1", "framework2"],
-  "roleType": "backend|frontend|fullstack|etc",
-  "keySkills": ["skill1", "skill2"],
-  "responsibilities": ["responsibility1", "responsibility2"]
-}`;
+Requirements for each challenge:
+1. Must reflect REAL WORLD production scenarios at scale (1M+ users)
+2. Require SYSTEM DESIGN and ALGORITHMIC complexity
+3. Include EDGE CASES that break naive solutions
+4. Need OPTIMAL time/space complexity (O(1) or O(n) only)
+5. Must have SECURITY CONSIDERATIONS
+6. Require ERROR HANDLING for distributed systems
 
-    const analysisResult = await model.generateContent(analysisPrompt);
-    const analysisText = (await analysisResult.response.text()).trim();
-    
-    let jobAnalysis;
-    try {
-      jobAnalysis = JSON.parse(analysisText.replace(/```json\s*|\s*```/g, '').trim());
-    } catch (error) {
-      console.error('Job analysis error:', error);
-      throw new Error("Failed to analyze job requirements");
-    }
-
-    // Now generate appropriate test based on the analysis
-    const testPrompt = `Generate a production-grade coding test with:
-
-Job Analysis: ${JSON.stringify(jobAnalysis, null, 2)}
-
-Requirements:
-1. Minimum 3 interconnected components
-2. Real-world data from ${jobAnalysis.domains[0] || "the JD's industry"}
-3. Performance constraints (≤100ms latency for 90% requests)
-4. Error handling for ${jobAnalysis.technical.infra[0] || "cloud"} failures
-5. Observability requirements
-
-Include these HARD elements:
-- Race condition prevention
-- Memory leak avoidance
-- Horizontal scaling considerations
-- Security best practices for ${jobAnalysis.technical.coreLanguages[0]}
-
-Return JSON with:
+Output STRICT JSON format:
 {
   "questions": [{
-    "productionScenario": "detailed real-world situation",
-    "technicalRequirements": ["specific technical demands"],
-    "performanceThresholds": {
-      "maxCpu": "2 cores",
-      "maxMemory": "500MB",
-      "throughput": "1000 req/sec"
+    "title": "Challenge Title",
+    "problem_statement": "Detailed technical requirements...",
+    "technical_requirements": {
+      "languages": ["required"],
+      "frameworks": ["required"],
+      "complexity": "O(1)/O(n)"
     },
-    "debuggingSection": {
-      "preWrittenCode": "code with subtle bugs",
-      "knownIssues": 3,
-      "failureScenarios": ["high load", "network partitions"]
-    },
-    "submissionArtifacts": [
-      "solution.md with architectural decisions",
-      "load-test.results.json",
-      "monitoring-dashboard.png"
-    ]
-  }]
+    "acceptance_criteria": [
+      "Handles 100k+ concurrent requests",
+      "99.999% availability",
+      <...truncated...>
+    ],
+    "starter_code": "Buggy implementation",
+    "hints": ["Non-obvious guidance"]
+  }],
+  "duration": 180
 }`;
 
-    const result = await model.generateContent(testPrompt);
-    const text = (await result.response.text()).trim();
-    
-    // Clean the response
-    let cleaned = text
-      .replace(/```json\s*/g, '')
-      .replace(/```\s*/g, '')
-      .replace(/^python\s+/i, '')
+    const result = await model.generateContent(prompt);
+    const text = (await result.response.text())
+      .replace(/```json\s*|```/g, '')
       .trim();
-
-    cleaned = cleaned.replace(/`\n?([\s\S]*?)\n?`/g, function(match, code) {
-      return JSON.stringify(code.trim()).slice(1, -1);
-    });
-
-    try {
-      const testData = JSON.parse(cleaned);
-
-      if (!Array.isArray(testData.questions) || !testData.questions.length) {
-        throw new Error("Invalid test format: missing questions array");
-      }
-
-      // Validate questions match job requirements
-      const jobSkills = [
-        ...jobAnalysis.primaryLanguages,
-        ...jobAnalysis.frameworks,
-        ...jobAnalysis.keySkills
-      ].map(s => s.toLowerCase());
-
-      const hasRelevantQuestions = testData.questions.some((q: any) => {
-        const questionText = q.question.toLowerCase();
-        const testedSkills = q.skillsTested.map((s: string) => s.toLowerCase());
-        return jobSkills.some(skill => 
-          questionText.includes(skill) || testedSkills.includes(skill)
-        );
-      });
-
-      if (!hasRelevantQuestions) {
-        throw new Error("Generated questions don't match job requirements");
-      }
-
-      // Normalize and validate the data
-      const validatedTestData = {
-        problem_statement: String(testData.problem_statement || "").trim(),
+    
+    // Find the JSON array
+    const start = text.indexOf('[');
+    const end = text.lastIndexOf(']') + 1;
+    const jsonStr = text.slice(start, end);
+    
+    const questions = JSON.parse(jsonStr)
+      .slice(0, 5)
+      .map((q: any) => ({
+        problem_statement: q.problem,
         requirements: {
-          functional: Array.isArray(testData.requirements?.functional) 
-            ? testData.requirements.functional.map(String)
-            : [],
-          technical: Array.isArray(testData.requirements?.technical) 
-            ? testData.requirements.technical.map(String)
-            : jobAnalysis.keySkills,
-          constraints: Array.isArray(testData.requirements?.constraints) 
-            ? testData.requirements.constraints.map(String)
-            : []
+          functional: q.requirements || [],
+          system_design: q.system_design || [],
+          performance: q.performance || [],
+          security: q.security || []
         },
-        starter_code: typeof testData.starter_code === 'object'
-          ? JSON.stringify(testData.starter_code, null, 2)
-          : String(testData.starter_code || "// Code here").trim(),
-        test_cases: Array.isArray(testData.test_cases) 
-          ? testData.test_cases.map((tc: GeneratedTestCase) => ({
-              input: String(tc.input || "")
-                .trim()
-                .replace(/"/g, '\\"'),
-              expected_output: String(tc.expected_output || "")
-                .trim()
-                .replace(/"/g, '\\"'),
-              explanation: String(tc.explanation || "")
-                .trim()
-                .replace(/"/g, '\\"')
-            }))
-          : [],
+        test_cases: (q.test_cases || []).map((t: any) => ({
+          input: t.input,
+          expected_output: t.output,
+          explanation: t.explanation
+        })),
+        starter_code: q.starter_code || generateDefaultStarterCode(requirements),
         evaluation_criteria: {
-          code_quality: Number(testData.evaluation_criteria?.code_quality || 30),
-          performance: Number(testData.evaluation_criteria?.performance || 25),
-          architecture: Number(testData.evaluation_criteria?.architecture || 20),
-          testing: Number(testData.evaluation_criteria?.testing || 15),
-          documentation: Number(testData.evaluation_criteria?.documentation || 10)
+          code_quality: 20,
+          performance: 25,
+          architecture: 25,
+          testing: 15,
+          documentation: 15
         }
-      };
+      }));
 
-      return NextResponse.json(validatedTestData);
-    } catch (error) {
-      console.error('Test generation error:', error);
-      console.error('Raw response:', text);
-      console.error('Cleaned JSON:', cleaned);
-      
-      return NextResponse.json(
-        { error: "Failed to generate valid test format" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json(questions);
+    
   } catch (error) {
-    console.error('Request error:', error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('Test generation error:', error);
+    return NextResponse.json(generateFallbackQuestions(), { status: 200 });
   }
+}
+
+function generateDefaultStarterCode(requirements: any) {
+  const hasNextOrReact = requirements.technical_skills.some(
+    (s: string) => s.toLowerCase().includes('next') || s.toLowerCase().includes('react')
+  );
+
+  if (hasNextOrReact) {
+    return `import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+
+export default function Solution() {
+  // Implement your solution here
+  // Requirements:
+  // - Handle real-time updates
+  // - Manage complex state
+  // - Implement caching
+  // - Handle offline mode
+  return (
+    <div>
+      {/* Implement your UI */}
+    </div>
+  )
+}`;
+  }
+
+  const hasPythonOrDjango = requirements.technical_skills.some(
+    (s: string) => s.toLowerCase().includes('python') || s.toLowerCase().includes('django')
+  );
+
+  if (hasPythonOrDjango) {
+    return `from typing import Dict, List
+from fastapi import FastAPI, HTTPException
+from redis import Redis
+from sqlalchemy import create_engine
+from pydantic import BaseModel
+
+app = FastAPI()
+redis = Redis()
+db = create_engine("postgresql://")
+
+class Solution:
+    def __init__(self):
+        """Initialize your distributed system"""
+        self.cache = redis
+        self.db = db
+        
+    async def process(self, data: Dict) -> Dict:
+        """
+        Implement your solution here
+        Handle:
+        - High throughput
+        - Data consistency
+        - Fault tolerance
+        """
+        pass`;
+  }
+
+  return `// Implement your solution here
+// Requirements from job: ${requirements.technical_skills.join(', ')}`;
+}
+
+function generateFallbackQuestions() {
+  const challenges = [
+    {
+      title: "Real-time Collaborative Editor",
+      context: "Build a collaborative editor with real-time sync and offline support"
+    },
+    {
+      title: "High-Scale Data Pipeline",
+      context: "Create a data pipeline handling 1TB/hour with exactly-once delivery"
+    },
+    {
+      title: "Distributed Cache",
+      context: "Build a distributed cache with consistency and partition tolerance"
+    }
+  ];
+
+  return challenges.map(challenge => ({
+    problem_statement: `${challenge.title}: ${challenge.context}`,
+    requirements: {
+      functional: [
+        "Support real-time collaboration",
+        "Handle concurrent edits",
+        "Provide offline support"
+      ],
+      system_design: [
+        "Use CRDT for consistency",
+        "Implement proper sharding",
+        "Handle network partitions"
+      ],
+      performance: [
+        "<100ms response time",
+        "Support 100k users",
+        "Handle 1M ops/second"
+      ]
+    },
+    test_cases: [
+      {
+        input: "100k concurrent users",
+        expected_output: "All operations processed",
+        explanation: "Tests scale"
+      }
+    ],
+    starter_code: generateDefaultStarterCode({}),
+    evaluation_criteria: {
+      code_quality: 20,
+      performance: 25,
+      architecture: 25,
+      testing: 15,
+      documentation: 15
+    }
+  }));
 }
