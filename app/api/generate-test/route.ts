@@ -11,61 +11,55 @@ export async function POST(req: Request) {
 
     // First analyze job requirements
     const requirementsPrompt = `Analyze this job description and extract key technical requirements:
-    ${jobDescription}
-    Return a JSON object with technical skills and requirements.`;
+${jobDescription}
+Return a JSON object with technical skills and requirements.`;
 
     const requirementsResult = await model.generateContent(requirementsPrompt);
     const requirements = jobRequirementsSchema.parse(
       JSON.parse(requirementsResult.response.text().replace(/```json\s*|```/g, '').trim())
     );
 
-    // Then generate complex coding challenges
-    const prompt = `Generate 5 expert-level coding challenges based EXCLUSIVELY on these job requirements:
-${jobDescription}
+    // Then generate extremely complex coding challenges
+    const prompt = `Based on the following job description, generate 5 extremely complex and extremely hard coding challenges. Each challenge must:
+1. Reflect real-world production scenarios at scale (1M+ users)
+2. Require advanced system design and algorithmic thinking
+3. Include edge cases that would break naive solutions
+4. Enforce optimal time/space complexity (O(1) or O(n) only)
+5. Consider security, error handling, and distributed system issues
 
-Requirements for each challenge:
-1. Must reflect REAL WORLD production scenarios at scale (1M+ users)
-2. Require SYSTEM DESIGN and ALGORITHMIC complexity
-3. Include EDGE CASES that break naive solutions
-4. Need OPTIMAL time/space complexity (O(1) or O(n) only)
-5. Must have SECURITY CONSIDERATIONS
-6. Require ERROR HANDLING for distributed systems
-
-Output STRICT JSON format:
+For each challenge, output a JSON object with the following structure:
 {
-  "questions": [{
-    "title": "Challenge Title",
-    "problem_statement": "Detailed technical requirements...",
-    "technical_requirements": {
-      "languages": ["required"],
-      "frameworks": ["required"],
-      "complexity": "O(1)/O(n)"
-    },
-    "acceptance_criteria": [
-      "Handles 100k+ concurrent requests",
-      "99.999% availability",
-      <...truncated...>
-    ],
-    "starter_code": "Buggy implementation",
-    "hints": ["Non-obvious guidance"]
-  }],
-  "duration": 180
-}`;
+  "title": "Challenge Title",
+  "problem_statement": "Detailed problem description with technical requirements and expected outcomes.",
+  "technical_requirements": {
+    "languages": ["list of required programming languages"],
+    "frameworks": ["list of required frameworks"],
+    "complexity": "O(1)/O(n)"
+  },
+  "acceptance_criteria": [
+    "List of criteria such as handling 100k+ concurrent requests, 99.999% availability, etc."
+  ],
+  "starter_code": "A sample buggy implementation as a starting point",
+  "hints": ["List of non-obvious hints"]
+}
+
+Only use the job description details below to decide the challenge complexity and required skills:
+${jobDescription}`;
 
     const result = await model.generateContent(prompt);
     const text = (await result.response.text())
       .replace(/```json\s*|```/g, '')
       .trim();
-    
-    // Find the JSON array
+
+    // Extract the JSON array from the response
     const start = text.indexOf('[');
     const end = text.lastIndexOf(']') + 1;
     const jsonStr = text.slice(start, end);
-    
+
     const questions = JSON.parse(jsonStr)
       .slice(0, 5)
       .map((q: any) => ({
-        problem_statement: q.problem,
+        problem_statement: q.problem_statement || q.problem,
         requirements: {
           functional: q.requirements || [],
           system_design: q.system_design || [],
@@ -74,7 +68,7 @@ Output STRICT JSON format:
         },
         test_cases: (q.test_cases || []).map((t: any) => ({
           input: t.input,
-          expected_output: t.output,
+          expected_output: t.expected_output,
           explanation: t.explanation
         })),
         starter_code: q.starter_code || generateDefaultStarterCode(requirements),
@@ -88,7 +82,7 @@ Output STRICT JSON format:
       }));
 
     return NextResponse.json(questions);
-    
+
   } catch (error) {
     console.error('Test generation error:', error);
     return NextResponse.json(generateFallbackQuestions(), { status: 200 });
@@ -96,7 +90,7 @@ Output STRICT JSON format:
 }
 
 function generateDefaultStarterCode(requirements: any) {
-  const hasNextOrReact = requirements.technical_skills.some(
+  const hasNextOrReact = requirements.technical_skills?.some(
     (s: string) => s.toLowerCase().includes('next') || s.toLowerCase().includes('react')
   );
 
@@ -119,7 +113,7 @@ export default function Solution() {
 }`;
   }
 
-  const hasPythonOrDjango = requirements.technical_skills.some(
+  const hasPythonOrDjango = requirements.technical_skills?.some(
     (s: string) => s.toLowerCase().includes('python') || s.toLowerCase().includes('django')
   );
 
@@ -152,7 +146,7 @@ class Solution:
   }
 
   return `// Implement your solution here
-// Requirements from job: ${requirements.technical_skills.join(', ')}`;
+// Requirements from job: ${requirements.technical_skills?.join(', ') || 'N/A'}`;
 }
 
 function generateFallbackQuestions() {
