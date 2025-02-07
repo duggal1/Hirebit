@@ -22,20 +22,37 @@ export default function CodingTest() {
   const [code, setCode] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("problem");
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
 
   useEffect(() => {
     async function loadQuestions() {
+      if (!params?.id) return;
+
       try {
+        setIsLoading(true);
+        setError(null);
+        
         const response = await fetch(`/api/coding-test/${params.id}`);
-        if (!response.ok) throw new Error('Failed to load questions');
         const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load questions');
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('No questions available');
+        }
+
         setQuestions(data);
+
       } catch (error) {
+        console.error('Loading error:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load questions');
         toast({
           title: "Error",
-          description: "Failed to load coding questions",
+          description: error instanceof Error ? error.message : "Failed to load coding questions",
           variant: "destructive",
         });
       } finally {
@@ -44,52 +61,10 @@ export default function CodingTest() {
     }
 
     loadQuestions();
-  }, [params.id]);
+  }, [params?.id]);
 
-  const currentQuestion = questions[currentQuestionIndex];
-
-  const handleSubmit = async () => {
-    if (!code || code.trim() === '') {
-      toast({
-        title: "No Code Submitted",
-        description: "Please write some code before submitting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsEvaluating(true);
-      const evaluation = await evaluateCode(code, currentQuestion);
-    
-      setEvaluationResult(evaluation);
-
-localStorage.setItem(`evaluationResult-${params.id}`, JSON.stringify(evaluation));
-localStorage.setItem(`submittedCode-${params.id}`, code);
-localStorage.setItem(`problemDetails-${params.id}`, JSON.stringify(currentQuestion));
-
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setCode("");
-        toast({
-          title: "Question Completed!",
-          description: "Moving to next question...",
-        });
-      } else {
-        // Navigate to results page with query params
-        window.location.href = `/coding-test/${params.id}/result`;
-      }
-    } catch (error) {
-      console.error("Evaluation error:", error);
-      toast({
-        title: "Evaluation Failed",
-        description: error instanceof Error ? error.message : "An error occurred while evaluating your code.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsEvaluating(false);
-    }
-  };
+  // Only access currentQuestion if questions array has items
+  const currentQuestion = questions[currentQuestionIndex] || null;
 
   if (isLoading) {
     return (
@@ -98,6 +73,64 @@ localStorage.setItem(`problemDetails-${params.id}`, JSON.stringify(currentQuesti
       </div>
     );
   }
+
+  if (error || !currentQuestion) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <h1 className="text-2xl font-bold text-red-400 mb-4">
+          {error || 'No questions available'}
+        </h1>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+// First, update the handleSubmit function signature and implementation
+async function handleSubmit(): Promise<void> {
+  if (!currentQuestion || !code) return;
+
+  try {
+    setIsEvaluating(true);
+    setActiveTab("solution");
+
+    const result = await evaluateCode(code, currentQuestion);
+    setEvaluationResult(result);
+
+    if (currentQuestionIndex < questions.length - 1) {
+      // Move to next question
+      setCurrentQuestionIndex(prev => prev + 1);
+      setCode(""); // Reset code for next question
+      setEvaluationResult(null);
+    } else {
+      // Handle test completion
+      toast({
+        title: "Test Completed",
+        description: "Your answers have been submitted successfully.",
+      });
+      // You can add navigation to results page here
+    }
+  } catch (error) {
+    console.error('Evaluation error:', error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to evaluate code",
+      variant: "destructive",
+    });
+  } finally {
+    setIsEvaluating(false);
+  }
+}
+
+// Then update the Timer component usage
+<Timer 
+  duration={currentQuestion.timeLimit} 
+  onComplete={() => handleSubmit()} 
+/>
 
   return (
     <div className="relative bg-black min-h-screen text-white">

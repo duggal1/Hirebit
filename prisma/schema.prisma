@@ -184,24 +184,8 @@ enum UserType {
   JOB_SEEKER
 }
 
-model Company {
-  id        String    @id @default(uuid())
-  name      String
-  location  String
-  logo      String
-  website   String
-  xAccount  String?
-  about     String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  JobPost   JobPost[]
-
-  @@map("companies")
-}
-
 model JobSeeker {
+  user               User     @relation(fields: [userId], references: [id])
   expectedSalaryMin  Int?
   expectedSalaryMax  Int?
   preferredLocation  String
@@ -221,17 +205,44 @@ model JobSeeker {
 
   location      String
   phoneNumber   String?
-  linkedin      String?          @db.VarChar(2048)
-  github        String?          @db.VarChar(2048)
-  portfolio     String?          @db.VarChar(2048)
+  linkedin      String?   @db.VarChar(2048)
+  github        String?   @db.VarChar(2048)
+  portfolio     String?   @db.VarChar(2048)
   lastAttemptAt DateTime?
-  user          User             @relation(fields: [userId], references: [id])
-  userId        String           @unique
-  applications  JobApplication[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+
+  userId       String           @unique
+  applications JobApplication[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@map("job_seekers")
+}
+
+model JobAnalysis {
+  id        String   @id @default(cuid())
+  jobPostId String   @unique
+  analysis  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  jobPost   JobPost  @relation(fields: [jobPostId], references: [id])
+}
+
+model Company {
+  id        String    @id @default(uuid())
+  name      String
+  location  String
+  logo      String
+  website   String
+  xAccount  String?
+  about     String
+  industry  String // Add this field
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  JobPost   JobPost[]
+
+  @@map("companies")
 }
 
 model JobPost {
@@ -253,6 +264,7 @@ model JobPost {
   updatedAt       DateTime         @updatedAt
   SavedJobPost    SavedJobPost[]
   JobApplication  JobApplication[]
+  JobAnalysis     JobAnalysis? // Add this line to complete the relation
 
   @@map("job_posts")
 }

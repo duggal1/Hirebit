@@ -523,8 +523,8 @@ export const submitJobSeeker = async (
       };
     }
 
-
     const rawData = {
+
       educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       name: formData.get('name') as string,
@@ -547,6 +547,7 @@ export const submitJobSeeker = async (
       linkedin: formData.get('linkedin') as string || null,
       github: formData.get('github') as string || null,
       portfolio: formData.get('portfolio') as string || null,
+
     };
 
     const validatedData = jobSeekerSchema.parse(rawData);
@@ -576,12 +577,10 @@ export const submitJobSeeker = async (
         linkedin: validatedData.linkedin,
         github: validatedData.github,
         portfolio: validatedData.portfolio,
-        user: {
-          connect: { 
-            id: session.user.id 
-          }
+        userId: session.user.id // Add this line
+       
         }
-      }
+      
     });
 
     if (validatedData.jobId && validatedData.jobId.trim() !== "") {
