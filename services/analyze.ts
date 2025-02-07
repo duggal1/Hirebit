@@ -15,7 +15,6 @@ const limiter = rateLimit({
 
 export async function analyzeJobPost(jobPostId: string): Promise<QuestionGenerationContext> {
   try {
-    // Apply rate limiting
     await limiter.check();
 
     const jobPost = await prisma.jobPost.findUnique({
@@ -37,56 +36,41 @@ export async function analyzeJobPost(jobPostId: string): Promise<QuestionGenerat
       throw new Error('Job post not found');
     }
 
+    // Updated prompt to be more specific
     const prompt = `
-      Analyze this job description and extract the following information in JSON format.
-      Return only the JSON object without any additional text or markdown formatting.
-      
-      Required format:
+      Analyze this job description and extract technical requirements.
+      Return ONLY a JSON object with this exact structure (no code, no explanation):
+
       {
-        "primarySkills": ["list of must-have technical skills"],
-        "secondarySkills": ["list of nice-to-have skills"],
-        "experienceLevel": "years of experience required",
-        "domainKnowledge": ["specific domain expertise required"],
+        "primarySkills": ["skill1", "skill2"],
+        "secondarySkills": ["skill1", "skill2"],
+        "experienceLevel": "Senior",
+        "domainKnowledge": ["domain1", "domain2"],
         "complexityLevel": "Expert",
-        "technicalAreas": ["specific technical areas of focus"],
-        "tooling": ["required tools and technologies"],
-        "systemDesign": ["system design considerations if applicable"]
+        "technicalAreas": ["area1", "area2"],
+        "tooling": ["tool1", "tool2"],
+        "systemDesign": ["consideration1", "consideration2"]
       }
 
-      Job Description:
-      ${jobPost.jobDescription}
-
-      Company Context:
-      Industry: ${jobPost.company.industry}
-      About: ${jobPost.company.about}
+      Job Description: ${jobPost.jobDescription}
       Role: ${jobPost.jobTitle}
-
-      Focus on extracting technical requirements, skills, and expertise levels.
-      Ensure all arrays have at least 2-3 items for completeness.
+      Industry: ${jobPost.company.industry}
     `;
 
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
+    console.log('Raw AI Response:', response.text());
+
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      
       // Clean and parse the response
-      const responseText = response.text().trim();
-      const cleanJSON = responseText
-        .replace(/^```json\s*/, '')
-        .replace(/\s*```$/, '')
-        .trim();
+      const cleanedResponse = cleanAIResponse(response.text());
+      console.log('Cleaned Response:', cleanedResponse);
 
-      let analysis: JobSkillsAnalysis;
-      try {
-        analysis = JSON.parse(cleanJSON);
-      } catch (parseError) {
-        console.error('JSON parsing failed:', parseError);
-        console.debug('Raw response:', responseText);
-        throw new Error('Invalid AI response format');
-      }
+      const analysis = JSON.parse(cleanedResponse);
 
-      // Validate and ensure all required fields with default values
+      // Validate and normalize the analysis
       const validatedAnalysis: JobSkillsAnalysis = {
         primarySkills: ensureArray(analysis.primarySkills),
         secondarySkills: ensureArray(analysis.secondarySkills),
@@ -98,7 +82,7 @@ export async function analyzeJobPost(jobPostId: string): Promise<QuestionGenerat
         systemDesign: ensureArray(analysis.systemDesign)
       };
 
-      // Cache the analysis results
+      // Cache the results
       await cacheAnalysisResults(jobPostId, validatedAnalysis);
 
       return {
@@ -114,9 +98,10 @@ export async function analyzeJobPost(jobPostId: string): Promise<QuestionGenerat
         }
       };
 
-    } catch (aiError) {
-      console.error('AI processing error:', aiError);
-      throw new Error('Failed to process job requirements');
+    } catch (parseError) {
+      console.error('Analysis parsing error:', parseError);
+      // Return default analysis instead of throwing
+      return createDefaultAnalysis(jobPost);
     }
 
   } catch (error) {
@@ -127,12 +112,56 @@ export async function analyzeJobPost(jobPostId: string): Promise<QuestionGenerat
   }
 }
 
+// Add this helper function for default analysis
+function createDefaultAnalysis(jobPost: any): QuestionGenerationContext {
+  const defaultSkills: JobSkillsAnalysis = {
+    primarySkills: ['Software Development', 'Problem Solving'],
+    secondarySkills: ['Team Collaboration', 'Communication'],
+    experienceLevel: 'Senior',
+    domainKnowledge: ['Software Engineering'],
+    complexityLevel: 'Expert',
+    technicalAreas: ['Backend Development', 'API Design'],
+    tooling: ['Version Control', 'Development Tools'],
+    systemDesign: ['Scalability', 'Performance']
+  };
+
+  return {
+    jobDescription: jobPost.jobDescription,
+    skills: defaultSkills,
+    difficulty: 'Expert',
+    domainContext: formatDomainContext(jobPost),
+    industry: jobPost.company.industry,
+    technicalContext: {
+      primaryFocus: defaultSkills.primarySkills.slice(0, 3),
+      systemConsiderations: defaultSkills.systemDesign,
+      tooling: defaultSkills.tooling
+    }
+  };
+}
+
 // Helper functions
 function ensureArray(value: unknown): string[] {
   if (Array.isArray(value) && value.length > 0) {
     return value.map(item => String(item));
   }
   return ['Not specified'];
+}
+// Add this helper function for cleaning AI responses
+function cleanAIResponse(response: string): string {
+  // Remove code blocks and comments
+  let cleaned = response
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/\/\/.*/g, '')         // Remove single line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+    .trim();
+
+  // Try to find a JSON object
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON object found in response');
+  }
+
+  return jsonMatch[0];
 }
 
 function validateComplexityLevel(level: unknown): string {
