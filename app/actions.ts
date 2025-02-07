@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { requireUser } from "./utils/hooks";
-import { companySchema, jobSchema } from "./utils/zodSchemas"; 
+import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas"; 
 import { prisma } from "./utils/db";
 import { redirect } from "next/navigation";
 import { stripe } from "./utils/stripe";
@@ -12,7 +12,7 @@ import arcjet, { detectBot, shield } from "./utils/arcjet";
 import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
 import { Prisma, UserType } from "@prisma/client";
-
+ 
 const aj = arcjet
   .withRule(
     shield({
@@ -65,28 +65,17 @@ export async function createCompany(data: z.infer<typeof companySchema>) {
   return redirect("/");
 }
 
-const jobSeekerSchema = z.object({
-  name: z.string(),
-  about: z.string(),
-  resume: z.string(),
-  location: z.string(),
-  skills: z.array(z.string()),
-  experience: z.number(),
-  education: z.array(z.object({
-    degree: z.string(),
-    institution: z.string(),
-    year: z.number()
-  }))
-});
 
-export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema> & { jobId: string }) {
+
+
+
+
+export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
   const user = await requireUser();
 
   try {
-    // Validate with Zod schema
-    const validatedData = jobSeekerSchema.parse(data);
+    const { jobId, ...validatedData } = jobSeekerSchema.parse(data);
     
-    // Create profile
     const jobSeeker = await prisma.jobSeeker.create({
       data: {
         name: validatedData.name,
@@ -94,21 +83,40 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema> & { 
         resume: validatedData.resume,
         location: validatedData.location,
         skills: validatedData.skills,
-        experience: Number(validatedData.experience) || 0,
-        education: validatedData.education as Prisma.JsonArray,
-        user: { connect: { id: user.id } }
+        experience: validatedData.experience,
+        education: validatedData.education as unknown as Prisma.JsonArray,
+        educationDetails: validatedData.educationDetails as unknown as Prisma.JsonArray,
+        expectedSalaryMin: validatedData.expectedSalaryMin,
+        expectedSalaryMax: validatedData.expectedSalaryMax,
+        preferredLocation: validatedData.preferredLocation,
+        remotePreference: validatedData.remotePreference,
+        yearsOfExperience: validatedData.yearsOfExperience,
+        availabilityPeriod: validatedData.availabilityPeriod,
+        desiredEmployment: validatedData.desiredEmployment,
+        certifications: validatedData.certifications 
+          ? (validatedData.certifications as unknown as Prisma.JsonArray)
+          : Prisma.JsonNull,
+        phoneNumber: validatedData.phoneNumber,
+        linkedin: validatedData.linkedin,
+        github: validatedData.github,
+        portfolio: validatedData.portfolio,
+        user: {
+          connect: { id: user.id }
+        }
       }
     });
 
-    // Create application record
-    await prisma.jobApplication.create({
-      data: {
-        jobSeekerId: jobSeeker.id,
-        jobId: data.jobId,
-        status: "PENDING",
-        resume: validatedData.resume
-      }
-    });
+    // Create job application if jobId is provided
+    if (jobId) {
+      await prisma.jobApplication.create({
+        data: {
+          jobSeekerId: jobSeeker.id,
+          jobId: jobId,
+          status: "PENDING",
+          resume: validatedData.resume
+        }
+      });
+    }
 
     return { success: true };
   } catch (error) {
@@ -502,7 +510,6 @@ export type FormState = {
   message: string;
   success: boolean;
 };
-
 export const submitJobSeeker = async (
   prevState: FormState,
   formData: FormData
@@ -516,36 +523,61 @@ export const submitJobSeeker = async (
       skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
       experience: Number(formData.get('experience')) || 0,
       education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
+      educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [], // Add this line
+      expectedSalaryMin: formData.get('expectedSalaryMin') ? Number(formData.get('expectedSalaryMin')) : null,
+      expectedSalaryMax: formData.get('expectedSalaryMax') ? Number(formData.get('expectedSalaryMax')) : null,
+      preferredLocation: formData.get('preferredLocation') as string,
+      remotePreference: formData.get('remotePreference') as string,
+      yearsOfExperience: Number(formData.get('yearsOfExperience')) || 0,
+      availabilityPeriod: Number(formData.get('availabilityPeriod')) || 30,
+      desiredEmployment: formData.get('desiredEmployment') as string,
+      certifications: formData.get('certifications') ? JSON.parse(formData.get('certifications') as string) : null,
+      phoneNumber: formData.get('phoneNumber') as string || null,
+      linkedin: formData.get('linkedin') as string || null,
+      github: formData.get('github') as string || null,
+      portfolio: formData.get('portfolio') as string || null,
       jobId: formData.get('jobId') as string
     };
 
-    // Validate required fields
-    if (!rawData.name || !rawData.about || !rawData.resume || !rawData.location) {
-      throw new Error('Please fill in all required fields');
-    }
+    const validatedData = jobSeekerSchema.parse(rawData);
 
-    // Create job seeker with validated data
     const jobSeeker = await prisma.jobSeeker.create({
       data: {
-        name: rawData.name,
-        about: rawData.about,
-        resume: rawData.resume,
-        location: rawData.location,
-        skills: rawData.skills,
-        experience: rawData.experience,
-        education: rawData.education as Prisma.JsonArray,
+        name: validatedData.name,
+        about: validatedData.about,
+        resume: validatedData.resume,
+        location: validatedData.location,
+        skills: validatedData.skills,
+        experience: validatedData.experience,
+        education: validatedData.education as Prisma.JsonArray,
+        educationDetails: validatedData.education as Prisma.JsonArray, // Add this line
+        expectedSalaryMin: validatedData.expectedSalaryMin,
+        expectedSalaryMax: validatedData.expectedSalaryMax,
+        preferredLocation: validatedData.preferredLocation,
+        remotePreference: validatedData.remotePreference,
+        yearsOfExperience: validatedData.yearsOfExperience,
+        availabilityPeriod: validatedData.availabilityPeriod,
+        desiredEmployment: validatedData.desiredEmployment,
+        certifications: validatedData.certifications 
+          ? (validatedData.certifications as Prisma.JsonArray)
+          : Prisma.JsonNull,
+        phoneNumber: validatedData.phoneNumber,
+        linkedin: validatedData.linkedin,
+        github: validatedData.github,
+        portfolio: validatedData.portfolio,
         user: { connect: { id: (await requireUser()).id } }
       }
     });
 
-    // Create job application
+   
+    // Create job application if jobId is provided
     if (rawData.jobId) {
       await prisma.jobApplication.create({
         data: {
           jobSeekerId: jobSeeker.id,
           jobId: rawData.jobId,
           status: "PENDING",
-          resume: rawData.resume
+          resume: validatedData.resume
         }
       });
     }
@@ -559,4 +591,3 @@ export const submitJobSeeker = async (
     };
   }
 };
-
