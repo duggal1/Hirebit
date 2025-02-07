@@ -26,43 +26,44 @@ export default function CodingTest() {
   const [activeTab, setActiveTab] = useState("problem");
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
 
-  useEffect(() => {
-    async function loadQuestions() {
-      if (!params?.id) return;
+ // filepath: /Users/harshitduggal/Downloads/hirebit-1/app/(mainLayout)/coding-test/[id]/page.tsx
 
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const response = await fetch(`/api/coding-test/${params.id}`);
+useEffect(() => {
+  async function loadQuestions() {
+    if (!params?.id) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/coding-test/${params.id}`);
+      if (!response.ok) {
         const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load questions');
-        }
-
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error('No questions available');
-        }
-
-        setQuestions(data);
-
-      } catch (error) {
-        console.error('Loading error:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load questions');
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to load coding questions",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+        throw new Error(data.error || 'Failed to load questions');
       }
+
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('No questions available');
+      }
+
+      setQuestions(data);
+
+    } catch (error) {
+      console.error('Loading error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load questions');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to load coding questions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    loadQuestions();
-  }, [params?.id]);
-
+  loadQuestions();
+}, [params?.id]);
   // Only access currentQuestion if questions array has items
   const currentQuestion = questions[currentQuestionIndex] || null;
 

@@ -106,6 +106,35 @@ async function main() {
           companyId: company.id
         },
         {
+          jobTitle: 'Full Stack Developer (Next.js & Python)',
+          employmentType: 'Full-time',
+          location: 'Remote',
+          salaryFrom: 120000,
+          salaryTo: 180000,
+          jobDescription: ` 
+We are seeking a highly skilled **Full Stack Engineer** to join our team at **Microsoft**. The ideal candidate will have expertise in **Next.js for the frontend** and **Python for the backend**, with a strong understanding of developing and maintaining scalable applications. You will collaborate with cross-functional teams to design, develop, and deploy high-quality software solutions while ensuring performance, security, and scalability.  
+
+- **Frontend Development:**  
+  - Expertise in **Next.js, React.js, and TypeScript** for building interactive and scalable web applications.  
+  - Proficiency in modern **UI/UX principles** and frontend state management (e.g., Redux, Zustand, or React Context API).  
+  - Strong understanding of **SSR (Server-Side Rendering), ISR (Incremental Static Regeneration), and CSR (Client-Side Rendering)**.  
+  - Experience with **Tailwind CSS, Chakra UI, or Material-UI** for styling components.  
+  - Knowledge of authentication methods such as **OAuth, JWT, and OpenID Connect**.  
+
+- **Backend Development:**  
+  - Strong experience with **Python frameworks** like **FastAPI, Django, or Flask** for building scalable APIs.  
+  - Expertise in **RESTful API and GraphQL** development.  
+  - Knowledge of **asynchronous programming** and event-driven architectures.  
+  - Experience with **database management systems** (PostgreSQL, MySQL, MongoDB).  
+  - Proficiency in **caching mechanisms** (Redis, Memcached) and **message brokers** (RabbitMQ, Kafka).  
+
+.`,
+          listingDuration: 60,
+          benefits: ['Health Insurance', 'Remote Work', '401k'],
+          status: JobPostStatus.ACTIVE,
+          companyId: company.id
+        },
+        {
           jobTitle: 'Frontend Engineer (Next.js)',
           employmentType: 'Full-time',
           location: 'On-site',

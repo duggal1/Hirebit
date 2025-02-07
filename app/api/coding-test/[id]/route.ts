@@ -1,38 +1,24 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/app/utils/db';
 import { generateQuestionsForJob } from '@/services/questions';
-import { NextResponse } from 'next/server';
-import { CodeProblem } from '@/types/code';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const jobId = params?.id;
+  
+  if (!jobId) {
+    return NextResponse.json(
+      { error: 'Job ID is required' },
+      { status: 400 }
+    );
+  }
 
   try {
-    // Validate input
-    if (!id || typeof id !== 'string') {
-      return NextResponse.json(
-        { error: 'Valid job ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check job exists
-    const jobExists = await prisma.jobPost.findUnique({
-      where: { id }
-    });
-
-    if (!jobExists) {
-      return NextResponse.json(
-        { error: 'Job post not found' },
-        { status: 404 }
-      );
-    }
-
     // Check cache first
     const cachedQuestions = await prisma.codingQuestion.findMany({
-      where: { jobPostId: id }
+      where: { jobPostId: jobId }
     });
 
     if (cachedQuestions && cachedQuestions.length > 0) {
@@ -40,35 +26,13 @@ export async function GET(
     }
 
     // Generate new questions
-    try {
-      const questions: CodeProblem[] = await generateQuestionsForJob(id);
-
-      if (!questions || questions.length === 0) {
-        throw new Error('No questions generated');
-      }
-
-      // Cache the questions
-      await prisma.codingQuestion.createMany({
-        data: questions.map(q => ({
-          ...q,
-          jobPostId: id
-        }))
-      });
-
-      return NextResponse.json(questions);
-      
-    } catch (genError) {
-      console.error('Question generation error:', genError);
-      return NextResponse.json(
-        { error: 'Failed to generate questions' },
-        { status: 500 }
-      );
-    }
+    const questions = await generateQuestionsForJob(jobId);
+    return NextResponse.json(questions);
 
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to generate questions' },
       { status: 500 }
     );
   }
