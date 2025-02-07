@@ -228,6 +228,7 @@ model JobPost {
   id              String           @id @default(uuid())
   jobTitle        String
   employmentType  String
+  codingQuestions CodingQuestion[]
   location        String
   salaryFrom      Int
   salaryTo        Int
@@ -281,6 +282,23 @@ model JobApplication {
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")
+}
+
+model CodingQuestion {
+  id          String   @id @default(cuid())
+  jobPostId   String
+  jobPost     JobPost  @relation(fields: [jobPostId], references: [id])
+  title       String
+  description String
+  difficulty  String
+  timeLimit   Int
+  testCases   Json
+  constraints Json
+  examples    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("coding_questions")
 }
 
 enum ApplicationStatus {

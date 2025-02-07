@@ -125,7 +125,26 @@ export interface CodeQualityMetrics {
   testingAnalysis: string;
   qualityAssessments: QualityAssessment[];
 }
+export interface CodeProblem {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  timeLimit: number;
+  testCases: {
+    input: string;
+    expectedOutput: string;
+  }[];
+  constraints: string[];
+  examples: {
+    input: string;
+    output: string;
+    explanation: string;
+  }[];
+}
 
+// Add this line to create an alias
+export type CodingQuestion = CodeProblem;
 export interface QualityAssessment {
   category: string;
   score: number;

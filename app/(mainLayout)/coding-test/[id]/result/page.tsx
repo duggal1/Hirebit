@@ -1,5 +1,6 @@
 "use client"
 
+import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useMemo, useState } from "react";
 import { CodeProblem, EvaluationResult } from "@/types/code";
@@ -14,18 +15,21 @@ import CodeQualityMetricsCard from '@/app/_components/CodeQualityMetricsCard';
 import { AdditionalAnalysisCard } from "@/app/_components/AdditionalAnalysisCard";
 //import { AdditionalAnalysisCard } from "@/app/_components/AdditionalAnalysisCard";
 
+
 export default function Results() {
+  const params = useParams();
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [code, setCode] = useState<string>("");
   const [problem, setProblem] = useState<CodeProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [evaluationResult, setEvaluationResult] = useState(null);
+  // Remove duplicate state
+  // const [evaluationResult, setEvaluationResult] = useState(null);
 
   useEffect(() => {
     try {
-      const storedResult = localStorage.getItem('evaluationResult');
-      const storedCode = localStorage.getItem('submittedCode');
-      const storedProblem = localStorage.getItem('problemDetails');
+      const storedResult = localStorage.getItem(`evaluationResult-${params.id}`);
+      const storedCode = localStorage.getItem(`submittedCode-${params.id}`);
+      const storedProblem = localStorage.getItem(`problemDetails-${params.id}`);
 
       if (!storedResult || !storedCode || !storedProblem) {
         throw new Error("Missing evaluation data");
@@ -51,7 +55,9 @@ export default function Results() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [params.id]); // Add params.id as dependency
+
+  
 
   const metrics = useMemo(() => {
     if (!result) return [];

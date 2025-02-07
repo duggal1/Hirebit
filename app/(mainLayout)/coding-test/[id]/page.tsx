@@ -1,29 +1,52 @@
+
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Editor from "@monaco-editor/react";
 import { ArrowRight, Brain, Code2, Info, ChevronLeft, ChevronRight, Clock, Cpu } from "lucide-react";
 import { evaluateCode } from '@/services/gemini';
-import { complexQuestions } from '@/services/questions';
 import { toast } from "@/app/_components/ui/use-toast";
-import { useNavigate } from 'react-router-dom';
 import Timer from '@/app/_components/Timer';
 import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
-import { EvaluationResult } from "@/types/code";
-//import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
- 
-export default function Index() {
+import { CodeProblem, EvaluationResult } from "@/types/code";
+
+
+export default function CodingTest() {
+  const params = useParams();
+  const [questions, setQuestions] = useState<CodeProblem[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [code, setCode] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("problem");
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
-  const navigate = useNavigate();
 
-  const currentQuestion = complexQuestions[currentQuestionIndex];
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const response = await fetch(`/api/coding-test/${params.id}`);
+        if (!response.ok) throw new Error('Failed to load questions');
+        const data = await response.json();
+        setQuestions(data);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load coding questions",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadQuestions();
+  }, [params.id]);
+
+  const currentQuestion = questions[currentQuestionIndex];
 
   const handleSubmit = async () => {
     if (!code || code.trim() === '') {
@@ -39,16 +62,12 @@ export default function Index() {
       setIsEvaluating(true);
       const evaluation = await evaluateCode(code, currentQuestion);
       
-      if (!evaluation || typeof evaluation.score !== 'number') {
-        throw new Error("Invalid evaluation result");
-      }
-      
       setEvaluationResult(evaluation);
       localStorage.setItem('evaluationResult', JSON.stringify(evaluation));
       localStorage.setItem('submittedCode', code);
       localStorage.setItem('problemDetails', JSON.stringify(currentQuestion));
       
-      if (currentQuestionIndex < complexQuestions.length - 1) {
+      if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setCode("");
         toast({
@@ -56,7 +75,8 @@ export default function Index() {
           description: "Moving to next question...",
         });
       } else {
-        navigate('/results');
+        // Navigate to results page with query params
+        window.location.href = `/coding-test/${params.id}/result`;
       }
     } catch (error) {
       console.error("Evaluation error:", error);
@@ -69,6 +89,14 @@ export default function Index() {
       setIsEvaluating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative bg-black min-h-screen text-white">
@@ -107,7 +135,7 @@ export default function Index() {
                 <div className="flex items-center gap-2">
                   <div className="bg-green-400 rounded-full w-2 h-2" />
                   <span className="font-medium text-green-400/90 text-sm">
-                    {currentQuestionIndex + 1} of {complexQuestions.length}
+                  {currentQuestionIndex + 1} of {questions.length}
                   </span>
                 </div>
               </div>
@@ -234,7 +262,7 @@ export default function Index() {
                           </>
                         ) : (
                           <>
-                            {currentQuestionIndex < complexQuestions.length - 1 ? (
+                           {currentQuestionIndex < questions.length - 1 ? (
                               <>
                                 Next Question
                                 <ChevronRight className="ml-1 w-4 h-4" />
