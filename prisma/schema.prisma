@@ -306,6 +306,15 @@ model JobApplication {
   @@map("job_applications")
 }
 
+model TestViolation {
+  id        String   @id @default(cuid())
+  testId    String
+  count     Int
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model CodingQuestion {
   id          String   @id @default(cuid())
   jobPostId   String
