@@ -1,22 +1,22 @@
 
 "use client"
 
+
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Editor from "@monaco-editor/react";
-import { ArrowRight, Brain, Code2, Info, ChevronLeft, ChevronRight, Clock, Cpu } from "lucide-react";
+import { ArrowRight, Brain, Info, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
 import { evaluateCode } from '@/services/gemini';
 import { toast } from "@/app/_components/ui/use-toast";
 import Timer from '@/app/_components/Timer';
 import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
 import { CodeProblem, EvaluationResult } from "@/types/code";
-
-
 export default function CodingTest() {
   const params = useParams();
+  const router = useRouter();
   const [questions, setQuestions] = useState<CodeProblem[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [code, setCode] = useState("");
@@ -26,20 +26,15 @@ export default function CodingTest() {
   const [activeTab, setActiveTab] = useState("problem");
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
 
- // filepath: /Users/harshitduggal/Downloads/hirebit-1/app/(mainLayout)/coding-test/[id]/page.tsx
-
-useEffect(() => {
+  // Add loadQuestions function
   async function loadQuestions() {
-    if (!params?.id) return;
-
     try {
       setIsLoading(true);
       setError(null);
       
       const response = await fetch(`/api/coding-test/${params.id}`);
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to load questions');
+        throw new Error('Failed to load questions');
       }
 
       const data = await response.json();
@@ -48,29 +43,70 @@ useEffect(() => {
       }
 
       setQuestions(data);
-
     } catch (error) {
       console.error('Loading error:', error);
       setError(error instanceof Error ? error.message : 'Failed to load questions');
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load coding questions",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
   }
 
-  loadQuestions();
-}, [params?.id]);
-  // Only access currentQuestion if questions array has items
+  // Add useEffect for loading questions
+  useEffect(() => {
+    if (params?.id) {
+      loadQuestions();
+    }
+  }, [params?.id]);
+
+  // Single handleSubmit function
+  async function handleSubmit(): Promise<void> {
+    if (!currentQuestion || !code) return;
+
+    try {
+      setIsEvaluating(true);
+      setActiveTab("solution");
+
+      const result = await evaluateCode(code, currentQuestion);
+      setEvaluationResult(result);
+
+      // Store the evaluation data in localStorage
+      localStorage.setItem(`evaluationResult-${params.id}`, JSON.stringify(result));
+      localStorage.setItem(`submittedCode-${params.id}`, code);
+      localStorage.setItem(`problemDetails-${params.id}`, JSON.stringify(currentQuestion));
+
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setCode("");
+        setEvaluationResult(null);
+      } else {
+        toast({
+          title: "Test Completed",
+          description: "Redirecting to results page...",
+        });
+        
+        // Use the router from component level
+        router.push(`/coding-test/${params.id}/result`);
+      }
+    } catch (error) {
+      console.error('Evaluation error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to evaluate code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEvaluating(false);
+    }
+  }
+
+  // Get current question
   const currentQuestion = questions[currentQuestionIndex] || null;
+
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-cyan-400" />
       </div>
     );
   }
@@ -81,57 +117,15 @@ useEffect(() => {
         <h1 className="text-2xl font-bold text-red-400 mb-4">
           {error || 'No questions available'}
         </h1>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
+        <Button
+          onClick={() => router.push('/dashboard')}
+          className="bg-white/[0.05] hover:bg-white/[0.08]"
         >
-          Try Again
-        </button>
+          Return to Dashboard
+        </Button>
       </div>
     );
   }
-
-// First, update the handleSubmit function signature and implementation
-async function handleSubmit(): Promise<void> {
-  if (!currentQuestion || !code) return;
-
-  try {
-    setIsEvaluating(true);
-    setActiveTab("solution");
-
-    const result = await evaluateCode(code, currentQuestion);
-    setEvaluationResult(result);
-
-    if (currentQuestionIndex < questions.length - 1) {
-      // Move to next question
-      setCurrentQuestionIndex(prev => prev + 1);
-      setCode(""); // Reset code for next question
-      setEvaluationResult(null);
-    } else {
-      // Handle test completion
-      toast({
-        title: "Test Completed",
-        description: "Your answers have been submitted successfully.",
-      });
-      // You can add navigation to results page here
-    }
-  } catch (error) {
-    console.error('Evaluation error:', error);
-    toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to evaluate code",
-      variant: "destructive",
-    });
-  } finally {
-    setIsEvaluating(false);
-  }
-}
-
-// Then update the Timer component usage
-<Timer 
-  duration={currentQuestion.timeLimit} 
-  onComplete={() => handleSubmit()} 
-/>
 
   return (
     <div className="relative bg-black min-h-screen text-white">
@@ -164,8 +158,14 @@ async function handleSubmit(): Promise<void> {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="bg-yellow-400 rounded-full w-2 h-2" />
-                  <Timer duration={currentQuestion.timeLimit} onComplete={handleSubmit} />
+                <div className="bg-yellow-400 rounded-full w-2 h-2" />
+                  {/* Timer moved here and wrapped in null check */}
+                  {currentQuestion.timeLimit && (
+                    <Timer 
+                      duration={currentQuestion.timeLimit} 
+                      onComplete={handleSubmit}
+                    />
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="bg-green-400 rounded-full w-2 h-2" />
