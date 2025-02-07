@@ -61,12 +61,13 @@ export default function CodingTest() {
     try {
       setIsEvaluating(true);
       const evaluation = await evaluateCode(code, currentQuestion);
-      
+    
       setEvaluationResult(evaluation);
-      localStorage.setItem('evaluationResult', JSON.stringify(evaluation));
-      localStorage.setItem('submittedCode', code);
-      localStorage.setItem('problemDetails', JSON.stringify(currentQuestion));
-      
+
+localStorage.setItem(`evaluationResult-${params.id}`, JSON.stringify(evaluation));
+localStorage.setItem(`submittedCode-${params.id}`, code);
+localStorage.setItem(`problemDetails-${params.id}`, JSON.stringify(currentQuestion));
+
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setCode("");

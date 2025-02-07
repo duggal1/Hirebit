@@ -30,43 +30,65 @@ export default function Results() {
       const storedResult = localStorage.getItem(`evaluationResult-${params.id}`);
       const storedCode = localStorage.getItem(`submittedCode-${params.id}`);
       const storedProblem = localStorage.getItem(`problemDetails-${params.id}`);
-
+      if (!params.id) {
+        throw new Error("Invalid test ID");
+      }
+  
       if (!storedResult || !storedCode || !storedProblem) {
         throw new Error("Missing evaluation data");
       }
+ try {   const parsedResult = JSON.parse(storedResult);
+  const parsedProblem = JSON.parse(storedProblem);
 
-      const parsedResult = JSON.parse(storedResult);
-      const parsedProblem = JSON.parse(storedProblem);
+  if (!parsedResult || typeof parsedResult.score !== 'number') {
+    throw new Error("Invalid evaluation result");
+  }
 
-      if (!parsedResult || typeof parsedResult.score !== 'number') {
-        throw new Error("Invalid evaluation result");
-      }
+  setResult(parsedResult);
+  setCode(storedCode);
+  setProblem(parsedProblem);
 
-      setResult(parsedResult);
-      setCode(storedCode);
-      setProblem(parsedProblem);
-    } catch (error) {
-      console.error("Error loading results:", error);
-      toast({
-        title: "Error Loading Results",
-        description: error instanceof Error ? error.message : "Failed to load evaluation results",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.id]); // Add params.id as dependency
+} catch (parseError) {
+  throw new Error("Invalid data format");
+}
+} catch (error) {
+console.error("Error loading results:", error);
+toast({
+  title: "Error Loading Results",
+  description: error instanceof Error ? error.message : "Failed to load evaluation results",
+  variant: "destructive",
+});
+} finally {
+setIsLoading(false);
+}
+}, [params.id, toast]);
 
-  
+     
 
   const metrics = useMemo(() => {
     if (!result) return [];
     
     return [
-      { name: "Overall Score", value: result.score },
-      { name: "Problem Solving", value: result.problemSolvingScore.score },
-      { name: "Code Quality", value: result.codeQualityScore.score },
-      { name: "Technical Proficiency", value: result.technicalProficiency.score }
+      {
+        name: "Overall Score",
+        value: Math.round(result.score), 
+        color: "from-cyan-400 to-blue-500"
+      },
+      {
+        name: "Problem Solving",
+        value: Math.round(result.problemSolvingScore.score),
+        color: "from-purple-400 to-pink-500"
+      },
+      {
+        name: "Code Quality",
+        value: Math.round(result.codeQualityScore.score),
+        color: "from-green-400 to-emerald-500"
+      },
+      {
+        name: "Technical Proficiency",
+        value: Math.round(result.technicalProficiency.score),
+        color: "from-yellow-400 to-orange-500"
+      }
     ];
   }, [result]);
 
