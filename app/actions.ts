@@ -12,6 +12,7 @@ import arcjet, { detectBot, shield } from "./utils/arcjet";
 import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
 import { Prisma, UserType } from "@prisma/client";
+import { auth } from "./utils/auth";
  
 const aj = arcjet
   .withRule(
@@ -84,9 +85,8 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
         location: validatedData.location,
         skills: validatedData.skills,
         experience: validatedData.experience,
-        education: validatedData.education as unknown as Prisma.JsonArray,
-        educationDetails: validatedData.educationDetails as unknown as Prisma.JsonArray,
-        expectedSalaryMin: validatedData.expectedSalaryMin,
+        education: validatedData.education as Prisma.JsonArray,
+       
         expectedSalaryMax: validatedData.expectedSalaryMax,
         preferredLocation: validatedData.preferredLocation,
         remotePreference: validatedData.remotePreference,
@@ -97,9 +97,9 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
           ? (validatedData.certifications as unknown as Prisma.JsonArray)
           : Prisma.JsonNull,
         phoneNumber: validatedData.phoneNumber,
-        linkedin: validatedData.linkedin,
-        github: validatedData.github,
-        portfolio: validatedData.portfolio,
+        linkedin: validatedData.linkedin || null,
+    github: validatedData.github || null,
+    portfolio: validatedData.portfolio || null,
         user: {
           connect: { id: user.id }
         }
@@ -509,21 +509,33 @@ function isInCooldown(lastAttemptAt: Date | null): boolean {
 export type FormState = {
   message: string;
   success: boolean;
-};
+}
 export const submitJobSeeker = async (
   prevState: FormState,
   formData: FormData
 ) => {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { 
+        message: "You must be logged in to create a profile", 
+        success: false 
+      };
+    }
+
+
     const rawData = {
+      educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
+      education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       name: formData.get('name') as string,
+      phoneNumber: formData.get('phoneNumber') || "",
+      jobId: formData.get('jobId') || "",
       about: formData.get('about') as string,
       resume: formData.get('resume') as string,
       location: formData.get('location') as string,
       skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
       experience: Number(formData.get('experience')) || 0,
-      education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
-      educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [], // Add this line
+    //  education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       expectedSalaryMin: formData.get('expectedSalaryMin') ? Number(formData.get('expectedSalaryMin')) : null,
       expectedSalaryMax: formData.get('expectedSalaryMax') ? Number(formData.get('expectedSalaryMax')) : null,
       preferredLocation: formData.get('preferredLocation') as string,
@@ -532,25 +544,25 @@ export const submitJobSeeker = async (
       availabilityPeriod: Number(formData.get('availabilityPeriod')) || 30,
       desiredEmployment: formData.get('desiredEmployment') as string,
       certifications: formData.get('certifications') ? JSON.parse(formData.get('certifications') as string) : null,
-      phoneNumber: formData.get('phoneNumber') as string || null,
       linkedin: formData.get('linkedin') as string || null,
       github: formData.get('github') as string || null,
       portfolio: formData.get('portfolio') as string || null,
-      jobId: formData.get('jobId') as string
     };
 
     const validatedData = jobSeekerSchema.parse(rawData);
 
     const jobSeeker = await prisma.jobSeeker.create({
       data: {
+        education: validatedData.education as Prisma.JsonArray,
+        educationDetails: validatedData.education as Prisma.JsonArray, // Use same data for both fields
         name: validatedData.name,
         about: validatedData.about,
+        phoneNumber: validatedData.phoneNumber || null,
         resume: validatedData.resume,
         location: validatedData.location,
         skills: validatedData.skills,
         experience: validatedData.experience,
-        education: validatedData.education as Prisma.JsonArray,
-        educationDetails: validatedData.education as Prisma.JsonArray, // Add this line
+        //education: validatedData.education as Prisma.JsonArray,
         expectedSalaryMin: validatedData.expectedSalaryMin,
         expectedSalaryMax: validatedData.expectedSalaryMax,
         preferredLocation: validatedData.preferredLocation,
@@ -561,30 +573,34 @@ export const submitJobSeeker = async (
         certifications: validatedData.certifications 
           ? (validatedData.certifications as Prisma.JsonArray)
           : Prisma.JsonNull,
-        phoneNumber: validatedData.phoneNumber,
         linkedin: validatedData.linkedin,
         github: validatedData.github,
         portfolio: validatedData.portfolio,
-        user: { connect: { id: (await requireUser()).id } }
+        user: {
+          connect: { 
+            id: session.user.id 
+          }
+        }
       }
     });
 
-   
-    // Create job application if jobId is provided
-    if (rawData.jobId) {
+    if (validatedData.jobId && validatedData.jobId.trim() !== "") {
       await prisma.jobApplication.create({
         data: {
           jobSeekerId: jobSeeker.id,
-          jobId: rawData.jobId,
+          jobId: validatedData.jobId,
           status: "PENDING",
           resume: validatedData.resume
         }
       });
     }
 
-    return { message: 'Profile created successfully! Redirecting to coding test...', success: true };
+    return { 
+      message: 'Profile created successfully!',
+      success: true 
+    };
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Server error:', error);
     return { 
       message: error instanceof Error ? error.message : 'Failed to create profile',
       success: false 

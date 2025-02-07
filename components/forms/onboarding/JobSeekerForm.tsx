@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray,} from "react-hook-form";
 import * as z from "zod";
 import {
   Form,
@@ -18,7 +18,7 @@ import { jobSeekerSchema } from "@/app/utils/zodSchemas";
 import { useState } from "react";
 import { toast } from "@/app/_components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, X, Upload } from "lucide-react";
+import { PlusCircle, X, Upload, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,30 +27,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { createJobSeeker } from "@/app/actions";
+import { createJobSeeker, FormState, submitJobSeeker } from "@/app/actions";
 
 export default function JobSeekerForm() {
   const form = useForm<z.infer<typeof jobSeekerSchema>>({
     resolver: zodResolver(jobSeekerSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       about: "",
       resume: "",
       location: "",
-      expectedSalaryMin: null,
-      expectedSalaryMax: null,
+      phoneNumber: "", // Empty string instead of undefined
+      jobId: "", // Empty string instead of undefined
+      expectedSalaryMin: undefined,
+      expectedSalaryMax: undefined,
       preferredLocation: "",
       remotePreference: "Hybrid",
       yearsOfExperience: 0,
       skills: [],
-      certifications: null,
+      certifications: undefined,
       availabilityPeriod: 30,
       education: [{
-        degree: "",
-        institution: "",
-        year: new Date().getFullYear()
-      }],
-      educationDetails: [{
         degree: "",
         institution: "",
         year: new Date().getFullYear(),
@@ -58,12 +56,13 @@ export default function JobSeekerForm() {
       }],
       desiredEmployment: "Full-time",
       experience: 0,
-      phoneNumber: "",
-      linkedin: "",
-      github: "",
-      portfolio: ""
-    },
+     // phoneNumber: "",
+      linkedin: "", // Empty string instead of undefined
+      github: "", // Empty string instead of undefined
+      portfolio: "", // Empty string instead of undefined
+    }
   });
+  
 
   const {
     fields: educationFields,
@@ -81,7 +80,14 @@ export default function JobSeekerForm() {
   } = useFieldArray({
     name: "certifications",
     control: form.control,
+    shouldUnregister: true, // Add this line
   });
+  // Add this before your form's return statement
+console.log("Form state:", {
+  isValid: form.formState.isValid,
+  errors: form.formState.errors,
+  isDirty: form.formState.isDirty,
+});
 
   const [pending, setPending] = useState(false);
   const [currentSkill, setCurrentSkill] = useState("");
@@ -89,26 +95,60 @@ export default function JobSeekerForm() {
   async function onSubmit(values: z.infer<typeof jobSeekerSchema>) {
     try {
       setPending(true);
-      await createJobSeeker(values);
-      toast({
-        title: "Success",
-        description: "Your profile has been created successfully.",
+      console.log("Submitting form with values:", values); // Add logging
+  
+      const formData = new FormData();
+      // Add all form fields to FormData
+      Object.entries(values).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          formData.set(key, JSON.stringify(value));
+        } else if (value !== null && value !== undefined) {
+          formData.set(key, value.toString());
+        }
       });
+  
+      const result = await submitJobSeeker({} as FormState, formData);
+      console.log("Submission result:", result); // Add logging
+  
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error("Form submission error:", error); // Add logging
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Something went wrong",
+        description: error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
     } finally {
       setPending(false);
     }
   }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+<Form {...form}>
+<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+  {/* Add this debug section */}
+  {Object.keys(form.formState.errors).length > 0 && (
+    <div className="rounded-md bg-destructive/15 p-3">
+      <h3 className="text-sm font-medium text-destructive">Form has the following errors:</h3>
+      <ul className="mt-2 text-sm text-destructive">
+        {Object.entries(form.formState.errors).map(([field, error]) => (
+          <li key={field}>
+            {field}: {error?.message as string}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
         {/* Basic Information */}
         <div className="space-y-4">
           <h2 className="font-semibold text-xl">Basic Information</h2>
@@ -143,7 +183,62 @@ export default function JobSeekerForm() {
               </FormItem>
             )}
           />
+<FormField
+  control={form.control}
+  name="linkedin"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>LinkedIn Profile</FormLabel>
+      <FormControl>
+        <Input 
+          {...field} 
+          placeholder="https://linkedin.com/in/..." 
+          value={field.value || ''} 
+        />
+      </FormControl>
+      <FormDescription>Optional</FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
+<FormField
+  control={form.control}
+  name="github"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>GitHub Profile</FormLabel>
+      <FormControl>
+        <Input 
+          {...field} 
+          placeholder="https://github.com/..." 
+          value={field.value || ''} 
+        />
+      </FormControl>
+      <FormDescription>Optional</FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+<FormField
+  control={form.control}
+  name="portfolio"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Portfolio Website</FormLabel>
+      <FormControl>
+        <Input 
+          {...field} 
+          placeholder="https://..." 
+          value={field.value || ''} 
+        />
+      </FormControl>
+      <FormDescription>Optional</FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
           <FormField
             control={form.control}
             name="resume"
@@ -517,25 +612,29 @@ export default function JobSeekerForm() {
         <div className="space-y-4">
           <h2 className="font-semibold text-xl">Employment Preferences</h2>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          // Change expectedSalary.min and expectedSalary.max to:
-<FormField
-  control={form.control}
-  name="expectedSalaryMin"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Expected Salary (Min)</FormLabel>
-      <FormControl>
-        <Input 
-          type="number" 
-          placeholder="Minimum Salary" 
-          {...field}
-          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)} 
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+        
+          <FormField
+      control={form.control}
+      name="availabilityPeriod"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Availability / Notice Period (Days)</FormLabel>
+          <FormControl>
+            <Input
+              type="number"
+              min={0}
+              {...field}
+              onChange={(e) => field.onChange(Number(e.target.value))}
+              placeholder="30"
+            />
+          </FormControl>
+          <FormDescription>
+            Number of days until you can start
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
 
 <FormField
   control={form.control}
@@ -548,16 +647,36 @@ export default function JobSeekerForm() {
           type="number" 
           placeholder="Maximum Salary" 
           {...field}
-          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+          value={field.value ?? ''} // Add this line
+          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
         />
       </FormControl>
       <FormMessage />
     </FormItem>
   )}
 />
-              
+
+<FormField
+  control={form.control}
+  name="expectedSalaryMin"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Expected Salary (Min)</FormLabel>
+      <FormControl>
+        <Input 
+          type="number" 
+          placeholder="Minimum Salary" 
+          {...field}
+          value={field.value ?? ''} // Add this line
+          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
             
-          </div>
+        </div>
           <FormField
             control={form.control}
             name="availabilityPeriod"
@@ -600,10 +719,24 @@ export default function JobSeekerForm() {
           />
         </div>
 
-        <Button type="submit" disabled={pending}>
-          {pending ? "Submitting..." : "Submit"}
-        </Button>
+        <Button 
+  type="submit" 
+  disabled={pending} // Remove the isValid check temporarily
+  className="w-full"
+>
+  {pending ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Submitting...
+    </>
+  ) : (
+    "Submit"
+  )}
+</Button>
       </form>
     </Form>
   );
 }
+
+
+

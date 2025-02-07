@@ -204,31 +204,32 @@ model Company {
 model JobSeeker {
   expectedSalaryMin  Int?
   expectedSalaryMax  Int?
-  preferredLocation  String'
+  preferredLocation  String
   remotePreference   String // "Remote" | "Hybrid" | "On-site"
   yearsOfExperience  Int
   certifications     Json? // Array of certification objects
   availabilityPeriod Int // Notice period in days
-  educationDetails   Json // Detailed education history
+  education          Json // Main education array
+  educationDetails   Json? // Make educationDetails optional
   desiredEmployment  String // "Full-time" | "Part-time" | "Contract"
-  id                 String           @id @default(uuid())
+  id                 String   @id @default(uuid())
   name               String
   about              String
-  resume             String           @db.VarChar(2048) // Increased length for URLs
+  resume             String   @db.VarChar(2048) // Increased length for URLs
   skills             String[]
   experience         Int
-  education          Json
-  location           String
-  phoneNumber        String?
-  linkedin           String?          @db.VarChar(2048)
-  github             String?          @db.VarChar(2048)
-  portfolio          String?          @db.VarChar(2048)
-  lastAttemptAt      DateTime?
-  user               User             @relation(fields: [userId], references: [id])
-  userId             String           @unique
-  applications       JobApplication[]
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+
+  location      String
+  phoneNumber   String?
+  linkedin      String?          @db.VarChar(2048)
+  github        String?          @db.VarChar(2048)
+  portfolio     String?          @db.VarChar(2048)
+  lastAttemptAt DateTime?
+  user          User             @relation(fields: [userId], references: [id])
+  userId        String           @unique
+  applications  JobApplication[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@map("job_seekers")
 }

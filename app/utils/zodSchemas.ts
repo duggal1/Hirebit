@@ -18,6 +18,8 @@ export const jobSeekerSchema = z.object({
   resume: z.string().url(),
   location: z.string().min(2),
   expectedSalaryMin: z.number().min(0).nullable(),
+
+  desiredEmployment: z.enum(["Full-time", "Part-time", "Contract"]),
   expectedSalaryMax: z.number().min(0).nullable(),
   preferredLocation: z.string().min(2),
   remotePreference: z.enum(["Remote", "Hybrid", "On-site"]),
@@ -28,7 +30,7 @@ export const jobSeekerSchema = z.object({
     issuer: z.string(),
     year: z.number(),
     url: z.string().url().optional()
-  })).nullable(),
+  })).optional(),
   availabilityPeriod: z.number(),
   education: z.array(z.object({
     degree: z.string(),
@@ -36,20 +38,13 @@ export const jobSeekerSchema = z.object({
     year: z.number(),
     fieldOfStudy: z.string()
   })),
-  educationDetails: z.array(z.object({ // Add this field
-    degree: z.string(),
-    institution: z.string(),
-    year: z.number(),
-    fieldOfStudy: z.string()
-  })),
-  // Remove educationDetails as it's redundant with education
-  desiredEmployment: z.enum(["Full-time", "Part-time", "Contract"]),
   experience: z.number(),
-  phoneNumber: z.string().optional(),
-  linkedin: z.string().url().optional(),
-  github: z.string().url().optional(),
-  portfolio: z.string().url().optional(),
-  jobId: z.string().optional()
+  phoneNumber: z.string().optional().nullable(), // Make phone number optional and nullable
+  jobId: z.string().optional().nullable(), // Make jobId optional and nullable
+  linkedin: z.string().url("Invalid URL format").optional().or(z.literal("")),
+  github: z.string().url("Invalid URL format").optional().or(z.literal("")),
+  portfolio: z.string().url("Invalid URL format").optional().or(z.literal("")),
+
 });
 
 export const jobSchema = z.object({
