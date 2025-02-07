@@ -26,10 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { createJobSeeker, FormState, submitJobSeeker } from "@/app/actions";
 
 export default function JobSeekerForm() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof jobSeekerSchema>>({
     resolver: zodResolver(jobSeekerSchema),
     mode: "onChange",
@@ -95,10 +97,9 @@ console.log("Form state:", {
   async function onSubmit(values: z.infer<typeof jobSeekerSchema>) {
     try {
       setPending(true);
-      console.log("Submitting form with values:", values); // Add logging
+      console.log("Submitting form with values:", values);
   
       const formData = new FormData();
-      // Add all form fields to FormData
       Object.entries(values).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           formData.set(key, JSON.stringify(value));
@@ -108,13 +109,20 @@ console.log("Form state:", {
       });
   
       const result = await submitJobSeeker({} as FormState, formData);
-      console.log("Submission result:", result); // Add logging
+      console.log("Submission result:", result);
   
       if (result.success) {
         toast({
           title: "Success",
           description: result.message,
         });
+        
+        // Add a small delay before redirect to show the success message
+        setTimeout(() => {
+          if (result.redirect) {
+            router.push(result.redirect);
+          }
+        }, 1500);
       } else {
         toast({
           title: "Error",
@@ -123,7 +131,7 @@ console.log("Form state:", {
         });
       }
     } catch (error) {
-      console.error("Form submission error:", error); // Add logging
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",

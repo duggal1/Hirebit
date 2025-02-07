@@ -144,8 +144,8 @@ const JobIdPage = async ({ params }: { params: Params }) => {
           </div>
 
           <section>
-            <JsonToHtml json={JSON.parse(jobData.jobDescription)} />
-          </section>
+  <JsonToHtml json={jobData.jobDescription} />
+</section>
 
           <section>
             <h3 className="mb-4 font-semibold">

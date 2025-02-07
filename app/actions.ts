@@ -31,41 +31,41 @@ const BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://your-production-domain.com'  // Replace with your actual production domain
   : 'http://localhost:3000';
 
-export async function createCompany(data: z.infer<typeof companySchema>) {
-  const user = await requireUser();
-
-  // Access the request object so Arcjet can analyze it
-  const req = await request();
-  // Call Arcjet protect
-  const decision = await aj.protect(req);
-
-  if (decision.isDenied()) {
-    throw new Error("Forbidden");
-  }
-
-  // Server-side validation
-  const validatedData = companySchema.parse(data);
-
-  console.log(validatedData);
-
-  await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      onboardingCompleted: true,
-      userType: "COMPANY",
-      Company: {
-        create: {
-          ...validatedData,
+  export async function createCompany(data: z.infer<typeof companySchema>) {
+    const user = await requireUser();
+  
+    // Access the request object so Arcjet can analyze it
+    const req = await request();
+    // Call Arcjet protect
+    const decision = await aj.protect(req);
+  
+    if (decision.isDenied()) {
+      throw new Error("Forbidden");
+    }
+  
+    // Server-side validation
+    const validatedData = companySchema.parse(data);
+  
+    console.log(validatedData);
+  
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        onboardingCompleted: true,
+        userType: "COMPANY",
+        Company: {
+          create: {
+            ...validatedData,
+            industry: validatedData.industry || "Technology", // Provide default value
+          },
         },
       },
-    },
-  });
-
-  return redirect("/");
-}
-
+    });
+  
+    return redirect("/");
+  }
 
 
 
@@ -524,7 +524,6 @@ export const submitJobSeeker = async (
     }
 
     const rawData = {
-
       educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       name: formData.get('name') as string,
@@ -535,7 +534,6 @@ export const submitJobSeeker = async (
       location: formData.get('location') as string,
       skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
       experience: Number(formData.get('experience')) || 0,
-    //  education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
       expectedSalaryMin: formData.get('expectedSalaryMin') ? Number(formData.get('expectedSalaryMin')) : null,
       expectedSalaryMax: formData.get('expectedSalaryMax') ? Number(formData.get('expectedSalaryMax')) : null,
       preferredLocation: formData.get('preferredLocation') as string,
@@ -547,23 +545,25 @@ export const submitJobSeeker = async (
       linkedin: formData.get('linkedin') as string || null,
       github: formData.get('github') as string || null,
       portfolio: formData.get('portfolio') as string || null,
-
     };
 
     const validatedData = jobSeekerSchema.parse(rawData);
 
-    const jobSeeker = await prisma.jobSeeker.create({
-      data: {
+    // Use upsert instead of create
+    const jobSeeker = await prisma.jobSeeker.upsert({
+      where: {
+        userId: session.user.id
+      },
+      update: {
         education: validatedData.education as Prisma.JsonArray,
-        educationDetails: validatedData.education as Prisma.JsonArray, // Use same data for both fields
+        educationDetails: validatedData.education as Prisma.JsonArray,
         name: validatedData.name,
         about: validatedData.about,
-        phoneNumber: validatedData.phoneNumber || null,
+        phoneNumber: validatedData.phoneNumber,
         resume: validatedData.resume,
         location: validatedData.location,
         skills: validatedData.skills,
         experience: validatedData.experience,
-        //education: validatedData.education as Prisma.JsonArray,
         expectedSalaryMin: validatedData.expectedSalaryMin,
         expectedSalaryMax: validatedData.expectedSalaryMax,
         preferredLocation: validatedData.preferredLocation,
@@ -577,13 +577,36 @@ export const submitJobSeeker = async (
         linkedin: validatedData.linkedin,
         github: validatedData.github,
         portfolio: validatedData.portfolio,
-        userId: session.user.id // Add this line
-       
-        }
-      
+      },
+      create: {
+        userId: session.user.id,
+        education: validatedData.education as Prisma.JsonArray,
+        educationDetails: validatedData.education as Prisma.JsonArray,
+        name: validatedData.name,
+        about: validatedData.about,
+        phoneNumber: validatedData.phoneNumber,
+        resume: validatedData.resume,
+        location: validatedData.location,
+        skills: validatedData.skills,
+        experience: validatedData.experience,
+        expectedSalaryMin: validatedData.expectedSalaryMin,
+        expectedSalaryMax: validatedData.expectedSalaryMax,
+        preferredLocation: validatedData.preferredLocation,
+        remotePreference: validatedData.remotePreference,
+        yearsOfExperience: validatedData.yearsOfExperience,
+        availabilityPeriod: validatedData.availabilityPeriod,
+        desiredEmployment: validatedData.desiredEmployment,
+        certifications: validatedData.certifications 
+          ? (validatedData.certifications as Prisma.JsonArray)
+          : Prisma.JsonNull,
+        linkedin: validatedData.linkedin,
+        github: validatedData.github,
+        portfolio: validatedData.portfolio,
+      }
     });
 
-    if (validatedData.jobId && validatedData.jobId.trim() !== "") {
+    // Handle job application if jobId is provided
+    if (validatedData.jobId) {
       await prisma.jobApplication.create({
         data: {
           jobSeekerId: jobSeeker.id,
@@ -592,17 +615,19 @@ export const submitJobSeeker = async (
           resume: validatedData.resume
         }
       });
+   
     }
-
-    return { 
-      message: 'Profile created successfully!',
-      success: true 
-    };
-  } catch (error) {
-    console.error('Server error:', error);
-    return { 
-      message: error instanceof Error ? error.message : 'Failed to create profile',
-      success: false 
-    };
-  }
+// Return success response instead of redirecting
+return { 
+  message: "Profile updated successfully!",
+  success: true,
+  redirect: '/' // Add this to handle redirect on client side
+};
+} catch (error) {
+console.error('Server error:', error);
+return { 
+  message: error instanceof Error ? error.message : 'Failed to update profile',
+  success: false 
+};
+}
 };

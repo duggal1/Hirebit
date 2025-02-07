@@ -9,6 +9,7 @@ export const companySchema = z.object({
   logo: z.string().min(1, "Please upload a logo"),
   website: z.string().url("Please enter a valid website URL"),
   xAccount: z.string().optional(),
+  industry: z.string().min(1, "Industry is required"), // Add this line
 });
 
 

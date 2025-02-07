@@ -44,6 +44,7 @@ export default function CompanyForm() {
       xAccount: "",
       logo: "",
       name: "",
+      industry: "",
     },
   });
 
@@ -52,11 +53,15 @@ export default function CompanyForm() {
   async function onSubmit(values: z.infer<typeof companySchema>) {
     try {
       setPending(true);
-      await createCompany(values);
+      await createCompany({
+        ...values,
+        industry: values.industry || 'Technology', // Provide default value
+      });
+      toast.success("Company profile created successfully!");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       if (error instanceof Error && error.message !== "NEXT_REDIRECT") {
-        toast.error("Something went wrong. Please try again.");
+        toast.error(error.message || "Something went wrong. Please try again.");
       }
     } finally {
       setPending(false);
@@ -171,6 +176,45 @@ export default function CompanyForm() {
             </FormItem>
           )}
         />
+       
+  {/* Add the industry field */}
+  <FormField
+    control={form.control}
+    name="industry"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Industry</FormLabel>
+        <Select
+          onValueChange={field.onChange}
+          defaultValue={field.value}
+        >
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Industry" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Select Industry</SelectLabel>
+              <SelectItem value="Technology">Technology</SelectItem>
+              <SelectItem value="Healthcare">Healthcare</SelectItem>
+              <SelectItem value="Finance">Finance</SelectItem>
+              <SelectItem value="Education">Education</SelectItem>
+              <SelectItem value="Retail">Retail</SelectItem>
+              <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+              <SelectItem value="Media">Media & Entertainment</SelectItem>
+              <SelectItem value="Consulting">Consulting</SelectItem>
+              <SelectItem value="Real Estate">Real Estate</SelectItem>
+              <SelectItem value="Energy">Energy</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+
 
         {/* Full width for logo upload */}
         <FormField
