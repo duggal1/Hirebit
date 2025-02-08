@@ -20,6 +20,7 @@ import { fetchGithubData } from "@/services/githubService";
 import { fetchPortfolioData } from "@/services/portfolioService";
 import { Badge } from "@/components/ui/badge";
 import { useParams , useRouter } from "next/navigation";
+import { LinkedInResults } from "@/components/verification/linkedin";
 
 
 const VerificationPage =() => {
@@ -33,6 +34,7 @@ const VerificationPage =() => {
   const [portfolioData, setPortfolioData] = useState<any>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
   const [verificationData, setVerificationData] = useState<any>(null);
+const [linkedinData, setLinkedinData] = useState<any>(null);
 
  useEffect(() => {
   if (!params?.id || params.id === 'undefined') {
@@ -74,6 +76,7 @@ const VerificationPage =() => {
           if (data.analysis) {
             if (data.analysis.github) setGithubData(data.analysis.github);
             if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
+            if (data.analysis.linkedin) setLinkedinData(data.analysis.linkedin);
           }
 
         } catch (error) {
@@ -149,6 +152,42 @@ const handleSubmit = async (e: React.FormEvent) => {
           title: "Processing",
           description: "Analyzing portfolio data with Gemini AI...",
         });
+        // Inside handleSubmit function, after the portfolio handling
+if (validatedUrls.linkedin) {
+  toast({
+    title: "Processing",
+    description: "Analyzing LinkedIn profile...",
+  });
+
+  try {
+    const response = await fetch('/api/linkedin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: validatedUrls.linkedin }),
+    });
+
+    if (!response.ok) {
+      throw new Error('LinkedIn analysis failed');
+    }
+
+    const data = await response.json();
+    setLinkedinData(data);
+
+    toast({
+      title: "Success",
+      description: "LinkedIn profile analyzed successfully!",
+    });
+  } catch (error) {
+    console.error("LinkedIn analysis error:", error);
+    toast({
+      variant: "destructive",
+      title: "Analysis Error",
+      description: "Failed to analyze LinkedIn profile. Please try again.",
+    });
+  }
+}
 
         try {
           // Check for fresh cache (less than 24 hours old)
@@ -321,6 +360,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                 />
               </div>
             )}
+           
+{linkedinData && (
+  <div className="transform transition-all duration-500 hover:scale-[1.01]">
+    <LinkedInResults data={linkedinData} />
+  </div>
+)}
                 <div className="fixed top-4 right-4">
      <Badge variant="outline">
        Verification ID: {params.id}

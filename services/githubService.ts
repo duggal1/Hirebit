@@ -1,5 +1,5 @@
 
-interface GithubUserData {
+export interface GithubUserData {
   name: string;
   login: string;
   bio: string;
@@ -11,6 +11,18 @@ interface GithubUserData {
   created_at: string;
 }
 
+// Add at the top with other interfaces
+interface VerificationStatus {
+  isVerified: boolean;
+  message: string;
+}
+
+interface GithubData {
+  profile: GithubUserData;
+  repositories: GithubRepo[];
+  commitStats: CommitStats;
+  verification: VerificationStatus;
+}
 interface GithubRepo {
   name: string;
   description: string;
@@ -32,6 +44,7 @@ interface CommitStats {
   streak_days: number;
   contribution_history: ContributionDay[];
 }
+import { isVerified } from './githubVerification';
 
 export const fetchGithubData = async (url: string) => {
   try {
@@ -52,7 +65,7 @@ export const fetchGithubData = async (url: string) => {
     const eventsResponse = await fetch(`https://api.github.com/users/${username}/events`);
     if (!eventsResponse.ok) throw new Error('Failed to fetch GitHub events');
     const eventsData = await eventsResponse.json();
-
+    const verification = await isVerified(userData);
     // Process commit statistics
     const commitStats: CommitStats = {
       total_commits: 0,
@@ -94,6 +107,7 @@ export const fetchGithubData = async (url: string) => {
       profile: userData,
       repositories: reposData,
       commitStats,
+      verification
     };
   } catch (error) {
     console.error('GitHub API Error:', error);

@@ -1,8 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// Removed the custom Icons import
-// import { Icons } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import {
@@ -15,7 +13,12 @@ import {
   Area,
   AreaChart
 } from "recharts";
-import { Star, GitFork } from "lucide-react"; // Imported lucide-react icons
+import { Star, GitFork, CheckCircle2, XCircle } from "lucide-react"; 
+
+interface VerificationStatus {
+  isVerified: boolean;
+  message: string;
+}
 
 interface GithubProfile {
   name: string;
@@ -51,8 +54,39 @@ interface GithubResultsProps {
     profile: GithubProfile;
     repositories: Repository[];
     commitStats: CommitStats;
+    verification: VerificationStatus;
   };
 }
+
+// Moved VerificationBadge component outside of GithubResults
+const VerificationBadge = ({ verification }: { verification: VerificationStatus }) => {
+  // Remove the null check since we're already checking in the parent
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+    >
+      <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50 mt-4">
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-4">
+            {verification.isVerified ? (
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+            ) : (
+              <XCircle className="w-6 h-6 text-red-500" />
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-200">
+                {verification.isVerified ? "Verified Account" : "Verification Status"}
+              </h3>
+              <p className="text-zinc-400 text-sm">{verification.message}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 export function GithubResults({ data }: GithubResultsProps) {
   const fadeIn = {
@@ -61,6 +95,9 @@ export function GithubResults({ data }: GithubResultsProps) {
     transition: { duration: 0.6 }
   };
 
+  console.log('Received data:', data);
+  {console.log('Verification data:', data.verification)}
+  
   const statCards = [
     { label: "Repositories", value: data.profile.public_repos },
     { label: "Followers", value: data.profile.followers },
@@ -69,7 +106,7 @@ export function GithubResults({ data }: GithubResultsProps) {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <motion.div {...fadeIn}>
         <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50 overflow-hidden">
           <CardHeader className="pb-0">
@@ -114,6 +151,13 @@ export function GithubResults({ data }: GithubResultsProps) {
             </div>
           </CardContent>
         </Card>
+      
+        {data.verification && (
+        <VerificationBadge 
+          verification={data.verification} 
+        />
+        )}
+     
       </motion.div>
 
       <motion.div {...fadeIn} transition={{ delay: 0.2 }}>
