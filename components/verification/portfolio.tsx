@@ -14,6 +14,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { VerificationStatus } from './VerificationStatus';
+
 
 // Keeping the interfaces the same...
 interface PortfolioData {
@@ -45,7 +47,11 @@ interface VerificationStatus {
 }
 
 interface PortfolioVerificationProps {
-  verification: VerificationStatus;
+  verification: {
+    isVerified: boolean;
+    message: string;
+    score: number;
+  };
 }
 
 
@@ -98,16 +104,17 @@ interface PortfolioAnalysis {
 interface PortfolioResultsProps {
   data: PortfolioData;
   analysis: PortfolioAnalysis;
-  verification?: VerificationStatus;
- 
+  verification: {
+    isVerified: boolean;
+    message: string;
+    score: number;
+  };
 }
 
-
-export function PortfolioResults({ data, analysis, verification =  { 
-  isVerified: false,
-  message: "Verification pending",
-  score: 0
-} 
+export function PortfolioResults({ 
+  data, 
+  analysis, 
+  verification 
 }: PortfolioResultsProps) {
 
   const [isError, setIsError] = useState(false);
@@ -155,6 +162,7 @@ export function PortfolioResults({ data, analysis, verification =  {
 
   return (
     <div className="bg-[#030307] min-h-screen p-4 md:p-8 space-y-8 text-slate-200">
+         <VerificationStatus verification={verification} />
       {/* Header Card */}
       <Card className="relative overflow-hidden bg-gradient-to-br from-[#080810] to-[#0C0C1A] border-none rounded-3xl shadow-2xl p-8 backdrop-blur-3xl">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
@@ -220,42 +228,45 @@ export function PortfolioResults({ data, analysis, verification =  {
               </div>
             </div>
           )}
-           {verification && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-        
-        <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50 mt-4">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-4">
-              {verification.isVerified ? (
-                <CheckCircle2 className="w-6 h-6 text-green-500" />
-              ) : (
-                <XCircle className="w-6 h-6 text-red-500" />
-              )}
-              <div>
-                <h3 className="text-lg font-semibold text-zinc-200">
-                  {verification.isVerified ? "Verified Portfolio" : "Verification Status"}
-                </h3>
-                <p className="text-zinc-400 text-sm">{verification.message}</p>
-                <div className="mt-2">
-                  <div className="bg-zinc-700/50 h-2 rounded-full">
-                    <div 
-                      className="bg-gradient-to-r from-violet-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${verification.score}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-1">Portfolio Score: {verification.score}/100</p>
+          {verification && (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="mb-6" // Add margin bottom for spacing
+    >
+      <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50">
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-4">
+            {verification.isVerified ? (
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+            ) : (
+              <XCircle className="w-6 h-6 text-red-500" />
+            )}
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-zinc-200">
+                {verification.isVerified ? "Verified Portfolio" : "Verification Status"}
+              </h3>
+              <p className="text-zinc-400 text-sm">{verification.message || "Verification pending"}</p>
+              <div className="mt-2">
+                <div className="bg-zinc-700/50 h-2 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${verification.score}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="bg-gradient-to-r from-violet-500 to-indigo-500 h-full"
+                  />
                 </div>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Portfolio Score: {verification.score}/100
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-           )}
-
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )}
 
 <div className="grid md:grid-cols-2 gap-6">
   {/* Strengths */}

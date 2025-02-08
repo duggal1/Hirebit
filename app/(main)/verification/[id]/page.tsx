@@ -355,9 +355,14 @@ if (validatedUrls.linkedin) {
             {portfolioData && (
               <div className="transform transition-all duration-500 hover:scale-[1.01]">
                 <PortfolioResults 
-                  data={portfolioData.data}
-                  analysis={portfolioData.analysis}
-                />
+  data={portfolioData.data}
+  analysis={portfolioData.analysis}
+  verification={portfolioData.verification || {
+    isVerified: false,
+    message: "Verification pending",
+    score: 0
+  }}
+/>
               </div>
             )}
            

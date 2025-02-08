@@ -22,7 +22,7 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
     Title: ${portfolioData.data.basics.title}
     Bio: ${portfolioData.data.basics.bio || 'Not provided'}
     Projects Count: ${portfolioData.data.projects.length}
-    Technical Skills: ${portfolioData.data.skills.technical.join(', ')}
+    Technical Skills: ${portfolioData.data.skills.technical.join(', ') || 'None provided'}
     
     Consider these factors:
     1. Has basic profile information
@@ -30,18 +30,13 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
     3. Has projects showcased
     4. Overall profile completeness: ${portfolioData.analysis.insights.score}%
     
-    Return a JSON response. Be encouraging if the portfolio shows effort, even if incomplete.
-    Verify as true if there are at least:
-    - Name and title
-    - Some technical skills
-    - At least 1 project
-    
-    Response format:
+    Return a JSON response with specific verification criteria:
     {
-      "isVerified": boolean,
-      "message": "Provide encouraging feedback and suggestions for improvement",
-      "score": number (base score on existing content, not perfection)
+      "isVerified": boolean (true if has name, title, and at least 1 project),
+      "message": "Specific feedback with improvements needed",
+      "score": number (0-100 based on content completeness)
     }`;
+
     console.log('Sending prompt to Gemini:', prompt);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
@@ -84,7 +79,7 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
       });
       throw new Error('Failed to parse AI response');
     }
-
+   
   } catch (error) {
     console.error('Portfolio verification error:', {
       error,
