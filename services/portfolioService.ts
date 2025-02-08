@@ -310,113 +310,145 @@ Analyze this HTML content in detail: ${html.substring(0, 15000)}`;
     const extractionResult = await model.generateContent(extractionPrompt);
     const extractionText = extractionResult.response.text().trim();
     console.log('✅Raw extraction completed. Length:', extractionText.length);
+   // Improved JSON parsing for extraction result
+   let extractedData;
+   try {
+     const cleanedExtractionText = extractionText
+       .replace(/```json\s*|\s*```/g, '') // Remove JSON code blocks
+       .replace(/^JSON\s*|^\s*{/m, '{')   // Clean up any "JSON" prefix
+       .trim();
+     
+     extractedData = JSON.parse(cleanedExtractionText);
+     
+     // Validate extracted data structure
+     if (!extractedData?.data) {
+       throw new Error('Invalid data structure in extraction result');
+     }
 
-    let extractedData;
-    try {
-      extractedData = JSON.parse(extractionText.replace(/```json|```/g, '').trim());
-      console.log('Extraction successful. Found:', {
-        projectCount: extractedData.data?.projects?.length || 0,
-        skillsCount: extractedData.data?.skills?.technical?.length || 0,
-        hasProjects: extractedData.data?.projects?.length > 0,
-        hasTechSkills: extractedData.data?.skills?.technical?.length > 0
-      });
-    } catch (parseError) {
-      console.error('❌Failed to parse extraction result of raw data:', parseError);
-      return getDefaultAnalysis();
-    }
+     console.log('Extraction successful. Found:', {
+       projectCount: extractedData.data?.projects?.length || 0,
+       skillsCount: extractedData.data?.skills?.technical?.length || 0,
+       hasProjects: extractedData.data?.projects?.length > 0,
+       hasTechSkills: extractedData.data?.skills?.technical?.length > 0
+     });
+   } catch (parseError) {
+     console.error('❌Failed to parse extraction result:', parseError);
+     return getDefaultAnalysis();
+   }
+
 
     // Second pass: Enhanced analysis with more specific criteria
     console.log('Starting detailed analysis...');
-    const analysisPrompt = `Analyze this portfolio data critically and thoroughly:
-${JSON.stringify(extractedData, null, 2)}
+   // Replace the existing analysisPrompt with this simplified version
+   const analysisPrompt = `Analyze this portfolio data critically and thoroughly:
+   ${JSON.stringify(extractedData, null, 2)}
+   
+   Provide a detailed technical analysis. Focus on:
+   1. Technical depth and breadth
+   2. Project complexity
+   3. Modern vs outdated technologies
+   4. Best practices adherence
+   5. Buzzword usage
+   6. Technical writing quality
+   
+   Return a detailed JSON analysis:
+   {
+     "strengths": ["detailed strength points"],
+     "weaknesses": ["specific improvement areas"],
+     "insights": {
+       "score": "0-100 based on technical depth and presentation",
+       "roleClarity": {
+         "score": "0-100",
+         "issues": ["specific role alignment issues"],
+         "suggestedRole": "recommended role based on skills"
+       },
+       "projectQuality": {
+         "score": "0-100",
+         "issues": ["specific project concerns"],
+         "suggestions": ["detailed improvement ideas"],
+         "hasLiveDemo": "boolean",
+         "hasSourceCode": "boolean",
+         "technicalDepth": "assessment of technical complexity"
+       },
+       "bioAnalysis": {
+         "isOptimal": "boolean",
+         "wordCount": "number",
+         "issues": ["specific content issues"],
+         "suggestions": ["detailed improvements"]
+       },
+       "skillsAnalysis": {
+         "focusScore": "0-100",
+         "issues": ["skill gaps", "focus areas"],
+         "redundantSkills": ["overlapping skills"],
+         "missingCoreSkills": ["essential missing skills"],
+         "modernization": ["outdated skills to update"]
+       },
+       "contentIssues": {
+         "buzzwords": ["identified buzzwords"],
+         "overusedTerms": ["overused technical terms"],
+         "spamKeywords": ["suspicious terms"],
+         "overclaimedSkills": ["skills needing verification"]
+       },
+       "criticalFlags": {
+         "noProjects": "boolean",
+         "multipleRoles": "boolean",
+         "inconsistentInfo": "boolean",
+         "outdatedTech": "boolean",
+         "poorPresentation": "boolean",
+         "reasons": ["detailed explanations"]
+       },
+       "improvements": ["prioritized, actionable improvements"]
+     }
+   }`;
+   
+const analysisResult = await model.generateContent(analysisPrompt);
+const analysisText = analysisResult.response.text().trim();
+console.log('Analysis completed. Length:', analysisText.length);
+let analysisData;
+try {
+  const cleanedAnalysisText = analysisText
+    .replace(/```(?:json)?\s*|\s*```/g, '') // Remove code blocks with or without language
+    .replace(/^JSON\s*|^\s*{/m, '{')        // Clean up any "JSON" prefix
+    .replace(/(\r\n|\n|\r)/gm, '')          // Remove line breaks
+    .replace(/\s+/g, ' ')                   // Normalize whitespace
+    .trim();
 
-Provide a detailed technical analysis. Focus on:
-1. Technical depth and breadth
-2. Project complexity
-3. Modern vs outdated technologies
-4. Best practices adherence
-5. Buzzword usage
-6. Technical writing quality
-
-Return a detailed JSON analysis:
-{
-  "strengths": ["detailed strength points"],
-  "weaknesses": ["specific improvement areas"],
-  "insights": {
-    "score": "0-100 based on technical depth and presentation",
-    "roleClarity": {
-      "score": "0-100",
-      "issues": ["specific role alignment issues"],
-      "suggestedRole": "recommended role based on skills"
-    },
-    "projectQuality": {
-      "score": "0-100",
-      "issues": ["specific project concerns"],
-      "suggestions": ["detailed improvement ideas"],
-      "hasLiveDemo": "boolean",
-      "hasSourceCode": "boolean",
-      "technicalDepth": "assessment of technical complexity"
-    },
-    "bioAnalysis": {
-      "isOptimal": "boolean",
-      "wordCount": "number",
-      "issues": ["specific content issues"],
-      "suggestions": ["detailed improvements"]
-    },
-    "skillsAnalysis": {
-      "focusScore": "0-100",
-      "issues": ["skill gaps", "focus areas"],
-      "redundantSkills": ["overlapping skills"],
-      "missingCoreSkills": ["essential missing skills"],
-      "modernization": ["outdated skills to update"]
-    },
-    "contentIssues": {
-      "buzzwords": ["identified buzzwords"],
-      "overusedTerms": ["overused technical terms"],
-      "spamKeywords": ["suspicious terms"],
-      "overclaimedSkills": ["skills needing verification"]
-    },
-    "criticalFlags": {
-      "noProjects": "boolean",
-      "multipleRoles": "boolean",
-      "inconsistentInfo": "boolean",
-      "outdatedTech": "boolean",
-      "poorPresentation": "boolean",
-      "reasons": ["detailed explanations"]
-    },
-    "improvements": ["prioritized, actionable improvements"]
+  analysisData = JSON.parse(cleanedAnalysisText);
+  
+  // Validate analysis data structure
+  if (!analysisData?.insights) {
+    throw new Error('Invalid analysis data structure');
   }
-}`;
 
-    const analysisResult = await model.generateContent(analysisPrompt);
-    const analysisText = analysisResult.response.text().trim();
-    console.log('Analysis completed. Length:', analysisText.length);
+  console.log('Analysis successful. Scores:', {
+    overall: analysisData.insights?.score || 0,
+    roleClarity: analysisData.insights?.roleClarity?.score || 0,
+    projectQuality: analysisData.insights?.projectQuality?.score || 0,
+    skillsFocus: analysisData.insights?.skillsAnalysis?.focusScore || 0
+  });
+} catch (parseError) {
+  console.error('Failed to parse analysis result:', parseError);
+  console.error('Raw analysis text:', analysisText);
+  return getDefaultAnalysis();
+}
 
-    let analysisData;
-    try {
-      analysisData = JSON.parse(analysisText.replace(/```json|```/g, '').trim());
-      console.log('Analysis successful. Scores:', {
-        overall: analysisData.insights?.score || 0,
-        roleClarity: analysisData.insights?.roleClarity?.score || 0,
-        projectQuality: analysisData.insights?.projectQuality?.score || 0,
-        skillsFocus: analysisData.insights?.skillsAnalysis?.focusScore || 0
-      });
-    } catch (parseError) {
-      console.error('Failed to parse analysis result:', parseError);
-      return getDefaultAnalysis();
+// Return combined results
+return {
+  data: {
+    ...extractedData.data,
+    projects: extractedData.data.projects || [],
+    skills: extractedData.data.skills || { 
+      technical: [], 
+      softSkills: [], 
+      frameworks: [], 
+      languages: [] 
     }
+  },
+  analysis: analysisData
+};
 
-    return {
-      data: {
-        ...extractedData.data,
-        projects: extractedData.data.projects || [],
-        skills: extractedData.data.skills || { technical: [], softSkills: [], frameworks: [], languages: [] }
-      },
-      analysis: analysisData
-    };
-
-  } catch (error) {
-    console.error('Gemini analysis failed:', error);
-    return getDefaultAnalysis();
-  }
+} catch (error) {
+console.error('Gemini analysis failed:', error);
+return getDefaultAnalysis();
+}
 }

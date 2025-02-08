@@ -17,24 +17,41 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
       skillsCount: portfolioData.data.skills.technical.length
     });
 
-    const prompt = `Analyze this portfolio data and provide a constructive verification:
+    const prompt = `Analyze this portfolio data and provide a detailed verification report:
     Name: ${portfolioData.data.basics.name}
     Title: ${portfolioData.data.basics.title}
     Bio: ${portfolioData.data.basics.bio || 'Not provided'}
     Projects Count: ${portfolioData.data.projects.length}
     Technical Skills: ${portfolioData.data.skills.technical.join(', ') || 'None provided'}
     
-    Consider these factors:
-    1. Has basic profile information
-    2. Has listed technical skills
-    3. Has projects showcased
-    4. Overall profile completeness: ${portfolioData.analysis.insights.score}%
+    Verification Criteria:
+    1. Profile Completeness:
+       - Basic information (name, title, bio)
+       - Technical skills listed
+       - Projects showcased
     
-    Return a JSON response with specific verification criteria:
+    2. Authentication Factors:
+       - Professional details consistency
+       - Project legitimacy (presence of live/source links)
+       - Skills alignment with projects
+       - Technical depth demonstration
+    
+    3. Overall Assessment:
+       - Profile completeness: ${portfolioData.analysis.insights.score}%
+       - Projects verification
+       - Skills validation
+    
+    Return a JSON response with this format:
     {
-      "isVerified": boolean (true if has name, title, and at least 1 project),
-      "message": "Specific feedback with improvements needed",
-      "score": number (0-100 based on content completeness)
+      "isVerified": boolean,
+      "message": "Comprehensive verification feedback including authentication status",
+      "score": number (0-100),
+      "authentication": {
+        "status": "Fully Verified/Partially Verified/Unverified",
+        "confidenceScore": number (0-100),
+        "verifiedElements": ["list of verified elements"],
+        "recommendations": ["authentication improvements needed"]
+      }
     }`;
 
     console.log('Sending prompt to Gemini:', prompt);
@@ -54,6 +71,14 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
     
     try {
       const analysis = JSON.parse(cleanedResponse);
+      if (!analysis.authentication || 
+        typeof analysis.authentication.confidenceScore !== 'number' ||
+        !Array.isArray(analysis.authentication.verifiedElements)) {
+      throw new Error('Invalid authentication data');
+    }
+
+  
+
       
       if (typeof analysis.isVerified !== 'boolean' || 
           typeof analysis.message !== 'string' || 
@@ -64,12 +89,13 @@ export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise
 
       const result = {
         isVerified: analysis.isVerified,
-        message: analysis.message,
+        message: `✅ ${analysis.authentication.status}: ${analysis.message}\n\nAuthentication Score: ${analysis.authentication.confidenceScore}/100\nVerified Elements: ${analysis.authentication.verifiedElements.join(', ')}`,
         score: analysis.score
       };
-
-      console.log('Final verification result:', result);
+  
       return result;
+      console.log('Final verification result:', result);
+     
 
     } catch (parseError) {
       console.error('JSON parsing error:', {

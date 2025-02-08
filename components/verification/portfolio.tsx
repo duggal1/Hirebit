@@ -228,46 +228,7 @@ export function PortfolioResults({
               </div>
             </div>
           )}
-          {verification && (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="mb-6" // Add margin bottom for spacing
-    >
-      <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            {verification.isVerified ? (
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-            ) : (
-              <XCircle className="w-6 h-6 text-red-500" />
-            )}
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-zinc-200">
-                {verification.isVerified ? "Verified Portfolio" : "Verification Status"}
-              </h3>
-              <p className="text-zinc-400 text-sm">{verification.message || "Verification pending"}</p>
-              <div className="mt-2">
-                <div className="bg-zinc-700/50 h-2 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${verification.score}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="bg-gradient-to-r from-violet-500 to-indigo-500 h-full"
-                  />
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">
-                  Portfolio Score: {verification.score}/100
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )}
-
+       
 <div className="grid md:grid-cols-2 gap-6">
   {/* Strengths */}
   <div className="space-y-4 p-6 bg-gradient-to-br from-emerald-500/5 to-green-500/5 rounded-2xl backdrop-blur-sm">
