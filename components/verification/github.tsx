@@ -1,7 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Icons } from "@/components/icons";
+// Removed the custom Icons import
+// import { Icons } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import {
@@ -14,6 +15,8 @@ import {
   Area,
   AreaChart
 } from "recharts";
+import { Star, GitFork } from "lucide-react"; // Imported lucide-react icons
+
 interface GithubProfile {
   name: string;
   bio: string;
@@ -126,8 +129,8 @@ export function GithubResults({ data }: GithubResultsProps) {
                 <AreaChart data={data.commitStats.contribution_history}>
                   <defs>
                     <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis 
@@ -193,11 +196,11 @@ export function GithubResults({ data }: GithubResultsProps) {
                     )}
                     <div className="flex items-center space-x-4 text-zinc-500">
                       <div className="flex items-center space-x-1">
-                        <Icons.star className="h-4 w-4" />
+                        <Star className="h-4 w-4" />
                         <span>{repo.stargazers_count}</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Icons.gitFork className="h-4 w-4" />
+                        <GitFork className="h-4 w-4" />
                         <span>{repo.forks_count}</span>
                       </div>
                     </div>

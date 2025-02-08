@@ -13,57 +13,62 @@ import TechStackCard from "@/app/_components/TechStackCard";
 import RealWorldAnalysisCard from "@/app/_components/RealWorldAnalysisCard";
 import CodeQualityMetricsCard from '@/app/_components/CodeQualityMetricsCard';
 import { AdditionalAnalysisCard } from "@/app/_components/AdditionalAnalysisCard";
-//import { AdditionalAnalysisCard } from "@/app/_components/AdditionalAnalysisCard";
+import Link from 'next/link';
 
 
 export default function Results() {
   const params = useParams();
+  const id = params.id as string;
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [code, setCode] = useState<string>("");
   const [problem, setProblem] = useState<CodeProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // Remove duplicate state
-  // const [evaluationResult, setEvaluationResult] = useState(null);
 
   useEffect(() => {
-    try {
-      const storedResult = localStorage.getItem(`evaluationResult-${params.id}`);
-      const storedCode = localStorage.getItem(`submittedCode-${params.id}`);
-      const storedProblem = localStorage.getItem(`problemDetails-${params.id}`);
-      if (!params.id) {
-        throw new Error("Invalid test ID");
+    const fetchVerificationData = async () => {
+      if (!id) return;
+
+      try {
+        setIsLoading(true);
+        const storedResult = localStorage.getItem(`evaluationResult-${id}`);
+        const storedCode = localStorage.getItem(`submittedCode-${id}`);
+        const storedProblem = localStorage.getItem(`problemDetails-${id}`);
+
+        if (!storedResult || !storedCode || !storedProblem) {
+          throw new Error("Missing evaluation data");
+        }
+
+        try {
+          const parsedResult = JSON.parse(storedResult);
+          const parsedProblem = JSON.parse(storedProblem);
+
+          if (!parsedResult || typeof parsedResult.score !== 'number') {
+            throw new Error("Invalid evaluation result");
+          }
+
+          setResult(parsedResult);
+          setCode(storedCode);
+          setProblem(parsedProblem);
+
+        } catch (parseError) {
+          throw new Error("Invalid data format");
+        }
+      } catch (error) {
+        console.error("Error loading results:", error);
+        toast({
+          title: "Error Loading Results",
+          description: error instanceof Error ? error.message : "Failed to load evaluation results",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
-  
-      if (!storedResult || !storedCode || !storedProblem) {
-        throw new Error("Missing evaluation data");
-      }
- try {   const parsedResult = JSON.parse(storedResult);
-  const parsedProblem = JSON.parse(storedProblem);
+    };
 
-  if (!parsedResult || typeof parsedResult.score !== 'number') {
-    throw new Error("Invalid evaluation result");
-  }
+    fetchVerificationData();
+  }, [id, toast]);
 
-  setResult(parsedResult);
-  setCode(storedCode);
-  setProblem(parsedProblem);
 
-} catch (parseError) {
-  throw new Error("Invalid data format");
-}
-} catch (error) {
-console.error("Error loading results:", error);
-toast({
-  title: "Error Loading Results",
-  description: error instanceof Error ? error.message : "Failed to load evaluation results",
-  variant: "destructive",
-});
-} finally {
-setIsLoading(false);
-}
-}, [params.id, toast]);
-
-     
 
   const metrics = useMemo(() => {
     if (!result) return [];
@@ -327,21 +332,34 @@ setIsLoading(false);
           </Card>
         </motion.div>
 
-        {/* Enhanced Action Button */}
-        <motion.div 
-          className="mt-12 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <a 
-            href="/" 
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-3 rounded-lg font-medium text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95"
-          >
-            Analyze Another Code
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </motion.div>
+        <motion.div
+  className="mt-12 text-center"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.8, ease: "easeOut" }}
+>
+  <Link href={`/verification/${params.id}`}>
+    <motion.div
+      className="group relative inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 px-8 py-4 font-medium text-white cursor-pointer"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <span className="relative z-10">Continue</span>
+      <motion.span
+        className="relative z-10"
+        initial={{ x: 0 }}
+        whileHover={{ x: 3 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ArrowRight className="h-5 w-5" />
+      </motion.span>
+      <motion.div
+        className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 opacity-0 blur-xl transition-opacity duration-300"
+        whileHover={{ opacity: 0.4 }}
+      />
+    </motion.div>
+  </Link>
+</motion.div>
       </div>
     </div>
   );

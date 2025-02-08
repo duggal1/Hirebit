@@ -19,11 +19,13 @@ import { UrlInputs, urlSchema } from "@/lib/validation";
 import { fetchGithubData } from "@/services/githubService";
 import { fetchPortfolioData } from "@/services/portfolioService";
 import { Badge } from "@/components/ui/badge";
-import { useParams } from "next/navigation";
+import { useParams , useRouter } from "next/navigation";
 
 
-const VerificationPage = () => {
+const VerificationPage =() => {
+
   const params = useParams();
+  const router = useRouter();
   const { toast } = useToast();
   const [urls, setUrls] = useState<Partial<UrlInputs>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -32,9 +34,21 @@ const VerificationPage = () => {
   const [activeField, setActiveField] = useState<string | null>(null);
   const [verificationData, setVerificationData] = useState<any>(null);
 
+ useEffect(() => {
+  if (!params?.id || params.id === 'undefined') {
+    toast({
+      variant: "destructive",
+      title: "Invalid Verification ID",
+      description: "Redirecting to home page...",
+    });
+    router.push('/');
+    return;
+  }
+}, [params?.id, router, toast]);
+
   useEffect(() => {
     const fetchVerificationData = async () => {
-      if (!params.id) return;
+      if (!params?.id || params.id === 'undefined') return;
 
       try {
         setIsLoading(true);
@@ -45,42 +59,65 @@ const VerificationPage = () => {
         }
 
         const data = await response.json();
+        if (!data) {
+          throw new Error('No verification data found');
+        }
+
         setVerificationData(data);
         
-        // Pre-fill URLs if they exist
-        if (data.urls) {
-          setUrls(data.urls);
-        }
+          // Pre-fill URLs if they exist
+          if (data.urls) {
+            setUrls(data.urls);
+          }
+  
+          // Load existing analysis if available
+          if (data.analysis) {
+            if (data.analysis.github) setGithubData(data.analysis.github);
+            if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
+          }
 
-        // Load existing analysis if available
-        if (data.analysis) {
-          if (data.analysis.github) setGithubData(data.analysis.github);
-          if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
+        } catch (error) {
+          console.error('Error fetching verification:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load verification data",
+          });
+        } finally {
+          setIsLoading(false);
         }
+      };
+  
+      fetchVerificationData();
+    }, [params?.id, toast]);
+   // Add loading state UI
+   if (!params?.id || params.id === 'undefined') {
+    return null; // Will redirect in useEffect
+  }
 
-      } catch (error) {
-        console.error('Error fetching verification:', error);
+
+  
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    setIsLoading(true);
+
+    // Validate URLs before proceeding
+    let validatedUrls: UrlInputs;
+    try {
+      validatedUrls = await urlSchema.parseAsync(urls);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to load verification data",
+          title: "Validation Error",
+          description: validationError.errors[0].message,
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
-
-    fetchVerificationData();
-  }, [params.id, toast]);
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      setIsLoading(true);
-      const validatedUrls = await urlSchema.parseAsync(urls);
-
+      throw validationError;
+    }
       // Update verification data in database
       const updateResponse = await fetch(`/api/verification/${params.id}`, {
         method: 'PUT',
@@ -93,8 +130,9 @@ const VerificationPage = () => {
       });
 
       if (!updateResponse.ok) {
-        throw new Error('Failed to update verification');
+        throw new Error(`Failed to update verification: ${updateResponse.statusText}`);
       }
+  
 
       // Fetch and analyze data
       if (validatedUrls.github) {
@@ -296,4 +334,4 @@ const VerificationPage = () => {
   );
 };
 
- ;
+ export default VerificationPage;
