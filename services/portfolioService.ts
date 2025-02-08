@@ -1,30 +1,9 @@
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
 
 
-
-export const fetchPortfolioData = async (url: string): Promise<PortfolioInsights > => {
-  try {
-    // 1. Fetch HTML using the scraping endpoint
-    const response = await fetch('/api/scrape-portfolio', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio data');
-    }
-
-    const html = await response.text();
-
-    return analyzeWithGemini(html, url);
-  } catch (error) {
-    console.error('Portfolio analysis failed:', error);
-    return getDefaultAnalysis();
-  }
-};
 
 
 interface PortfolioInsights {
@@ -97,161 +76,320 @@ interface PortfolioInsights {
   };
 }
 
-
-async function analyzeWithGemini(html: string, url: string): Promise<PortfolioInsights> {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
+export const fetchPortfolioData = async (url: string): Promise<PortfolioInsights> => {
   try {
-    // First pass: Extract raw data
-    const extractionPrompt = `Analyze this portfolio website HTML and return a JSON object with extracted information:
-${url}
+    console.log('Fetching portfolio data for:', url);
+    const response = await fetch('/api/scrape-portfolio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
 
-Return only valid JSON matching this structure:
-{
-  "basics": {
-    "name": "",
-    "title": "",
-    "location": "",
-    "bio": "",
-    "roles": []
-  },
-  "projects": [],
-  "skills": {
-    "technical": [],
-    "softSkills": [],
-    "frameworks": [],
-    "languages": []
-  }
-}
+    if (!response.ok) {
+      throw new Error(`Failed to fetch portfolio data: ${response.statusText}`);
+    }
 
-HTML Content: ${html.substring(0, 10000)}`;
+    const html = await response.text();
+    console.log('HTML fetched, length:', html.length);
 
-    const extractionResult = await model.generateContent(extractionPrompt);
-    const extractedData = JSON.parse(extractionResult.response.text());
+    const result = await analyzeWithGemini(html, url);
+    console.log('Analysis completed:', result);
+    
+    if (!result?.data?.basics?.name) {
+      console.error('Invalid analysis result:', result);
+      throw new Error('Analysis returned invalid data structure');
+    }
 
-    // Second pass: Analysis
-    const analysisPrompt = `Analyze this portfolio data for job seeking effectiveness:
-${JSON.stringify(extractedData)}
-
-Return only valid JSON matching this structure:
-{
-  "strengths": [],
-  "weaknesses": [],
-  "insights": {
-    "score": 0,
-    "roleClarity": {
-      "score": 0,
-      "issues": [],
-      "suggestedRole": ""
-    },
-    "projectQuality": {
-      "score": 0,
-      "issues": [],
-      "suggestions": [],
-      "hasLiveDemo": false,
-      "hasSourceCode": false
-    },
-    "bioAnalysis": {
-      "isOptimal": false,
-      "wordCount": 0,
-      "issues": [],
-      "suggestions": []
-    },
-    "skillsAnalysis": {
-      "focusScore": 0,
-      "issues": [],
-      "redundantSkills": [],
-      "missingCoreSkills": []
-    },
-    "contentIssues": {
-      "buzzwords": [],
-      "overusedTerms": [],
-      "spamKeywords": [],
-      "overclaimedSkills": []
-    },
-    "criticalFlags": {
-      "noProjects": false,
-      "multipleRoles": false,
-      "inconsistentInfo": false,
-      "outdatedTech": false,
-      "poorPresentation": false
-    },
-    "improvements": []
-  }
-}`;
-
-    const analysisResult = await model.generateContent(analysisPrompt);
-    const analysisData = JSON.parse(analysisResult.response.text());
-
-    return {
-      data: {
-        basics: extractedData.basics || {
-          name: 'Not Found',
-          title: 'Not Found',
-          location: 'Not Specified',
-          bio: '',
-          roles: []
-        },
-        projects: extractedData.projects || [],
-        skills: extractedData.skills || {
-          technical: [],
-          softSkills: [],
-          frameworks: [],
-          languages: []
-        }
-      },
-      analysis: {
-        strengths: analysisData.strengths || [],
-        weaknesses: analysisData.weaknesses || [],
-        insights: analysisData.insights || {
-          score: 0,
-          roleClarity: { score: 0, issues: [], suggestedRole: '' },
-          projectQuality: { score: 0, issues: [], suggestions: [], hasLiveDemo: false, hasSourceCode: false },
-          bioAnalysis: { isOptimal: false, wordCount: 0, issues: [], suggestions: [] },
-          skillsAnalysis: { focusScore: 0, issues: [], redundantSkills: [], missingCoreSkills: [] },
-          contentIssues: { buzzwords: [], overusedTerms: [], spamKeywords: [], overclaimedSkills: [] },
-          criticalFlags: { noProjects: true, multipleRoles: false, inconsistentInfo: false, outdatedTech: false, poorPresentation: false },
-          improvements: []
-        }
-      }
-    };
+    return result;
   } catch (error) {
     console.error('Portfolio analysis failed:', error);
     return getDefaultAnalysis();
   }
-}
+};
 
+// Define the default analysis function at the top level
 function getDefaultAnalysis(): PortfolioInsights {
   return {
     data: {
       basics: {
-        name: 'Not Found',
-        title: 'Not Found',
-        location: 'Not Specified',
-        bio: '',
-        roles: []
+        name: 'Name not found',
+        title: 'Role not specified',
+        location: 'Location not provided',
+        bio: 'No biography or self-description found',
+        roles: ['Role information not available']
       },
-      projects: [],
+      projects: [{
+        title: 'Portfolio needs projects',
+        description: 'Consider adding projects to showcase your skills',
+        technologies: ['Add relevant technologies'],
+        liveUrl: '',
+        sourceUrl: ''
+      }],
       skills: {
-        technical: [],
-        softSkills: [],
-        frameworks: [],
-        languages: []
+        technical: ['Add your technical skills'],
+        softSkills: ['Add your soft skills'],
+        frameworks: ['List frameworks you use'],
+        languages: ['List programming languages']
       }
     },
     analysis: {
-      strengths: [],
-      weaknesses: [],
+      strengths: ['Taking initiative to create a portfolio'],
+      weaknesses: ['Portfolio needs more content'],
       insights: {
-        score: 0,
-        roleClarity: { score: 0, issues: [], suggestedRole: '' },
-        projectQuality: { score: 0, issues: [], suggestions: [], hasLiveDemo: false, hasSourceCode: false },
-        bioAnalysis: { isOptimal: false, wordCount: 0, issues: [], suggestions: [] },
-        skillsAnalysis: { focusScore: 0, issues: [], redundantSkills: [], missingCoreSkills: [] },
-        contentIssues: { buzzwords: [], overusedTerms: [], spamKeywords: [], overclaimedSkills: [] },
-        criticalFlags: { noProjects: true, multipleRoles: false, inconsistentInfo: false, outdatedTech: false, poorPresentation: false },
-        improvements: []
+        score: 30,
+        roleClarity: {
+          score: 30,
+          issues: ['Role focus needs clarification'],
+          suggestedRole: 'Consider specifying your target role'
+        },
+        projectQuality: {
+          score: 0,
+          issues: ['Projects section needs attention'],
+          suggestions: [
+            'Add project descriptions',
+            'Include tech stack details',
+            'Link to live demos',
+            'Add source code links'
+          ],
+          hasLiveDemo: false,
+          hasSourceCode: false
+        },
+        bioAnalysis: {
+          isOptimal: false,
+          wordCount: 0,
+          issues: ['Bio needs expansion'],
+          suggestions: [
+            'Add professional summary',
+            'Highlight key achievements',
+            'Mention career goals'
+          ]
+        },
+        skillsAnalysis: {
+          focusScore: 20,
+          issues: ['Skills section needs development'],
+          redundantSkills: [],
+          missingCoreSkills: [
+            'Core technical skills',
+            'Industry-specific skills',
+            'Relevant frameworks'
+          ]
+        },
+        contentIssues: {
+          buzzwords: [],
+          overusedTerms: [],
+          spamKeywords: [],
+          overclaimedSkills: []
+        },
+        criticalFlags: {
+          noProjects: true,
+          multipleRoles: false,
+          inconsistentInfo: false,
+          outdatedTech: false,
+          poorPresentation: true
+        },
+        improvements: [
+          'Add detailed project descriptions',
+          'Include technical skill set',
+          'Expand professional summary',
+          'Add contact information',
+          'Include social/professional links'
+        ]
       }
     }
   };
-} 
+}async function analyzeWithGemini(html: string, url: string): Promise<PortfolioInsights> {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  try {
+    console.log('Starting initial data extraction...');
+    
+    // First pass: More detailed extraction prompt
+    const extractionPrompt = `Analyze this portfolio website HTML thoroughly and extract all possible information.
+Be very detailed and don't skip any technical information.
+
+URL: ${url}
+
+Follow these detailed extraction rules:
+1. Name and Title:
+   - Extract full name
+   - Current role/position
+   - All mentioned job titles or roles
+   - Location details
+
+2. Technical Skills:
+   - List ALL mentioned technologies, no matter how briefly referenced
+   - Include frameworks, libraries, and tools
+   - Note programming languages with their context
+   - Identify build tools and development environments
+   - Look for cloud platforms or services
+
+3. Projects:
+   - Extract ALL projects, even if briefly mentioned
+   - For each project, find:
+     * Full description
+     * Technologies used
+     * GitHub links
+     * Live demo URLs
+     * Role or contribution
+     * Technical challenges mentioned
+     * Architecture decisions
+
+4. Writing Analysis:
+   - Identify technical jargon
+   - Note recurring phrases
+   - Calculate bio length
+   - Analyze writing style
+
+Return a detailed JSON with all findings:
+{
+  "data": {
+    "basics": {
+      "name": "extracted name",
+      "title": "main role",
+      "location": "location if found",
+      "bio": "full bio text",
+      "roles": ["all roles mentioned"]
+    },
+    "projects": [
+      {
+        "title": "project name",
+        "description": "detailed description",
+        "technologies": ["all techs used"],
+        "liveUrl": "demo link",
+        "sourceUrl": "code link",
+        "technicalDetails": ["architecture", "challenges", "solutions"],
+        "impact": "project outcomes or metrics"
+      }
+    ],
+    "skills": {
+      "technical": ["all technical skills"],
+      "softSkills": ["communication skills", "methodologies"],
+      "frameworks": ["all frameworks"],
+      "languages": ["all programming languages"],
+      "tools": ["development tools"],
+      "platforms": ["cloud services", "hosting"]
+    },
+    "writingAnalysis": {
+      "style": "writing style assessment",
+      "techTerms": ["technical terms used"],
+      "commonPhrases": ["repeated phrases"],
+      "bioLength": "word count"
+    }
+  }
+}
+
+Analyze this HTML content in detail: ${html.substring(0, 15000)}`;
+
+    const extractionResult = await model.generateContent(extractionPrompt);
+    const extractionText = extractionResult.response.text().trim();
+    console.log('✅Raw extraction completed. Length:', extractionText.length);
+
+    let extractedData;
+    try {
+      extractedData = JSON.parse(extractionText.replace(/```json|```/g, '').trim());
+      console.log('Extraction successful. Found:', {
+        projectCount: extractedData.data?.projects?.length || 0,
+        skillsCount: extractedData.data?.skills?.technical?.length || 0,
+        hasProjects: extractedData.data?.projects?.length > 0,
+        hasTechSkills: extractedData.data?.skills?.technical?.length > 0
+      });
+    } catch (parseError) {
+      console.error('❌Failed to parse extraction result of raw data:', parseError);
+      return getDefaultAnalysis();
+    }
+
+    // Second pass: Enhanced analysis with more specific criteria
+    console.log('Starting detailed analysis...');
+    const analysisPrompt = `Analyze this portfolio data critically and thoroughly:
+${JSON.stringify(extractedData, null, 2)}
+
+Provide a detailed technical analysis. Focus on:
+1. Technical depth and breadth
+2. Project complexity
+3. Modern vs outdated technologies
+4. Best practices adherence
+5. Buzzword usage
+6. Technical writing quality
+
+Return a detailed JSON analysis:
+{
+  "strengths": ["detailed strength points"],
+  "weaknesses": ["specific improvement areas"],
+  "insights": {
+    "score": "0-100 based on technical depth and presentation",
+    "roleClarity": {
+      "score": "0-100",
+      "issues": ["specific role alignment issues"],
+      "suggestedRole": "recommended role based on skills"
+    },
+    "projectQuality": {
+      "score": "0-100",
+      "issues": ["specific project concerns"],
+      "suggestions": ["detailed improvement ideas"],
+      "hasLiveDemo": "boolean",
+      "hasSourceCode": "boolean",
+      "technicalDepth": "assessment of technical complexity"
+    },
+    "bioAnalysis": {
+      "isOptimal": "boolean",
+      "wordCount": "number",
+      "issues": ["specific content issues"],
+      "suggestions": ["detailed improvements"]
+    },
+    "skillsAnalysis": {
+      "focusScore": "0-100",
+      "issues": ["skill gaps", "focus areas"],
+      "redundantSkills": ["overlapping skills"],
+      "missingCoreSkills": ["essential missing skills"],
+      "modernization": ["outdated skills to update"]
+    },
+    "contentIssues": {
+      "buzzwords": ["identified buzzwords"],
+      "overusedTerms": ["overused technical terms"],
+      "spamKeywords": ["suspicious terms"],
+      "overclaimedSkills": ["skills needing verification"]
+    },
+    "criticalFlags": {
+      "noProjects": "boolean",
+      "multipleRoles": "boolean",
+      "inconsistentInfo": "boolean",
+      "outdatedTech": "boolean",
+      "poorPresentation": "boolean",
+      "reasons": ["detailed explanations"]
+    },
+    "improvements": ["prioritized, actionable improvements"]
+  }
+}`;
+
+    const analysisResult = await model.generateContent(analysisPrompt);
+    const analysisText = analysisResult.response.text().trim();
+    console.log('Analysis completed. Length:', analysisText.length);
+
+    let analysisData;
+    try {
+      analysisData = JSON.parse(analysisText.replace(/```json|```/g, '').trim());
+      console.log('Analysis successful. Scores:', {
+        overall: analysisData.insights?.score || 0,
+        roleClarity: analysisData.insights?.roleClarity?.score || 0,
+        projectQuality: analysisData.insights?.projectQuality?.score || 0,
+        skillsFocus: analysisData.insights?.skillsAnalysis?.focusScore || 0
+      });
+    } catch (parseError) {
+      console.error('Failed to parse analysis result:', parseError);
+      return getDefaultAnalysis();
+    }
+
+    return {
+      data: {
+        ...extractedData.data,
+        projects: extractedData.data.projects || [],
+        skills: extractedData.data.skills || { technical: [], softSkills: [], frameworks: [], languages: [] }
+      },
+      analysis: analysisData
+    };
+
+  } catch (error) {
+    console.error('Gemini analysis failed:', error);
+    return getDefaultAnalysis();
+  }
+}
