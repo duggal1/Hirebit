@@ -3,9 +3,9 @@ import { prisma } from '@/app/utils/db';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const id = params?.id;
+  const id = context.params.id;
   
   if (!id) {
     return NextResponse.json(
@@ -28,6 +28,7 @@ export async function GET(
 
     return NextResponse.json(verification);
   } catch (error) {
+    console.error('GET verification error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch verification' },
       { status: 500 }
@@ -37,9 +38,9 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const id = params?.id;
+  const id = context.params.id;
 
   if (!id) {
     return NextResponse.json(
@@ -63,6 +64,7 @@ export async function PUT(
 
     return NextResponse.json(updatedVerification);
   } catch (error) {
+    console.error('PUT verification error:', error);
     return NextResponse.json(
       { error: 'Failed to update verification' },
       { status: 500 }
