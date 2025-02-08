@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Card } from "@/components/ui/card";
@@ -18,22 +18,85 @@ import { PortfolioResults } from "@/components/verification/portfolio";
 import { UrlInputs, urlSchema } from "@/lib/validation";
 import { fetchGithubData } from "@/services/githubService";
 import { fetchPortfolioData } from "@/services/portfolioService";
+import { Badge } from "@/components/ui/badge";
+import { useParams } from "next/navigation";
 
-const Index = () => {
+
+const VerificationPage = () => {
+  const params = useParams();
   const { toast } = useToast();
   const [urls, setUrls] = useState<Partial<UrlInputs>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [githubData, setGithubData] = useState<any>(null);
   const [portfolioData, setPortfolioData] = useState<any>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
+  const [verificationData, setVerificationData] = useState<any>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => { async (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchVerificationData = async () => {
+      if (!params.id) return;
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/verification/${params.id}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch verification data');
+        }
+
+        const data = await response.json();
+        setVerificationData(data);
+        
+        // Pre-fill URLs if they exist
+        if (data.urls) {
+          setUrls(data.urls);
+        }
+
+        // Load existing analysis if available
+        if (data.analysis) {
+          if (data.analysis.github) setGithubData(data.analysis.github);
+          if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
+        }
+
+      } catch (error) {
+        console.error('Error fetching verification:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load verification data",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVerificationData();
+  }, [params.id, toast]);
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setIsLoading(true);
       const validatedUrls = await urlSchema.parseAsync(urls);
 
+      // Update verification data in database
+      const updateResponse = await fetch(`/api/verification/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          urls: validatedUrls,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update verification');
+      }
+
+      // Fetch and analyze data
       if (validatedUrls.github) {
         const data = await fetchGithubData(validatedUrls.github);
         setGithubData(data);
@@ -99,7 +162,7 @@ const Index = () => {
           });
         }
       }
-    } catch (error) {
+   } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
           variant: "destructive",
@@ -220,12 +283,17 @@ const Index = () => {
                 />
               </div>
             )}
+                <div className="fixed top-4 right-4">
+     <Badge variant="outline">
+       Verification ID: {params.id}
+     </Badge>
+   </div>
           </div>
         </div>
       </div>
     </div>
+ 
   );
 };
-};
 
-export default Index;
+ ;
