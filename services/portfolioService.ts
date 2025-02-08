@@ -1,12 +1,12 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { verifyPortfolio } from './isverificationportfoliio';
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
 
 
 
-
-interface PortfolioInsights {
+export interface PortfolioInsights {
   data: {
     basics: {
       name: string;
@@ -38,7 +38,17 @@ interface PortfolioInsights {
         score: number;
         issues: string[];
         suggestedRole: string;
+      };   verification?: {
+        isVerified: boolean;
+        message: string;
+        score: number;
       };
+    
+   
+      
+
+
+
       projectQuality: {
         score: number;
         issues: string[];
@@ -74,39 +84,51 @@ interface PortfolioInsights {
       improvements: string[];
     };
   };
+  verification?: {
+    isVerified: boolean;
+    message: string;
+    score: number;
+  };
 }
 
-export const fetchPortfolioData = async (url: string): Promise<PortfolioInsights> => {
-  try {
-    console.log('Fetching portfolio data for:', url);
-    const response = await fetch('/api/scrape-portfolio', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch portfolio data: ${response.statusText}`);
+  
+  export const fetchPortfolioData = async (url: string): Promise<PortfolioInsights> => {
+    try {
+      console.log('Fetching portfolio data for:', url);
+      const response = await fetch('/api/scrape-portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to fetch portfolio data: ${response.statusText}`);
+      }
+  
+      const html = await response.text();
+      console.log('HTML fetched, length:', html.length);
+  
+      const portfolioData = await analyzeWithGemini(html, url);
+      console.log('Analysis completed:', portfolioData);
+      
+      if (!portfolioData?.data?.basics?.name) {
+        console.error('Invalid analysis result:', portfolioData);
+        throw new Error('Analysis returned invalid data structure');
+      }
+  
+      // Add verification
+      const verification = await verifyPortfolio(portfolioData);
+      
+      return {
+        ...portfolioData,
+        verification
+      };
+  
+    } catch (error) {
+      console.error('Portfolio analysis failed:', error);
+      return getDefaultAnalysis();
     }
-
-    const html = await response.text();
-    console.log('HTML fetched, length:', html.length);
-
-    const result = await analyzeWithGemini(html, url);
-    console.log('Analysis completed:', result);
-    
-    if (!result?.data?.basics?.name) {
-      console.error('Invalid analysis result:', result);
-      throw new Error('Analysis returned invalid data structure');
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Portfolio analysis failed:', error);
-    return getDefaultAnalysis();
-  }
-};
-
+  };
 // Define the default analysis function at the top level
 function getDefaultAnalysis(): PortfolioInsights {
   return {
@@ -193,7 +215,12 @@ function getDefaultAnalysis(): PortfolioInsights {
           'Expand professional summary',
           'Add contact information',
           'Include social/professional links'
-        ]
+        ],
+        verification: {
+          isVerified: false,
+          message: '',
+          score: 0
+        }
       }
     }
   };

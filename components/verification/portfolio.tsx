@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,7 +10,10 @@ import {
   AlertCircle,
   ArrowRight,
   ChevronRight,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Keeping the interfaces the same...
 interface PortfolioData {
@@ -35,6 +38,16 @@ interface PortfolioData {
     languages: string[];
   };
 }
+interface VerificationStatus {
+  isVerified: boolean;
+  message: string;
+  score: number;
+}
+
+interface PortfolioVerificationProps {
+  verification: VerificationStatus;
+}
+
 
 interface PortfolioAnalysis {
   strengths: string[];
@@ -85,10 +98,17 @@ interface PortfolioAnalysis {
 interface PortfolioResultsProps {
   data: PortfolioData;
   analysis: PortfolioAnalysis;
+  verification?: VerificationStatus;
+ 
 }
 
 
-export function PortfolioResults({ data, analysis }: PortfolioResultsProps) {
+export function PortfolioResults({ data, analysis, verification =  { 
+  isVerified: false,
+  message: "Verification pending",
+  score: 0
+} 
+}: PortfolioResultsProps) {
 
   const [isError, setIsError] = useState(false);
  
@@ -130,6 +150,8 @@ export function PortfolioResults({ data, analysis }: PortfolioResultsProps) {
     if (score >= 60) return "text-amber-400";
     return "text-rose-400";
   };
+ 
+   
 
   return (
     <div className="bg-[#030307] min-h-screen p-4 md:p-8 space-y-8 text-slate-200">
@@ -198,6 +220,41 @@ export function PortfolioResults({ data, analysis }: PortfolioResultsProps) {
               </div>
             </div>
           )}
+           {verification && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+        
+        <Card className="bg-black/40 backdrop-blur-xl border-zinc-800/50 mt-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-4">
+              {verification.isVerified ? (
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
+              ) : (
+                <XCircle className="w-6 h-6 text-red-500" />
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-200">
+                  {verification.isVerified ? "Verified Portfolio" : "Verification Status"}
+                </h3>
+                <p className="text-zinc-400 text-sm">{verification.message}</p>
+                <div className="mt-2">
+                  <div className="bg-zinc-700/50 h-2 rounded-full">
+                    <div 
+                      className="bg-gradient-to-r from-violet-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${verification.score}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">Portfolio Score: {verification.score}/100</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+           )}
 
 
 <div className="grid md:grid-cols-2 gap-6">
@@ -431,5 +488,6 @@ export function PortfolioResults({ data, analysis }: PortfolioResultsProps) {
     </div>
   );
 }
+
 
 export default PortfolioResults;
