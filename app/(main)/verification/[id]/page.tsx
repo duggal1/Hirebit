@@ -21,6 +21,8 @@ import { fetchPortfolioData } from "@/services/portfolioService";
 import { Badge } from "@/components/ui/badge";
 import { useParams , useRouter } from "next/navigation";
 import { LinkedInResults } from "@/components/verification/linkedin";
+import VerificationStatus from "@/components/general/isVerificationButton";
+//import VerificationStatus from '@/components/VerificationStatus';
 
 
 const VerificationPage =() => {
@@ -35,6 +37,7 @@ const VerificationPage =() => {
   const [activeField, setActiveField] = useState<string | null>(null);
   const [verificationData, setVerificationData] = useState<any>(null);
 const [linkedinData, setLinkedinData] = useState<any>(null);
+const [applyUrl, setApplyUrl] = useState<string>('');
 
  useEffect(() => {
   if (!params?.id || params.id === 'undefined') {
@@ -98,7 +101,14 @@ const [linkedinData, setLinkedinData] = useState<any>(null);
     return null; // Will redirect in useEffect
   }
 
-
+  const handleVerificationComplete = (isVerified: boolean) => {
+    if (isVerified) {
+      toast({
+        title: "Verification Complete",
+        description: "All profiles have been verified successfully!",
+      });
+    }
+  };
   
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -365,12 +375,33 @@ if (validatedUrls.linkedin) {
 />
               </div>
             )}
+
            
 {linkedinData && (
   <div className="transform transition-all duration-500 hover:scale-[1.01]">
     <LinkedInResults data={linkedinData} />
   </div>
 )}
+
+
+
+  {/* Add VerificationStatus component */}
+  {(githubData || portfolioData || linkedinData) && (
+    <div className="transform transition-all duration-500 hover:scale-[1.01]">
+      <Card className="overflow-hidden bg-zinc-900/50 backdrop-blur-xl">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4 text-zinc-100">Verification Status</h2>
+          <VerificationStatus
+            linkedinUrl={urls.linkedin || ''}
+            githubData={githubData}
+            portfolioData={portfolioData}
+            onVerificationComplete={handleVerificationComplete}
+            applyUrl={`/apply/${params.id}`}
+          />
+        </div>
+      </Card>
+    </div>
+  )}
                 <div className="fixed top-4 right-4">
      <Badge variant="outline">
        Verification ID: {params.id}
