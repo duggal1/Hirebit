@@ -16,6 +16,7 @@ declare module "next-auth" {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [GitHub, Google],
+  session: { strategy: "jwt" },
   callbacks: {
     async signIn({ user, account, profile }) {
       // Check if user exists with a different provider
@@ -52,14 +53,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true;
     },
-    session: async ({ session, user }) => {
+    session: async ({ session, token }) => {
       return {
         ...session,
         user: {
           ...session.user,
-          id: user.id,
+          id: token.sub,
         },
       };
+    },
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
     },
   },
   pages: {

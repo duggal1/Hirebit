@@ -38,6 +38,13 @@ const VerificationPage =() => {
   const [verificationData, setVerificationData] = useState<any>(null);
 const [linkedinData, setLinkedinData] = useState<any>(null);
 const [applyUrl, setApplyUrl] = useState<string>('');
+interface CompanyData {
+  id: string;
+  name: string;
+  activeJobs: number;
+}
+
+const [companyData, setCompanyData] = useState<CompanyData | null>(null);
 
  useEffect(() => {
   if (!params?.id || params.id === 'undefined') {
@@ -52,50 +59,89 @@ const [applyUrl, setApplyUrl] = useState<string>('');
 }, [params?.id, router, toast]);
 
   useEffect(() => {
+    const fetchCompanyData = async () => {
+      if (!params?.id) return;
+      
+      try {
+        console.log('Fetching company data for verification:', params.id);
+        const response = await fetch(`/api/company?verificationId=${params.id}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch company data');
+        }
+
+        const data = await response.json();
+        console.log('Received company data:', data);
+        setCompanyData(data);
+      } catch (error) {
+        console.error('Error fetching company:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load company data",
+        });
+      }
+    };
+
+    fetchCompanyData();
+  }, [params?.id, toast]);
+
+  useEffect(() => {
     const fetchVerificationData = async () => {
       if (!params?.id || params.id === 'undefined') return;
 
       try {
         setIsLoading(true);
+        console.log('Fetching verification data for ID:', params.id);
         const response = await fetch(`/api/verification/${params.id}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch verification data');
+          throw new Error(`Failed to fetch verification data: ${response.statusText}`);
         }
 
         const data = await response.json();
+        console.log('Received verification data:', data);
+
         if (!data) {
           throw new Error('No verification data found');
         }
 
+        if (!data.company) {
+          console.warn('No company data found in verification:', data);
+        } else {
+          console.log('Company data found:', data.company);
+        }
+
         setVerificationData(data);
         
-          // Pre-fill URLs if they exist
-          if (data.urls) {
-            setUrls(data.urls);
-          }
-  
-          // Load existing analysis if available
-          if (data.analysis) {
-            if (data.analysis.github) setGithubData(data.analysis.github);
-            if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
-            if (data.analysis.linkedin) setLinkedinData(data.analysis.linkedin);
-          }
-
-        } catch (error) {
-          console.error('Error fetching verification:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load verification data",
-          });
-        } finally {
-          setIsLoading(false);
+        // Pre-fill URLs if they exist
+        if (data.urls) {
+          console.log('Setting URLs from verification:', data.urls);
+          setUrls(data.urls);
         }
-      };
-  
-      fetchVerificationData();
-    }, [params?.id, toast]);
+
+        // Load existing analysis if available
+        if (data.analysis) {
+          console.log('Setting analysis data:', data.analysis);
+          if (data.analysis.github) setGithubData(data.analysis.github);
+          if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
+          if (data.analysis.linkedin) setLinkedinData(data.analysis.linkedin);
+        }
+
+      } catch (error) {
+        console.error('Error fetching verification:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to load verification data",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVerificationData();
+  }, [params?.id, toast]);
    // Add loading state UI
    if (!params?.id || params.id === 'undefined') {
     return null; // Will redirect in useEffect
@@ -355,84 +401,68 @@ if (validatedUrls.linkedin) {
             </Button>
           </form>
 
-          {/* Results */}
-          <div className="space-y-8">
+            {/* Results */}
+            <div className="space-y-8">
             {githubData && (
               <div className="transform transition-all duration-500 hover:scale-[1.01]">
-                <GithubResults data={githubData} />
+              <GithubResults data={githubData} />
               </div>
             )}
             {portfolioData && (
               <div className="transform transition-all duration-500 hover:scale-[1.01]">
-                <PortfolioResults 
-  data={portfolioData.data}
-  analysis={portfolioData.analysis}
-  verification={portfolioData.verification || {
-    isVerified: false,
-    message: "Verification pending",
-    score: 0
-  }}
-/>
+              <PortfolioResults 
+                data={portfolioData.data}
+                analysis={portfolioData.analysis}
+                verification={portfolioData.verification || {
+                isVerified: false,
+                message: "Verification pending",
+                score: 0
+                }}
+              />
+              </div>
+            )}
+            {linkedinData && (
+              <div className="transform transition-all duration-500 hover:scale-[1.01]">
+              <LinkedInResults data={linkedinData} />
               </div>
             )}
 
-           
-{linkedinData && (
-  <div className="transform transition-all duration-500 hover:scale-[1.01]">
-    <LinkedInResults data={linkedinData} />
-  </div>
-)}
+            <button
+              type="button"
+              onClick={() => {
+              console.log('Button clicked - Company data:', companyData);
+              if (companyData?.name && companyData.activeJobs > 0) {
+                const redirectUrl = `/apply/${params.id}/${companyData.name}/${params.id}`;
+                console.log('Redirecting to:', redirectUrl);
+                router.push(redirectUrl);
+              } else {
+                console.error('Company data missing or no active jobs');
+                toast({
+                title: "Error",
+                description: companyData ? "No active jobs available" : "Company information not found",
+                variant: "destructive"
+                });
+              }
+              }}
+              className="relative inline-flex items-center justify-center w-full px-8 py-4 font-bold text-white overflow-hidden rounded-lg group focus:outline-none shadow-md transition-shadow duration-500 ease-in-out group-hover:shadow-xl"
+              disabled={!companyData?.name || companyData.activeJobs === 0 || !githubData || !portfolioData || !linkedinData}
+            >
+              <span
+              className="absolute inset-0 transition-transform duration-700 ease-out transform group-hover:scale-110 group-hover:rotate-3"
+              style={{
+                background: 'linear-gradient(45deg, #7e22ce, #ec4899, #f97316)',
+                backgroundSize: '200% 200%',
+                animation: 'gradientShift 5s ease infinite'
+              }}
+              ></span>
+              <span className="absolute inset-0 rounded-lg bg-black opacity-0 transition-opacity duration-300 group-hover:opacity-10"></span>
+                <span className="relative z-10">
+                  {!companyData?.name ? "Complete verification first" :
+                   companyData.activeJobs === 0 ? "No active jobs available" :
+                   "Continue to Application"}
+                </span>
+            </button>
 
-
-
-  {/*{(githubData || portfolioData || linkedinData) && (
-    <div className="transform transition-all duration-500 hover:scale-[1.01]">
-      <Card className="overflow-hidden bg-zinc-900/50 backdrop-blur-xl">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4 text-zinc-100">Verification Status</h2>
-          <VerificationStatus
-            linkedinUrl={urls.linkedin || ''}
-            githubData={githubData}
-            portfolioData={portfolioData}
-            onVerificationComplete={handleVerificationComplete}
-            applyUrl={`/apply/${params.id}`}
-          />
-        </div>
-      </Card>
-    </div>
-  )}*/}
-<button
-  type="button"
-  onClick={() => router.push(`/apply/${jobs.id}`)}
-  className="relative inline-flex items-center justify-center w-full px-8 py-4 font-bold text-white overflow-hidden rounded-lg group focus:outline-none shadow-md transition-shadow duration-500 ease-in-out group-hover:shadow-xl"
->
-  {/* Animated gradient background */}
-  <span
-    className="absolute inset-0 transition-transform duration-700 ease-out transform group-hover:scale-110 group-hover:rotate-3"
-    style={{
-      background: 'linear-gradient(45deg, #7e22ce, #ec4899, #f97316)',
-      backgroundSize: '200% 200%',
-      animation: 'gradientShift 5s ease infinite'
-    }}
-  ></span>
-  {/* Subtle dark overlay on hover */}
-  <span className="absolute inset-0 rounded-lg bg-black opacity-0 transition-opacity duration-300 group-hover:opacity-10"></span>
-  {/* Button text */}
-  <span className="relative z-10">Apply Now</span>
-  <style jsx>{`
-    @keyframes gradientShift {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
-    }
-  `}</style>
-</button>
 
 
                 <div className="fixed top-4 right-4">

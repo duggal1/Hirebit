@@ -9,7 +9,7 @@ async function main() {
       data: {
         urls: {
           github: 'https://github.com/duggal1',
-          portfolio: 'https://kaizra.dev/'
+          portfolio: 'https://www.gbdev.me'
         },
         status: 'completed'
       }
@@ -17,8 +17,8 @@ async function main() {
     prisma.verification.create({
       data: {
         urls: {
-   github: 'https://github.com/duggal1',
-          portfolio: 'https://kaizra.dev/'
+   github: 'https://github.com/duggal2',
+          portfolio: 'https://www.gbdev.me'
         },
         status: 'completed'
       }
@@ -26,8 +26,8 @@ async function main() {
     prisma.verification.create({
       data: {
         urls: {
-   github: 'https://github.com/duggal1',
-          portfolio: 'https://kaizra.dev/' },
+   github: 'https://github.com/harshitduggal',
+          portfolio: 'https://www.gbdev.me' },
         status: 'completed'
       }
     })

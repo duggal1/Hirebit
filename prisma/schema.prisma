@@ -116,7 +116,11 @@ model Verification {
   updatedAt DateTime @updatedAt
   urls      Json? // Stores GitHub, LinkedIn, Portfolio URLs
   analysis  Json? // Stores analysis results
-  status    String   @default("pending") // pending, completed, failed
+  status    String   @default("pending")
+  companyId String? // Add this field
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  @@map("verifications")
 }
 
 model Skill {
@@ -237,19 +241,20 @@ model JobAnalysis {
 }
 
 model Company {
-  id        String    @id @default(uuid())
-  name      String
-  location  String
-  logo      String
-  website   String
-  xAccount  String?
-  about     String
-  industry  String // Add this field
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  JobPost   JobPost[]
+  id            String         @id @default(uuid())
+  name          String
+  location      String
+  logo          String
+  website       String
+  xAccount      String?
+  verifications Verification[]
+  about         String
+  industry      String // Add this field
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  JobPost       JobPost[]
 
   @@map("companies")
 }
@@ -305,11 +310,13 @@ model JobApplication {
   jobId       String
   status      ApplicationStatus @default(PENDING)
   coverLetter String?
-  resume      String
-  answers     Json? // Store validated JSON structure
-  aiScore     Int?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+
+  resume       String
+  includeLinks Boolean  @default(false)
+  answers      Json? // Store validated JSON structure
+  aiScore      Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")
