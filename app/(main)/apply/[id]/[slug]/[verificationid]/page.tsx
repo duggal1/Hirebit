@@ -60,7 +60,7 @@ interface JobSeekerData {
 function generateBasicCoverLetter(jobSeeker: JobSeekerData): string {
   if (!jobSeeker) return "";
 
-  const experience = jobSeeker.yearsOfExperience || 0;
+  const experience = jobSeeker.yearsOfExperience ;
   const skills = jobSeeker.skills || [];
   const skillsText =
     skills.length > 0 ? `expertise in ${skills.join(", ")}` : "relevant skills";

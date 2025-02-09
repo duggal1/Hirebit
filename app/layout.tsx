@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/general/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { NextAuthProvider } from "@/components/general/NextAuthProvider";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

@@ -7,46 +7,38 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    console.log('GET JobSeeker - Verification ID:', id);
+    console.log("GET JobSeeker - Verification ID:", id);
 
-    // Get the verification
+    // Fetch the verification record by its id
     const verification = await prisma.verification.findUnique({
-      where: { id }
+      where: { id },
     });
 
-    console.log('GET JobSeeker - Verification:', verification);
+    console.log("GET JobSeeker - Verification:", verification);
 
     if (!verification) {
-      console.log('GET JobSeeker - Verification not found');
+      console.log("GET JobSeeker - Verification not found");
       return NextResponse.json(
-      { error: "Verification not found" },
-      { status: 404 }
+        { error: "Verification not found" },
+        { status: 404 }
       );
     }
 
-    // Find the most recently created jobseeker
+    // Fetch the most recently created jobSeeker with all fields
+    // and include its related applications
     const jobSeeker = await prisma.jobSeeker.findFirst({
       orderBy: {
-      createdAt: 'desc'
+        createdAt: "desc",
       },
-
-      select: {
-        id: true,
-        name: true,
-        about: true,
-        skills: true,
-        experience: true,
-        linkedin: true,
-        github: true,
-        portfolio: true,
+      include: {
         applications: true,
       },
     });
 
-    console.log('GET JobSeeker - Found:', jobSeeker);
+    console.log("GET JobSeeker - Found:", jobSeeker);
 
     if (!jobSeeker) {
-      console.log('GET JobSeeker - Not found');
+      console.log("GET JobSeeker - Not found");
       return NextResponse.json(
         { error: "Job seeker not found" },
         { status: 404 }
