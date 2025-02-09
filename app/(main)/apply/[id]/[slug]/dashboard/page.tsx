@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { ActivitySquare, ArrowUpRight, Calendar, Circle, Loader2, Sparkles } from "lucide-react";
 import {
   Alert,
   //AlertCircle,
@@ -23,12 +23,15 @@ import {
   AlertDescription,
 } from "@/app/_components/ui/alert";
 
+
+const shimmer = `relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent`;
+
 const StatusMessage: React.FC<{ application: ApplicationData }> = ({ application }) => {
   const companyName = application.job?.company?.name || "Unknown Company";
   const companyLocation = application.job?.company?.location || "Unknown Location";
   
   return (
-    <motion.div
+  <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 p-1"
@@ -273,6 +276,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+    const [activeTab, setActiveTab] = useState('overview');
 
   const { data: session } = useSession({
     required: true,
@@ -359,49 +363,125 @@ export default function DashboardPage() {
   const companyLocation =
     application.job?.company?.location || "Unknown Location";
 
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: ActivitySquare },
+    { id: 'applications', label: 'Applications', icon: Calendar },
+    { id: 'insights', label: 'Insights', icon: Sparkles },
+  ];
+
   return (
-    <div className="min-h-screen bg-black text-zinc-100 relative overflow-hidden">
-      {/* Animated background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/50 via-black to-zinc-900/50" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black" />
-      
-      {/* Content container */}
-      <div className="relative max-w-7xl mx-auto px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="space-y-8"
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-purple-900/10 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-900/20 via-violet-900/10 to-transparent" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+
+         
+        
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#080808_1px,transparent_1px),linear-gradient(to_bottom,#080808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)]" />
+</div>
+      <div className="relative">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-7xl mx-auto p-8"
         >
-          {/* Status Message */}
-          {application && <StatusMessage application={application} />}
-
-          {/* Main Content Card */}
-          <Card className="bg-zinc-900/30 backdrop-blur-2xl border-zinc-800/50 p-8 rounded-3xl">
-            <div className="space-y-8">
-              {/* Application Header */}
-              <div className="flex justify-between items-start gap-4">
-                <motion.div
-                  className="space-y-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <h1 className="text-4xl font-light tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-                    Application Status
-                  </h1>
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={application.status} isUpdating={statusLoading} />
-                    {application.isActive && (
-                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                        Active Now
-                      </Badge>
-                    )}
-                  </div>
-                </motion.div>
+          {/* Header Section */}
+           </motion.div>
+          <header className="mb-12">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center justify-between"
+            >
+              <div className="space-y-1">
+                <h1 className="text-4xl font-light tracking-tight">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400">
+                    Dashboard
+                  </span>
+                </h1>
+                <p className="text-zinc-400">Welcome back, {session?.user?.name}</p>
               </div>
+              
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  className="h-3 w-3 rounded-full bg-emerald-400"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <span className="text-sm text-zinc-400">Live Updates</span>
+              </div>
+            </motion.div>
+          </header>
 
-              {/* Status Controls */}
+          {/* Navigation Tabs */}
+          <nav className="mb-12">
+            <div className="flex space-x-2 p-1 bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/5">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all duration-300
+                      ${activeTab === tab.id 
+                        ? 'bg-gradient-to-r from-violet-500/20 to-blue-500/20 text-white shadow-lg shadow-violet-500/10' 
+                        : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                    `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+
+          {/* Main Content */}
+          <div className="space-y-8">
+            
+            {/* Status Card */}
+            <motion.div 
+              className="relative group"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+                  
+
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-blue-600/20 to-emerald-600/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500" />
+              <div className="relative backdrop-blur-xl bg-black/40 border border-white/10 rounded-3xl p-8">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <span className="px-4 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm">
+                        {application?.status || "Loading..."}
+                      </span>
+                      {application?.isActive && (
+                        <span className="px-4 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-w-0 pr-12 flex justify-start items-start font-extrabold" >  {application && <StatusMessage application={application} />}</div>
+                    <h2 className="text-2xl font-light">
+                      {application?.job?.jobTitle || "Position"}
+                    </h2>
+                    <p className="text-zinc-400">
+                      {application?.job?.company?.name || "Company"} • 
+                      {application?.job?.company?.location || "Location"}
+                    </p>
+                  </div>
+                        </div>
+                      
+                   {/* Status Controls */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                   <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
@@ -440,9 +520,7 @@ export default function DashboardPage() {
                       year: "numeric",
                     })}
                   </p>
-                </div>
-
-                <div>
+                </div><div>
                   <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
                     Last Activity
                   </p>
@@ -455,37 +533,47 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-            </div>
-          </Card>
+                </div>
+                </motion.div>
+              
+                  <ArrowUpRight className="w-6 h-6 text-zinc-400 group-hover:text-white transition-colors duration-300" />
+                </div>
+              </div>
+       
+        
+   
 
-          {/* Stats Grid */}
-          {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <StatCard
-                label="Total Applications"
-                value={stats.total}
-                className="bg-zinc-900/30 border-zinc-800/50 text-zinc-100 hover:bg-zinc-800/40 transition-all duration-300"
-              />
-              <StatCard
-                label="Pending"
-                value={stats.pending}
-                className="bg-amber-900/20 border-amber-500/30 text-amber-400 hover:bg-amber-900/30 transition-all duration-300"
-              />
-              <StatCard
-                label="Accepted"
-                value={stats.accepted}
-                className="bg-emerald-900/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/30 transition-all duration-300"
-              />
-              <StatCard
-                label="Active"
-                value={stats.active}
-                className="bg-blue-900/20 border-blue-500/30 text-blue-400 hover:bg-blue-900/30 transition-all duration-300"
-              />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stats && Object.entries(stats).map(([key, value], index) => (
+                <motion.div
+                  key={key}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 + index * 0.1 }}
+                  className="group relative"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-blue-600/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
+                  <div className={`relative h-full backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl p-6 ${shimmer}`}>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-zinc-400 uppercase tracking-wider">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                        <Circle className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors duration-300" />
+                      </div>
+                      <p className="text-3xl font-light bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400">
+                        {value}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          )}
-        </motion.div>
-      </div>
-    </div>
+          </div>
 
+      
+    
+    
   );
 }
