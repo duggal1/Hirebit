@@ -1,53 +1,74 @@
-import { NextApiRequest, NextApiResponse } from "next";
+
+
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export default async function handler(
-	req: NextApiRequest,
-	res: NextApiResponse
+export async function GET(
+  request: Request,
+  { params }: { params: { userid: string } }
 ) {
-	const { userId } = req.query;
+  if (!params?.userid) {
+    return NextResponse.json(
+      { error: "User ID is required" },
+      { status: 400 }
+    );
+  }
 
-	if (typeof userId !== "string") {
-		return res.status(400).json({ error: "Invalid user ID" });
-	}
+  try {
+    // First find the job seeker using the user ID
+    const jobSeeker = await prisma.jobSeeker.findFirst({
+      where: {
+      userId: params.userid
+      }
+    });
 
-	try {
-		const applications = await prisma.jobApplication.findMany({
-			where: {
-				jobSeekerId: userId
-			},
-			include: {
-				job: {
-					include: {
-						company: {
-							select: {
-								name: true,
-								location: true
-							}
-						}
-					}
-				}
-			},
-			orderBy: {
-				createdAt: 'desc'
-			}
-		});
+    if (!jobSeeker) {
+      return NextResponse.json(
+      { error: "Job seeker not found" },
+      { status: 404 }
+      );
+    }
 
-		const stats = {
-			total: applications.length,
-			pending: applications.filter(app => app.status === 'PENDING').length,
-			accepted: applications.filter(app => app.status === 'ACCEPTED').length,
-			rejected: applications.filter(app => app.status === 'REJECTED').length,
-			active: applications.filter(app => app.isActive).length
-		};
+    // Then find all their applications
+    const applications = await prisma.jobApplication.findMany({
+      where: {
+      jobSeekerId: jobSeeker.id
+      },
+      include: {
+        job: {
+          include: {
+            company: {
+              select: {
+                name: true,
+                location: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
-		res.status(200).json({ applications, stats });
-	} catch (error) {
-		console.error("Error fetching applications:", error);
-		res.status(500).json({ error: "Failed to fetch applications" });
-	} finally {
-		await prisma.$disconnect();
-	}
+    const stats = {
+      total: applications.length,
+      pending: applications.filter(app => app.status === 'PENDING').length,
+      accepted: applications.filter(app => app.status === 'ACCEPTED').length,
+      rejected: applications.filter(app => app.status === 'REJECTED').length,
+      active: applications.filter(app => app.isActive).length
+    };
+
+    return NextResponse.json({ applications, stats });
+  } catch (error) {
+    console.error("Error fetching applications:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch applications" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
 }

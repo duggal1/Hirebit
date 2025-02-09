@@ -1,41 +1,73 @@
-import { NextApiRequest, NextApiResponse } from "next";
+
+
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export default async function handler(
-	req: NextApiRequest,
-	res: NextApiResponse
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
-	const { id } = req.query;
+  if (!params?.id) {
+    return NextResponse.json(
+      { error: "ID is required" },
+      { status: 400 }
+    );
+  }
 
-	if (typeof id !== "string") {
-		return res.status(400).json({ error: "Invalid application ID" });
-	}
+  try {
+    // First try to find the job seeker
+    const jobSeeker = await prisma.jobSeeker.findFirst({
+      where: {
+        userId: params.id
+      }
+    });
 
-	try {
-		const application = await prisma.jobApplication.findUnique({
-			where: { id },
-			include: {
-				job: {
-					include: {
-						company: {
-							select: { name: true, location: true },
-						},
-					},
-				},
-			},
-		});
+    if (!jobSeeker) {
+      return NextResponse.json(
+        { error: "Job seeker not found" },
+        { status: 404 }
+      );
+    }
 
-		if (!application) {
-			return res.status(404).json({ error: "Application not found" });
-		}
+    // Then find their most recent application
+    const application = await prisma.jobApplication.findFirst({
+      where: {
+        jobSeekerId: jobSeeker.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        job: {
+          include: {
+            company: {
+              select: {
+                name: true,
+                location: true
+              }
+            }
+          }
+        }
+      }
+    });
 
-		res.status(200).json(application);
-	} catch (error) {
-		console.error("Error fetching application:", error);
-		res.status(500).json({ error: "Failed to fetch application" });
-	} finally {
-		await prisma.$disconnect();
-	}
+    if (!application) {
+      return NextResponse.json(
+        { error: "No applications found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(application);
+  } catch (error) {
+    console.error("Error fetching application:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch application" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
 }
