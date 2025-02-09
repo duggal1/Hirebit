@@ -385,8 +385,7 @@ if (validatedUrls.linkedin) {
 
 
 
-  {/* Add VerificationStatus component */}
-  {(githubData || portfolioData || linkedinData) && (
+  {/*{(githubData || portfolioData || linkedinData) && (
     <div className="transform transition-all duration-500 hover:scale-[1.01]">
       <Card className="overflow-hidden bg-zinc-900/50 backdrop-blur-xl">
         <div className="p-6">
@@ -401,7 +400,41 @@ if (validatedUrls.linkedin) {
         </div>
       </Card>
     </div>
-  )}
+  )}*/}
+<button
+  type="button"
+  onClick={() => router.push(`/apply/${jobs.id}`)}
+  className="relative inline-flex items-center justify-center w-full px-8 py-4 font-bold text-white overflow-hidden rounded-lg group focus:outline-none shadow-md transition-shadow duration-500 ease-in-out group-hover:shadow-xl"
+>
+  {/* Animated gradient background */}
+  <span
+    className="absolute inset-0 transition-transform duration-700 ease-out transform group-hover:scale-110 group-hover:rotate-3"
+    style={{
+      background: 'linear-gradient(45deg, #7e22ce, #ec4899, #f97316)',
+      backgroundSize: '200% 200%',
+      animation: 'gradientShift 5s ease infinite'
+    }}
+  ></span>
+  {/* Subtle dark overlay on hover */}
+  <span className="absolute inset-0 rounded-lg bg-black opacity-0 transition-opacity duration-300 group-hover:opacity-10"></span>
+  {/* Button text */}
+  <span className="relative z-10">Apply Now</span>
+  <style jsx>{`
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+  `}</style>
+</button>
+
+
                 <div className="fixed top-4 right-4">
      <Badge variant="outline">
        Verification ID: {params.id}
