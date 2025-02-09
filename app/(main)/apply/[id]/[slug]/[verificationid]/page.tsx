@@ -18,18 +18,16 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle  } from "@/app/_components/ui/alert";
-
+import { Alert, AlertDescription, AlertTitle } from "@/app/_components/ui/alert";
 
 interface JobSeekerData {
   id: string;
   name: string;
   about: string;
   skills: string[];
-  experience: number;
+  experience: number; // legacy field, but we will show yearsOfExperience instead
   linkedin?: string;
   github?: string;
   portfolio?: string;
@@ -57,16 +55,15 @@ interface JobSeekerData {
   resume: string;
 }
 
+// This function generates a default cover letter using the jobseeker’s data.
+// It will be used as the default (manually written) letter unless replaced by an AI-generated one.
 function generateBasicCoverLetter(jobSeeker: JobSeekerData): string {
   if (!jobSeeker) return "";
 
-  const experience = jobSeeker.yearsOfExperience ;
+  const experience = jobSeeker.yearsOfExperience; // use yearsOfExperience
   const skills = jobSeeker.skills || [];
-  const skillsText =
-    skills.length > 0 ? `expertise in ${skills.join(", ")}` : "relevant skills";
-  const about =
-    jobSeeker.about ||
-    "I am excited about the opportunity to contribute to your team.";
+  const skillsText = skills.length > 0 ? `expertise in ${skills.join(", ")}` : "relevant skills";
+  const about = jobSeeker.about || "I am excited about the opportunity to contribute to your team.";
   const name = jobSeeker.name || "Candidate";
   const education = jobSeeker.education[0] || null;
   const educationText = education
@@ -126,6 +123,7 @@ export default function ApplyNowPage() {
 
       if (response.ok && data) {
         setJobSeeker(data);
+        // Use the default manually written cover letter if AI hasn't generated one.
         const basicCoverLetter = generateBasicCoverLetter(data);
         setCoverLetter(basicCoverLetter);
       } else {
@@ -166,6 +164,7 @@ export default function ApplyNowPage() {
       console.log("Generated cover letter:", data);
 
       if (response.ok && data.coverLetter) {
+        // Replace the default letter with the AI-generated one.
         setCoverLetter(data.coverLetter);
         toast.success("AI cover letter generated!");
       } else {
@@ -210,12 +209,12 @@ export default function ApplyNowPage() {
       const data = await response.json();
       console.log("Submit application response:", data);
 
-      if (data.success) {
+        if (data.success) {
         toast.success("Application submitted successfully!");
-        router.push("/dashboard");
-      } else {
+        router.push(`/apply/${params.id}/${params.slug}/dashboard`);
+        } else {
         throw new Error(data.message || "Failed to submit application");
-      }
+        }
     } catch (error) {
       console.error("Submit application error:", error);
       toast.error("Failed to submit application");
@@ -260,16 +259,21 @@ export default function ApplyNowPage() {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
- return (
+
+  return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(17,24,39,1),rgba(0,0,0,1))] opacity-70" />
       
       {/* Floating orbs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full filter blur-3xl animate-pulse" 
-           style={{ animation: 'float 20s ease-in-out infinite' }} />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl animate-pulse" 
-           style={{ animation: 'float 25s ease-in-out infinite reverse' }} />
+      <div
+        className="absolute top-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full filter blur-3xl animate-pulse"
+        style={{ animation: 'float 20s ease-in-out infinite' }}
+      />
+      <div
+        className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl animate-pulse"
+        style={{ animation: 'float 25s ease-in-out infinite reverse' }}
+      />
 
       <ScrollArea className="h-screen">
         <div className="max-w-4xl mx-auto p-8 space-y-12 relative z-10">
@@ -324,10 +328,10 @@ export default function ApplyNowPage() {
                   />
 
                   <div className="flex items-center space-x-4 bg-white/5 p-6 rounded-xl border border-white/10">
-                   <Checkbox
-                  checked={useLinks}
-                  onCheckedChange={(checked) => setUseLinks(!!checked)}
-                 className="border-purple-500/50"
+                    <Checkbox
+                      checked={useLinks}
+                      onCheckedChange={(checked) => setUseLinks(!!checked)}
+                      className="border-purple-500/50"
                     />
                     <label htmlFor="useLinks" className="cursor-pointer space-y-1">
                       <div className="font-medium">Include Professional Links</div>
@@ -360,8 +364,8 @@ export default function ApplyNowPage() {
                     {/* Profile details */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="text-sm text-gray-400">Experience</div>
-                        <div className="font-medium">{jobSeeker?.experience} years</div>
+                        <div className="text-sm text-gray-400">Years of Experience</div>
+                        <div className="font-medium">{jobSeeker?.yearsOfExperience} years</div>
                       </div>
                       <div className="space-y-2">
                         <div className="text-sm text-gray-400">Location</div>

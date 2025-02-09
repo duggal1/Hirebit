@@ -303,20 +303,21 @@ model SavedJobPost {
 }
 
 model JobApplication {
-  id          String            @id @default(uuid())
-  jobSeeker   JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
-  jobSeekerId String
-  job         JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId       String
-  status      ApplicationStatus @default(PENDING)
-  coverLetter String?
-
+  id           String            @id @default(uuid())
+  jobSeeker    JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  jobSeekerId  String
+  job          JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId        String
+  status       ApplicationStatus @default(PENDING)
+  coverLetter  String?
   resume       String
-  includeLinks Boolean  @default(false)
-  answers      Json? // Store validated JSON structure
+  includeLinks Boolean           @default(false)
+  answers      Json?
   aiScore      Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean           @default(true)
+  lastActivity DateTime          @default(now())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")
@@ -354,4 +355,7 @@ enum ApplicationStatus {
   SHORTLISTED
   REJECTED
   ACCEPTED
+  READY
+  NOT_READY
+  ACTIVE
 }
