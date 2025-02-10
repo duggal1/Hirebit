@@ -34,7 +34,7 @@ interface JobSeekerData {
   expectedSalaryMin?: number;
   expectedSalaryMax?: number;
   preferredLocation: string;
-  remotePreference: string;
+  remotePreference: string; // "Remote" | "Hybrid" | "On-site"
   yearsOfExperience: number;
   certifications?: {
     url: string;
@@ -42,49 +42,62 @@ interface JobSeekerData {
     year: number;
     issuer: string;
   }[];
-  availabilityPeriod: number;
+  availabilityPeriod: number; // Notice period in days
+  availableFrom?: Date; // Seeker’s Availability: date available to start
   education: {
     year: number;
     degree: string;
     institution: string;
     fieldOfStudy: string;
   }[];
-  desiredEmployment: string;
+  desiredEmployment: string; // "Full-time" | "Part-time" | "Contract"
   location: string;
   phoneNumber?: string;
   resume: string;
 }
 
-// This function generates a default cover letter using the jobseeker’s data.
-// It will be used as the default (manually written) letter unless replaced by an AI-generated one.
-function generateBasicCoverLetter(jobSeeker: JobSeekerData): string {
+// Updated function to generate a more detailed basic cover letter.
+function generateBasicCoverLetter(jobSeeker: JobSeekerData, companyName: string): string {
   if (!jobSeeker) return "";
 
-  const experience = jobSeeker.yearsOfExperience; // use yearsOfExperience
+  const experience = jobSeeker.yearsOfExperience;
   const skills = jobSeeker.skills || [];
-  const skillsText = skills.length > 0 ? `expertise in ${skills.join(", ")}` : "relevant skills";
-  const about = jobSeeker.about || "I am excited about the opportunity to contribute to your team.";
+  const skillsText = skills.length > 0 ? `expertise in ${skills.join(", ")}` : "a diverse skill set";
+  const about = jobSeeker.about || "I am passionate about leveraging my skills and experience to contribute effectively.";
   const name = jobSeeker.name || "Candidate";
+
+  // Use the first education entry (if available) and include the graduation year.
   const education = jobSeeker.education[0] || null;
   const educationText = education
-    ? `I hold a ${education.degree} from ${education.institution} in ${education.fieldOfStudy}.`
+    ? `I earned my ${education.degree} in ${education.fieldOfStudy} from ${education.institution} in ${education.year}.`
     : "";
+
+  // Build salary expectation text if available.
+  let salaryText = "";
+  if (jobSeeker.expectedSalaryMin && jobSeeker.expectedSalaryMax) {
+    salaryText = `My salary expectation is in the range of $${jobSeeker.expectedSalaryMin} to $${jobSeeker.expectedSalaryMax}.`;
+  } else if (jobSeeker.expectedSalaryMin) {
+    salaryText = `My expected salary starts from $${jobSeeker.expectedSalaryMin}.`;
+  } else if (jobSeeker.expectedSalaryMax) {
+    salaryText = `My expected salary is up to $${jobSeeker.expectedSalaryMax}.`;
+  }
+
+  // Add remote preference details if provided.
+  const remoteText = jobSeeker.remotePreference
+      ? ` with a ${jobSeeker.remotePreference.toLowerCase()} work arrangement`
+      : "";
 
   return `Dear Hiring Manager,
 
-I am writing to express my interest in the position at your company. With ${experience} years of experience and ${skillsText}, I believe I would be a strong candidate for this role.
+I am excited to apply for a position at ${companyName}. With ${experience} years of professional experience and ${skillsText}, I am confident in my ability to contribute effectively to your team.
 
-${educationText}
+${educationText} ${salaryText}
 
 ${about}
 
-I am currently seeking ${jobSeeker.desiredEmployment} opportunities${
-    jobSeeker.remotePreference
-      ? ` with a ${jobSeeker.remotePreference.toLowerCase()} work arrangement`
-      : ""
-  }, and I am available to start within ${jobSeeker.availabilityPeriod} days.
+I am seeking ${jobSeeker.desiredEmployment} opportunities${remoteText}, and I am available to start within ${jobSeeker.availabilityPeriod} days.
 
-I look forward to discussing how I can contribute to your team.
+Thank you for considering my application. I look forward to the possibility of contributing to ${companyName} and discussing how my background aligns with your needs.
 
 Best regards,
 ${name}`;
@@ -95,11 +108,18 @@ export default function ApplyNowPage() {
   const params = useParams();
   const { data: session, status } = useSession({
     required: true,
+
     onUnauthenticated() {
       toast.error("Please sign in to continue");
       router.push("/login");
     },
   });
+  const companySlug: string =
+    typeof params.slug === "string"
+      ? params.slug
+      : Array.isArray(params.slug)
+      ? params.slug[0]
+      : "";
 
   const [jobSeeker, setJobSeeker] = useState<JobSeekerData | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
@@ -123,8 +143,17 @@ export default function ApplyNowPage() {
 
       if (response.ok && data) {
         setJobSeeker(data);
+
+        // Safely narrow down params.slug to a string.
+        const companySlug =
+          typeof params.slug === "string"
+            ? params.slug
+            : Array.isArray(params.slug)
+            ? params.slug[0]
+            : "";
+
         // Use the default manually written cover letter if AI hasn't generated one.
-        const basicCoverLetter = generateBasicCoverLetter(data);
+        const basicCoverLetter = generateBasicCoverLetter(data, companySlug);
         setCoverLetter(basicCoverLetter);
       } else {
         console.error("Failed to fetch job seeker:", data.error);
@@ -142,12 +171,26 @@ export default function ApplyNowPage() {
       return;
     }
 
+    // Narrow down params.slug and params.verificationid safely.
+    const companySlug =
+      typeof params.slug === "string"
+        ? params.slug
+        : Array.isArray(params.slug)
+        ? params.slug[0]
+        : "";
+    const verificationId =
+      typeof params.verificationid === "string"
+        ? params.verificationid
+        : Array.isArray(params.verificationid)
+        ? params.verificationid[0]
+        : "";
+
     setIsGenerating(true);
     try {
       console.log("Generating AI cover letter with params:", {
         jobSeekerId: jobSeeker.id,
-        companySlug: params.slug,
-        verificationId: params.verificationid,
+        companySlug,
+        verificationId,
       });
 
       const response = await fetch("/api/generate-cover-letter", {
@@ -155,8 +198,8 @@ export default function ApplyNowPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobSeekerId: jobSeeker.id,
-          companySlug: params.slug,
-          verificationId: params.verificationid,
+          companySlug,
+          verificationId,
         }),
       });
 
@@ -185,12 +228,26 @@ export default function ApplyNowPage() {
       return;
     }
 
+    // Narrow down the parameters.
+    const companySlug =
+      typeof params.slug === "string"
+        ? params.slug
+        : Array.isArray(params.slug)
+        ? params.slug[0]
+        : "";
+    const verificationId =
+      typeof params.verificationid === "string"
+        ? params.verificationid
+        : Array.isArray(params.verificationid)
+        ? params.verificationid[0]
+        : "";
+
     setIsSubmitting(true);
     try {
       console.log("Submitting application with data:", {
         jobSeekerId: jobSeeker.id,
-        companySlug: params.slug,
-        verificationId: params.verificationid,
+        companySlug,
+        verificationId,
         includeLinks: useLinks,
       });
 
@@ -199,8 +256,8 @@ export default function ApplyNowPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobSeekerId: jobSeeker.id,
-          companySlug: params.slug,
-          verificationId: params.verificationid,
+          companySlug,
+          verificationId,
           coverLetter,
           includeLinks: useLinks,
         }),
@@ -209,12 +266,12 @@ export default function ApplyNowPage() {
       const data = await response.json();
       console.log("Submit application response:", data);
 
-        if (data.success) {
+      if (data.success) {
         toast.success("Application submitted successfully!");
-        router.push(`/apply/${params.id}/${params.slug}/dashboard`);
-        } else {
+        router.push(`/apply/${params.id}/${companySlug}/dashboard`);
+      } else {
         throw new Error(data.message || "Failed to submit application");
-        }
+      }
     } catch (error) {
       console.error("Submit application error:", error);
       toast.error("Failed to submit application");
@@ -287,7 +344,7 @@ export default function ApplyNowPage() {
               {/* Header */}
               <div className="space-y-4">
                 <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-blue-500">
-                  Apply to {params?.slug}
+                  Apply to {companySlug}
                 </h1>
                 <p className="text-gray-400 text-lg">
                   Shape your future with a compelling application
