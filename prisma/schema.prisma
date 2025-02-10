@@ -309,21 +309,28 @@ model SavedJobPost {
 }
 
 model JobApplication {
-  id           String            @id @default(uuid())
-  jobSeeker    JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
-  jobSeekerId  String
-  job          JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId        String
-  status       ApplicationStatus @default(PENDING)
-  coverLetter  String?
-  resume       String
-  includeLinks Boolean           @default(false)
-  answers      Json?
-  aiScore      Int?
-  isActive     Boolean           @default(true)
-  lastActivity DateTime          @default(now())
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id                String            @id @default(uuid())
+  jobSeeker         JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  jobSeekerId       String
+  job               JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId             String
+  status            ApplicationStatus @default(PENDING)
+  coverLetter       String?
+  resume            String
+  includeLinks      Boolean           @default(false)
+  answers           Json?
+  aiScore           Int?
+  isActive          Boolean           @default(true)
+  lastActivity      DateTime          @default(now())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  expectedSalaryMin Int?
+  expectedSalaryMax Int?
+  certifications    Json?
+  education         Json?
+  location          String?
+  phoneNumber       String?
+  desiredEmployment String?
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")
