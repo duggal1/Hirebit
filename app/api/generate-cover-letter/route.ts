@@ -34,6 +34,9 @@ export async function POST(request: Request) {
         preferredLocation: true,
         remotePreference: true,
         availabilityPeriod: true,
+        availableFrom: true, // NEW FIELD
+        previousJobExperience: true, // NEW FIELD
+        willingToRelocate: true, // NEW FIELD
         resume: true,
         phoneNumber: true,
         linkedin: true,
@@ -81,20 +84,34 @@ export async function POST(request: Request) {
       jobSeeker.expectedSalaryMin && jobSeeker.expectedSalaryMax
         ? `$${jobSeeker.expectedSalaryMin} - $${jobSeeker.expectedSalaryMax}`
         : "Not specified";
-    const professionalLinks = [
-      jobSeeker.linkedin ? `LinkedIn: ${jobSeeker.linkedin}` : "",
-      jobSeeker.github ? `GitHub: ${jobSeeker.github}` : "",
-      jobSeeker.portfolio ? `Portfolio: ${jobSeeker.portfolio}` : "",
-    ]
-      .filter((link) => link)
-      .join(" | ") || "Not provided";
+    const professionalLinks =
+      [
+        jobSeeker.linkedin ? `LinkedIn: ${jobSeeker.linkedin}` : "",
+        jobSeeker.github ? `GitHub: ${jobSeeker.github}` : "",
+        jobSeeker.portfolio ? `Portfolio: ${jobSeeker.portfolio}` : "",
+      ]
+        .filter((link) => link)
+        .join(" | ") || "Not provided";
 
-    // Refined prompt for generating a formal, human-like cover letter with concrete details
-    const prompt = `Generate a formal, human-like cover letter for a software engineer application using the following details. The cover letter must be specific, avoid generic buzzwords, and must not include any header information like "[Your Name]", "[Your Address]", or "[Date]".
+    // Process additional fields:
+    const availableFromStr = jobSeeker.availableFrom
+      ? new Date(jobSeeker.availableFrom).toLocaleDateString()
+      : "Not specified";
+    const relocateStr =
+      jobSeeker.willingToRelocate === true ? "Yes" : "No";
+    const previousExp =
+      jobSeeker.previousJobExperience
+        ? typeof jobSeeker.previousJobExperience === "string"
+          ? jobSeeker.previousJobExperience
+          : JSON.stringify(jobSeeker.previousJobExperience)
+        : "Not specified";
+
+    // Refined prompt for generating a formal, human-like cover letter
+    const prompt = `Generate a formal, human-like cover letter for a software engineer application using the following details. The cover letter must be direct, honest, warm, calm, fresh, and formal. Avoid using vague buzzwords or generic phrases and do not include any header placeholders like "[Your Name]", "[Your Address]", or "[Date]".
 
 Candidate Details:
 - Name: ${jobSeeker.name}
-- Experience: ${jobSeeker.yearsOfExperience} years
+- Years of Experience: ${jobSeeker.yearsOfExperience} years
 - Skills: ${jobSeeker.skills?.join(", ")}
 - Education: ${
       latestEducation
@@ -107,10 +124,13 @@ Candidate Details:
         : "Not specified"
     }
 - Employment Preference: ${jobSeeker.desiredEmployment}
-- Current Location: ${jobSeeker.location} (Preferred Location: ${jobSeeker.preferredLocation})
+- Current Location: ${jobSeeker.location} (Preferred: ${jobSeeker.preferredLocation})
 - Remote Preference: ${jobSeeker.remotePreference}
 - Salary Expectation: ${salaryRange}
 - Availability: ${jobSeeker.availabilityPeriod} days notice
+- Available From: ${availableFromStr}
+- Willing to Relocate: ${relocateStr}
+- Previous Job Experience: ${previousExp}
 - Professional Links: ${professionalLinks}
 - Background: ${jobSeeker.about}
 
@@ -120,14 +140,14 @@ Company Details:
 - About: ${verification.company.about}
 
 Instructions:
-1. Write a clear, specific, and formal cover letter that avoids vague or generic buzzwords.
-2. Use human-like, natural language and concrete details.
-3. Focus on the candidate's real achievements and qualifications.
+1. Write a clear, specific, and formal cover letter that is direct and honest.
+2. Use natural, warm, and calm language with concrete details.
+3. Avoid vague buzzwords and generic phrases.
 4. Do not include any header placeholders such as "[Your Name]", "[Your Address]", or "[Date]".
 5. Conclude with a call to action inviting further discussion.
 6. Maximum length: 400 words.`;
 
-    console.log("Generating cover letter with prompt:", prompt);
+    console.log("✔️Generating cover letter with prompt:", prompt);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let coverLetter = response.text();
@@ -139,10 +159,10 @@ Instructions:
       .replace(/^\[Date\].*$/gm, "")
       .trim();
 
-    console.log("Generated cover letter successfully");
+    console.log("✨✅Generated cover letter successfully");
     return NextResponse.json({ coverLetter });
   } catch (error) {
-    console.error("Error generating cover letter:", error);
+    console.error("❌Error generating cover letter:", error);
     return NextResponse.json(
       { error: "Failed to generate cover letter" },
       { status: 500 }
