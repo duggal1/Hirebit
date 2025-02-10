@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ActivitySquare, ArrowUpRight, Calendar, Circle, Loader2, Sparkles } from "lucide-react";
 import {
   Alert,
@@ -25,6 +25,18 @@ import {
 
 
 const shimmer = `relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent`;
+
+
+interface StatsCardProps {
+  label: string;
+  value: number;
+  index: number;
+}
+interface StatusContentProps {
+  application: ApplicationData;
+  statusLoading: boolean;
+  updateApplicationStatus: (status: ApplicationStatus) => Promise<void>;
+}
 
 const StatusMessage: React.FC<{ application: ApplicationData }> = ({ application }) => {
   const companyName = application.job?.company?.name || "Unknown Company";
@@ -39,10 +51,10 @@ const StatusMessage: React.FC<{ application: ApplicationData }> = ({ application
       <div className="relative rounded-xl bg-black/40 backdrop-blur-xl p-6 border border-white/10">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
         <div className="relative">
-          <p className="text-lg text-gray-200 leading-relaxed">
+          <p className="text-2xl font-bold text-gray-200 leading-relaxed">
             Your application was {application.status.toLowerCase()} by{" "}
-            <span className="font-medium text-purple-400">{companyName}</span> based in{" "}
-            <span className="font-medium text-blue-400">{companyLocation}</span>.
+            <span className="font-extrabold text-blue-600 ">{companyName}</span> based in{" "}
+            <span className="font-extrabold  text-violet-500">{companyLocation}</span>.
             {application.status === "ACCEPTED" && (
               <span className="block mt-2 text-emerald-400">
                 Congratulations! The company has accepted your application.
@@ -153,6 +165,95 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, className }) => (
       </div>
     </Card>
   </motion.div>
+);
+
+const StatusContent: React.FC<StatusContentProps> = ({
+  application,
+  statusLoading,
+  updateApplicationStatus
+}) => (
+  <div className="space-y-8">
+    {/* Status Header */}
+    <div className="flex items-center justify-between">
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <span className="px-4 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm">
+            {application?.status || "Loading..."}
+          </span>
+          {application?.isActive && (
+            <span className="px-4 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+              Active
+            </span>
+          )}
+        </div>
+        <h2 className="text-2xl font-light">
+          {application?.job?.jobTitle || "Position"}
+        </h2>
+        <p className="text-zinc-400">
+          {application?.job?.company?.name || "Company"} • 
+          {application?.job?.company?.location || "Location"}
+        </p>
+      </div>
+    </div>
+
+    {/* Status Controls */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Status Update Select */}
+      <div>
+        <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
+          Status Update
+        </p>
+        <Select
+          value={application.status}
+          onValueChange={updateApplicationStatus}
+          disabled={statusLoading}
+        >
+          <SelectTrigger className="w-full bg-zinc-800/50 border-zinc-700/50 text-zinc-100 rounded-xl h-12">
+            <SelectValue placeholder="Update status" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-800">
+            <SelectItem value="READY" className="text-teal-400">
+              Ready for Interview
+            </SelectItem>
+            <SelectItem value="NOT_READY" className="text-orange-400">
+              Not Ready
+            </SelectItem>
+            <SelectItem value="ACTIVE" className="text-sky-400">
+              Active Search
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Applied Date */}
+      <div>
+        <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
+          Applied On
+        </p>
+        <p className="text-xl font-light">
+          {new Date(application.createdAt).toLocaleDateString(undefined, {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </p>
+      </div>
+
+      {/* Last Activity */}
+      <div>
+        <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
+          Last Activity
+        </p>
+        <p className="text-xl font-light">
+          {new Date(application.lastActivity).toLocaleDateString(undefined, {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </p>
+      </div>
+    </div>
+  </div>
 );
 
 const StatusBadge: React.FC<{ status: ApplicationStatus; isUpdating: boolean }> = ({
@@ -370,210 +471,221 @@ export default function DashboardPage() {
     { id: 'insights', label: 'Insights', icon: Sparkles },
   ];
 
-  return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-purple-900/10 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-900/20 via-violet-900/10 to-transparent" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
 
-         
+    return (
+     <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Simplified Background - Removed excessive animations */}
+      <div className="fixed inset-0">
+        {/* Single subtle gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/20 via-black to-blue-950/20" />
         
-        {/* Animated Grid */}
+        {/* Static grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#080808_1px,transparent_1px),linear-gradient(to_bottom,#080808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)]" />
-</div>
+      </div>
+        {/* Modern Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#080808_1px,transparent_1px),linear-gradient(to_bottom,#080808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,transparent_60%,black_70%)]" />
+        
+        {/* Floating Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white/5 rounded-full"
+              animate={{
+                x: [Math.random() * 100, Math.random() * 100],
+                y: [Math.random() * 100, Math.random() * 100],
+                scale: [1, 1.5, 1],
+                opacity: [0.2, 0.5, 0.2],
+              }}
+              transition={{
+                duration: Math.random() * 5 + 5,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+            />
+          ))}
+        </div>
+
+
+      {/* Main Content Container */}
       <div className="relative">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-7xl mx-auto p-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="max-w-7xl mx-auto p-8 space-y-12"
         >
-          {/* Header Section */}
-           </motion.div>
-          <header className="mb-12">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center justify-between"
-            >
-              <div className="space-y-1">
-                <h1 className="text-4xl font-light tracking-tight">
+          {/* Header */}
+          <motion.header
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="relative"
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <motion.h1 
+                  className="text-5xl font-extralight tracking-tight"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400">
                     Dashboard
                   </span>
-                </h1>
-                <p className="text-zinc-400">Welcome back, {session?.user?.name}</p>
-              </div>
-              
-              <div className="flex items-center gap-4">
+                  </motion.h1>
+                      <div className="pr-6 flex justify-start item-start" >  {application && <StatusMessage application={application} />}</div>
+                <motion.p 
+                  className="text-zinc-400"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Welcome back, {session?.user?.name}
+                </motion.p>
+                </div>
+           
+
+              {/* Live Status Indicator */}
+              <motion.div 
+                className="flex items-center gap-3"
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
                 <motion.div 
-                  className="h-3 w-3 rounded-full bg-emerald-400"
+                  className="h-2 w-2 rounded-full bg-emerald-400"
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
                 <span className="text-sm text-zinc-400">Live Updates</span>
-              </div>
-            </motion.div>
-          </header>
+              </motion.div>
+            </div>
+          </motion.header>
 
           {/* Navigation Tabs */}
-          <nav className="mb-12">
-            <div className="flex space-x-2 p-1 bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/5">
-              {tabs.map((tab) => {
+          <motion.nav
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="relative"
+          >
+            <div className="flex space-x-2 p-1 bg-zinc-900/30 backdrop-blur-xl rounded-2xl border border-white/5">
+              {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 return (
-                  <button
+                  <motion.button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`
-                      flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all duration-300
+                      flex items-center gap-2 px-6 py-3 rounded-xl text-sm transition-all duration-500
                       ${activeTab === tab.id 
                         ? 'bg-gradient-to-r from-violet-500/20 to-blue-500/20 text-white shadow-lg shadow-violet-500/10' 
                         : 'text-zinc-400 hover:text-white hover:bg-white/5'}
                     `}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <Icon className="w-4 h-4" />
                     {tab.label}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
-          </nav>
+          </motion.nav>
 
-
-          {/* Main Content */}
-          <div className="space-y-8">
-            
-            {/* Status Card */}
-            <motion.div 
-              className="relative group"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
+          {/* Main Content Area */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
             >
-                  
-
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-blue-600/20 to-emerald-600/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-              <div className="relative backdrop-blur-xl bg-black/40 border border-white/10 rounded-3xl p-8">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <span className="px-4 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm">
-                        {application?.status || "Loading..."}
-                      </span>
-                      {application?.isActive && (
-                        <span className="px-4 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <div className="max-w-0 pr-12 flex justify-start items-start font-extrabold" >  {application && <StatusMessage application={application} />}</div>
-                    <h2 className="text-2xl font-light">
-                      {application?.job?.jobTitle || "Position"}
-                    </h2>
-                    <p className="text-zinc-400">
-                      {application?.job?.company?.name || "Company"} • 
-                      {application?.job?.company?.location || "Location"}
-                    </p>
-                  </div>
-                        </div>
-                      
-                   {/* Status Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                  <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
-                    Status Update
-                  </p>
-                  <Select
-                    value={application.status}
-                    onValueChange={updateApplicationStatus}
-                    disabled={statusLoading}
-                  >
-                    <SelectTrigger className="w-full bg-zinc-800/50 border-zinc-700/50 text-zinc-100 rounded-xl h-12">
-                      <SelectValue placeholder="Update status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-zinc-800">
-                      <SelectItem value="READY" className="text-teal-400">
-                        Ready for Interview
-                      </SelectItem>
-                      <SelectItem value="NOT_READY" className="text-orange-400">
-                        Not Ready
-                      </SelectItem>
-                      <SelectItem value="ACTIVE" className="text-sky-400">
-                        Active Search
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
-                    Applied On
-                  </p>
-                  <p className="text-xl font-light">
-                    {new Date(application.createdAt).toLocaleDateString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div><div>
-                  <p className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
-                    Last Activity
-                  </p>
-                  <p className="text-xl font-light">
-                    {new Date(application.lastActivity).toLocaleDateString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-                </div>
-                </motion.div>
-              
-                  <ArrowUpRight className="w-6 h-6 text-zinc-400 group-hover:text-white transition-colors duration-300" />
-                </div>
-              </div>
-       
-        
-   
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats && Object.entries(stats).map(([key, value], index) => (
+              {/* Status Card */}
+              <div className="relative group">
                 <motion.div
-                  key={key}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="group relative"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-blue-600/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                  <div className={`relative h-full backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl p-6 ${shimmer}`}>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400 uppercase tracking-wider">
-                          {key.replace(/_/g, ' ')}
-                        </span>
-                        <Circle className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors duration-300" />
-                      </div>
-                      <p className="text-3xl font-light bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400">
-                        {value}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+                  className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-blue-600/20 to-emerald-600/20 rounded-3xl"
+                  animate={{
+                    scale: [1, 1.02, 1],
+                    opacity: [0.5, 0.8, 0.5],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                  />
+                  
+                <div className="relative backdrop-blur-xl bg-black/40 border border-white/10 rounded-3xl p-8 transition-all duration-500 group-hover:border-white/20">
+                  {/* Status Content */}
+                  <StatusContent 
+                    application={application}
+                    statusLoading={statusLoading}
+                    updateApplicationStatus={updateApplicationStatus}
+                  />
+                </div>
+              </div>
 
-      
-    
-    
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats && Object.entries(stats).map(([key, value], index) => (
+                  <StatsCard
+                    key={key}
+                    label={key}
+                    value={value}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </div>
   );
 }
+const StatsCard: React.FC<StatsCardProps> = ({ label, value, index }) => (
+  <motion.div
+    initial={{ y: 20, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ delay: 0.4 + index * 0.1 }}
+    whileHover={{ scale: 1.02 }}
+    className="group relative"
+  >
+    <motion.div
+      className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-blue-600/10 rounded-2xl"
+      animate={{
+        scale: [1, 1.05, 1],
+        opacity: [0.5, 0.8, 0.5],
+      }}
+      transition={{
+        duration: 3,
+        repeat: Infinity,
+        ease: "linear",
+      }}
+    />
+    <div className="relative h-full backdrop-blur-xl bg-black/40 border border-white/10 rounded-2xl p-6 transition-all duration-500">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-zinc-400 uppercase tracking-wider">
+            {label.replace(/_/g, ' ')}
+          </span>
+         
+          <Circle className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors duration-300" />
+        </div>
+        <p className="text-3xl font-light bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400">
+          {value}
+        </p>
+      </div>
+    </div>
+  </motion.div>
+);
+           
+    
+    
+ 
