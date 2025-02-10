@@ -102,9 +102,14 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
     portfolio: validatedData.portfolio || null,
         user: {
           connect: { id: user.id }
-        }
-      }
+        },
+         availableFrom: validatedData.availableFrom,
+        previousJobExperience: validatedData.previousJobExperience,
+        willingToRelocate: validatedData.willingToRelocate,
+         },
     });
+
+   
 
     // Create job application if jobId is provided
     if (jobId) {
@@ -509,7 +514,12 @@ function isInCooldown(lastAttemptAt: Date | null): boolean {
 export type FormState = {
   message: string;
   success: boolean;
-}
+  // Optional new fields for the job seeker profile:
+  availableFrom?: Date;
+  previousJobExperience?: any; // Adjust the type if needed (e.g., an array of objects)
+  willingToRelocate?: boolean;
+};
+
 export const submitJobSeeker = async (
   prevState: FormState,
   formData: FormData
@@ -522,30 +532,53 @@ export const submitJobSeeker = async (
         success: false 
       };
     }
-
+    
     const rawData = {
-      educationDetails: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
-      education: formData.get('education') ? JSON.parse(formData.get('education') as string) : [],
-      name: formData.get('name') as string,
-      phoneNumber: formData.get('phoneNumber') || "",
-      jobId: formData.get('jobId') || "",
-      about: formData.get('about') as string,
-      resume: formData.get('resume') as string,
-      location: formData.get('location') as string,
-      skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
-      experience: Number(formData.get('experience')) || 0,
-      expectedSalaryMin: formData.get('expectedSalaryMin') ? Number(formData.get('expectedSalaryMin')) : null,
-      expectedSalaryMax: formData.get('expectedSalaryMax') ? Number(formData.get('expectedSalaryMax')) : null,
-      preferredLocation: formData.get('preferredLocation') as string,
-      remotePreference: formData.get('remotePreference') as string,
-      yearsOfExperience: Number(formData.get('yearsOfExperience')) || 0,
-      availabilityPeriod: Number(formData.get('availabilityPeriod')) || 30,
-      desiredEmployment: formData.get('desiredEmployment') as string,
-      certifications: formData.get('certifications') ? JSON.parse(formData.get('certifications') as string) : null,
-      linkedin: formData.get('linkedin') as string || null,
-      github: formData.get('github') as string || null,
-      portfolio: formData.get('portfolio') as string || null,
-    };
+  educationDetails: formData.get('education')
+    ? JSON.parse(formData.get('education') as string)
+    : [],
+  education: formData.get('education')
+    ? JSON.parse(formData.get('education') as string)
+    : [],
+  name: formData.get('name') as string,
+  phoneNumber: formData.get('phoneNumber') || "",
+  jobId: formData.get('jobId') || "",
+  about: formData.get('about') as string,
+  resume: formData.get('resume') as string,
+  location: formData.get('location') as string,
+  skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
+  experience: Number(formData.get('experience')) || 0,
+  expectedSalaryMin: formData.get('expectedSalaryMin')
+    ? Number(formData.get('expectedSalaryMin'))
+    : null,
+  expectedSalaryMax: formData.get('expectedSalaryMax')
+    ? Number(formData.get('expectedSalaryMax'))
+    : null,
+  preferredLocation: formData.get('preferredLocation') as string,
+  remotePreference: formData.get('remotePreference') as string,
+  yearsOfExperience: Number(formData.get('yearsOfExperience')) || 0,
+  availabilityPeriod: Number(formData.get('availabilityPeriod')) || 30,
+  desiredEmployment: formData.get('desiredEmployment') as string,
+  certifications: formData.get('certifications')
+    ? JSON.parse(formData.get('certifications') as string)
+    : null,
+  linkedin: (formData.get('linkedin') as string) || null,
+  github: (formData.get('github') as string) || null,
+  portfolio: (formData.get('portfolio') as string) || null,
+  // NEW FIELD: availableFrom - convert the form date to a full ISO-8601 string
+  availableFrom:
+    formData.get("availableFrom") && (formData.get("availableFrom") as string).trim() !== ""
+      ? new Date(formData.get("availableFrom") as string).toISOString()
+      : null,
+  // NEW FIELD: previousJobExperience - use the text as is
+  previousJobExperience: (formData.get("previousJobExperience") as string) || null,
+  // NEW FIELD: willingToRelocate - convert checkbox string to boolean
+  willingToRelocate: formData.get("willingToRelocate")
+    ? formData.get("willingToRelocate") === "true"
+    : null,
+};
+
+
 
     const validatedData = jobSeekerSchema.parse(rawData);
 
@@ -577,6 +610,9 @@ export const submitJobSeeker = async (
         linkedin: validatedData.linkedin,
         github: validatedData.github,
         portfolio: validatedData.portfolio,
+         availableFrom: validatedData.availableFrom,
+        previousJobExperience: validatedData.previousJobExperience,
+        willingToRelocate: validatedData.willingToRelocate,
       },
       create: {
         userId: session.user.id,
@@ -602,6 +638,9 @@ export const submitJobSeeker = async (
         linkedin: validatedData.linkedin,
         github: validatedData.github,
         portfolio: validatedData.portfolio,
+         availableFrom: validatedData.availableFrom,
+        previousJobExperience: validatedData.previousJobExperience,
+        willingToRelocate: validatedData.willingToRelocate,
       }
     });
 

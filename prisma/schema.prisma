@@ -198,7 +198,10 @@ enum UserType {
 }
 
 model JobSeeker {
-  user               User     @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
   expectedSalaryMin  Int?
   expectedSalaryMax  Int?
   preferredLocation  String
@@ -206,24 +209,27 @@ model JobSeeker {
   yearsOfExperience  Int
   certifications     Json? // Array of certification objects
   availabilityPeriod Int // Notice period in days
-  education          Json // Main education array
-  educationDetails   Json? // Make educationDetails optional
-  desiredEmployment  String // "Full-time" | "Part-time" | "Contract"
-  id                 String   @id @default(uuid())
-  name               String
-  about              String
-  resume             String   @db.VarChar(2048) // Increased length for URLs
-  skills             String[]
-  experience         Int
+  availableFrom      DateTime? // Seeker’s Availability: date available to start
 
-  location      String
-  phoneNumber   String?
-  linkedin      String?   @db.VarChar(2048)
-  github        String?   @db.VarChar(2048)
-  portfolio     String?   @db.VarChar(2048)
-  lastAttemptAt DateTime?
+  education         Json // Main education array
+  educationDetails  Json? // Optional additional education details
+  desiredEmployment String // "Full-time" | "Part-time" | "Contract"
+  name              String
+  about             String
+  resume            String   @db.VarChar(2048) // Increased length for URLs
+  skills            String[]
+  experience        Int
 
-  userId       String           @unique
+  previousJobExperience Json? // Array of previous job experience objects
+
+  location          String
+  phoneNumber       String?
+  linkedin          String?   @db.VarChar(2048)
+  github            String?   @db.VarChar(2048)
+  portfolio         String?   @db.VarChar(2048)
+  willingToRelocate Boolean? // Candidate’s Availability to Relocate
+  lastAttemptAt     DateTime?
+
   applications JobApplication[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -278,7 +284,7 @@ model JobPost {
   updatedAt       DateTime         @updatedAt
   SavedJobPost    SavedJobPost[]
   JobApplication  JobApplication[]
-  JobAnalysis     JobAnalysis? // Add this line to complete the relation
+  JobAnalysis     JobAnalysis?
 
   @@map("job_posts")
 }

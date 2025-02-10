@@ -3,15 +3,12 @@ import { z } from "zod";
 export const companySchema = z.object({
   name: z.string().min(2, "Company name must be at least 2 characters"),
   location: z.string().min(2, "Location must be at least 2 characters"),
-  about: z
-    .string()
-    .min(10, "Please provide more information about your company"),
+  about: z.string().min(10, "Please provide more information about your company"),
   logo: z.string().min(1, "Please upload a logo"),
   website: z.string().url("Please enter a valid website URL"),
   xAccount: z.string().optional(),
   industry: z.string().min(1, "Industry is required"), // Add this line
 });
-
 
 export const jobSeekerSchema = z.object({
   name: z.string().min(2),
@@ -19,33 +16,44 @@ export const jobSeekerSchema = z.object({
   resume: z.string().url(),
   location: z.string().min(2),
   expectedSalaryMin: z.number().min(0).nullable(),
-
   desiredEmployment: z.enum(["Full-time", "Part-time", "Contract"]),
   expectedSalaryMax: z.number().min(0).nullable(),
   preferredLocation: z.string().min(2),
   remotePreference: z.enum(["Remote", "Hybrid", "On-site"]),
   yearsOfExperience: z.number().min(0),
   skills: z.array(z.string()),
-  certifications: z.array(z.object({
-    name: z.string(),
-    issuer: z.string(),
-    year: z.number(),
-    url: z.string().url().optional()
-  })).optional(),
+  certifications: z.array(
+    z.object({
+      name: z.string(),
+      issuer: z.string(),
+      year: z.number(),
+      url: z.string().url().optional(),
+    })
+  ).optional(),
   availabilityPeriod: z.number(),
-  education: z.array(z.object({
-    degree: z.string(),
-    institution: z.string(),
-    year: z.number(),
-    fieldOfStudy: z.string()
-  })),
+  education: z.array(
+    z.object({
+      degree: z.string(),
+      institution: z.string(),
+      year: z.number(),
+      fieldOfStudy: z.string(),
+    })
+  ),
   experience: z.number(),
-  phoneNumber: z.string().optional().nullable(), // Make phone number optional and nullable
-  jobId: z.string().optional().nullable(), // Make jobId optional and nullable
+  phoneNumber: z.string().optional().nullable(),
+  jobId: z.string().optional().nullable(),
   linkedin: z.string().url("Invalid URL format").optional().or(z.literal("")),
   github: z.string().url("Invalid URL format").optional().or(z.literal("")),
   portfolio: z.string().url("Invalid URL format").optional().or(z.literal("")),
+  
+// NEW FIELD: availableFrom - Seeker's availability date as a string
+availableFrom: z.string().optional().nullable(),
 
+  // NEW FIELD: previousJobExperience - JSON field for previous job experience details
+  previousJobExperience: z.any().optional().nullable(),
+
+  // NEW FIELD: willingToRelocate - Indicates if the candidate is open to relocation
+  willingToRelocate: z.boolean().optional().nullable(),
 });
 
 export const jobSchema = z.object({
