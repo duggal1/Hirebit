@@ -511,6 +511,162 @@ function isInCooldown(lastAttemptAt: Date | null): boolean {
   return new Date() < cooldownEnds;
 }
 
+export async function trackJobView(jobId: string) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [jobPost, metrics] = await Promise.all([
+      prisma.jobPost.update({
+        where: { id: jobId },
+        data: { views: { increment: 1 } }
+      }),
+      prisma.jobMetrics.findUnique({
+        where: { jobPostId: jobId }
+      })
+    ]);
+
+    if (!metrics) {
+      // Create initial metrics if they don't exist
+      await prisma.jobMetrics.create({
+        data: {
+          jobPostId: jobId,
+          totalViews: 1,
+          viewsByDate: { [today]: 1 },
+          clicksByDate: {},
+          locationData: {}
+        }
+      });
+    } else {
+      // Update existing metrics
+      const viewsByDate = { ...metrics.viewsByDate as any };
+      viewsByDate[today] = (viewsByDate[today] || 0) + 1;
+
+      await prisma.jobMetrics.update({
+        where: { jobPostId: jobId },
+        data: {
+          totalViews: { increment: 1 },
+          viewsByDate
+        }
+      });
+    }
+
+    revalidatePath(`/job/${jobId}`);
+  } catch (error) {
+    console.error('Failed to track job view:', error);
+  }
+}
+
+export async function trackJobClick(jobId: string, location?: string) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [jobPost, metrics] = await Promise.all([
+      prisma.jobPost.update({
+        where: { id: jobId },
+        data: { clicks: { increment: 1 } }
+      }),
+      prisma.jobMetrics.findUnique({
+        where: { jobPostId: jobId }
+      })
+    ]);
+
+    if (!metrics) {
+      // Create initial metrics
+      await prisma.jobMetrics.create({
+        data: {
+          jobPostId: jobId,
+          totalClicks: 1,
+          clicksByDate: { [today]: 1 },
+          viewsByDate: {},
+          locationData: location ? { [location]: 1 } : {}
+        }
+      });
+    } else {
+      // Update existing metrics
+      const clicksByDate = { ...metrics.clicksByDate as any };
+      clicksByDate[today] = (clicksByDate[today] || 0) + 1;
+
+      const locationData = { ...metrics.locationData as any };
+      if (location) {
+        locationData[location] = (locationData[location] || 0) + 1;
+      }
+
+      await prisma.jobMetrics.update({
+        where: { jobPostId: jobId },
+        data: {
+          totalClicks: { increment: 1 },
+          clicksByDate,
+          locationData
+        }
+      });
+    }
+
+    revalidatePath(`/job/${jobId}`);
+  } catch (error) {
+    console.error('Failed to track job click:', error);
+  }
+}
+export async function getJobMetrics(jobId: string) {
+  const [metrics, applications] = await Promise.all([
+    prisma.jobMetrics.findUnique({
+      where: { jobPostId: jobId },
+      include: {
+        jobPost: {
+          select: {
+            applications: true,
+            views: true,
+            clicks: true
+          }
+        }
+      }
+    }),
+    // Get actual submitted applications count
+    prisma.jobApplication.count({
+      where: {
+        jobId,
+        status: {
+          in: ['PENDING', 'REVIEWED', 'SHORTLISTED', 'ACCEPTED']
+        }
+      }
+    })
+  ]);
+
+  if (!metrics) {
+    return {
+      totalViews: 0,
+      totalClicks: 0,
+      applications: 0,
+      ctr: 0,
+      conversionRate: 0,
+      viewsByDate: {},
+      clicksByDate: {},
+      locationData: {}
+    };
+  }
+
+  // CTR: Clicks divided by Views
+  const ctr = metrics.totalViews > 0
+    ? (metrics.totalClicks / metrics.totalViews) * 100
+    : 0;
+
+  // Conversion Rate: Actual Applications divided by Clicks
+  const conversionRate = metrics.totalClicks > 0
+    ? (applications / metrics.totalClicks) * 100
+    : 0;
+
+  return {
+    totalViews: metrics.totalViews,
+    totalClicks: metrics.totalClicks,
+    applications, // Actual submitted applications
+    ctr: Number(ctr.toFixed(2)), // Round to 2 decimal places
+    conversionRate: Number(conversionRate.toFixed(2)),
+    viewsByDate: metrics.viewsByDate,
+    clicksByDate: metrics.clicksByDate,
+    locationData: metrics.locationData
+  };
+}
+
+
 export type FormState = {
   message: string;
   success: boolean;

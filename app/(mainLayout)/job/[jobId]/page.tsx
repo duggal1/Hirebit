@@ -1,27 +1,25 @@
-import { prisma } from "@/app/utils/db";
+// app/(mainLayout)/job/[jobId]/page.tsx
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
 import { notFound } from "next/navigation";
 import React from "react";
-
 import { benefits } from "@/app/utils/listOfBenefits";
 import Image from "next/image";
 import { Heart } from "lucide-react";
-
 import Link from "next/link";
 import { auth } from "@/app/utils/auth";
-import {
-  GeneralSubmitButton,
-  SaveJobButton,
-} from "@/components/general/SubmitButtons";
+import { SaveJobButton } from "@/components/general/SubmitButtons";
 import { getFlagEmoji } from "@/app/utils/countriesList";
 import { JsonToHtml } from "@/components/general/JsonToHtml";
 import { saveJobPost, unsaveJobPost } from "@/app/actions";
 import arcjet, { detectBot } from "@/app/utils/arcjet";
 import { request } from "@arcjet/next";
+import { prisma } from "@/app/utils/db";
+import { JobClickTracker, JobViewTracker } from "@/components/metrics/JobMetricsTracker";
+import JobMetricsWrapper from "@/components/JobMetricsWrapper";
 
+// Protect requests with arcjet
 const aj = arcjet.withRule(
   detectBot({
     mode: "LIVE",
@@ -29,6 +27,7 @@ const aj = arcjet.withRule(
   })
 );
 
+// Fetch the job data from the database.
 async function getJob(jobId: string, userId?: string) {
   const [jobData, savedJob] = await Promise.all([
     prisma.jobPost.findUnique({
@@ -39,12 +38,9 @@ async function getJob(jobId: string, userId?: string) {
       select: {
         jobTitle: true,
         jobDescription: true,
-
         location: true,
-
         employmentType: true,
         benefits: true,
-
         createdAt: true,
         listingDuration: true,
         company: {
@@ -76,18 +72,16 @@ async function getJob(jobId: string, userId?: string) {
     return notFound();
   }
 
-  return {
-    jobData,
-    savedJob,
-  };
+  return { jobData, savedJob };
 }
 
-type Params = Promise<{ jobId: string }>;
+type PageProps = {
+  params: { jobId: string };
+};
 
-const JobIdPage = async ({ params }: { params: Params }) => {
-  const { jobId } = await params;
+const JobIdPage = async ({ params }: PageProps) => {
+  const { jobId } = params;
   const req = await request();
-
   const decision = await aj.protect(req);
 
   if (decision.isDenied()) {
@@ -100,6 +94,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
 
   return (
     <div className="mx-auto py-8 container">
+      <JobViewTracker jobId={jobId} />
       <div className="gap-8 grid lg:grid-cols-[1fr,400px]">
         {/* Main Content */}
         <div className="space-y-8">
@@ -109,20 +104,16 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               <h1 className="font-bold text-3xl">{jobData.jobTitle}</h1>
               <div className="flex items-center gap-2 mt-2">
                 <span className="font-medium">{jobData.company.name}</span>
-
                 <Badge className="rounded-full" variant="secondary">
                   {jobData.employmentType}
                 </Badge>
-                <span className="md:inline hidden text-muted-foreground">
-                  •
-                </span>
+                <span className="md:inline hidden text-muted-foreground">•</span>
                 <Badge className="rounded-full">
                   {locationFlag && <span className="mr-1">{locationFlag}</span>}
                   {jobData.location} Only
                 </Badge>
               </div>
             </div>
-
             {session?.user ? (
               <form
                 action={
@@ -136,7 +127,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
             ) : (
               <Button variant="outline" asChild>
                 <Link href="/login">
-                  <Heart className="mr-2 size-4" />
+                  <Heart className="mr-2" size={16} />
                   Save Job
                 </Link>
               </Button>
@@ -144,8 +135,8 @@ const JobIdPage = async ({ params }: { params: Params }) => {
           </div>
 
           <section>
-  <JsonToHtml json={jobData.jobDescription} />
-</section>
+            <JsonToHtml json={jobData.jobDescription} />
+          </section>
 
           <section>
             <h3 className="mb-4 font-semibold">
@@ -162,7 +153,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                     key={benefit.id}
                     variant={isOffered ? "default" : "outline"}
                     className={`text-sm px-4 py-1.5 rounded-full ${
-                      !isOffered && " opacity-75 cursor-not-allowed"
+                      !isOffered && "opacity-75 cursor-not-allowed"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -174,6 +165,15 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               })}
             </div>
           </section>
+
+          {/* Metrics Section */}
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold">Job Performance Metrics</h3>
+              {/* Use the client-side wrapper */}
+              <JobMetricsWrapper jobId={jobId} />
+            </div>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -192,9 +192,11 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               </div>
               {session?.user ? (
                 <form action={`/job/${jobId}/apply`}>
-                  <Button className="w-full" size="lg">
-                    Apply Now
-                  </Button>
+                  <JobClickTracker jobId={jobId} location={jobData.location}>
+                    <Button className="w-full" size="lg">
+                      Apply Now
+                    </Button>
+                  </JobClickTracker>
                 </form>
               ) : (
                 <Button asChild className="w-full" size="lg">
@@ -208,7 +210,6 @@ const JobIdPage = async ({ params }: { params: Params }) => {
           <Card className="p-6">
             <div className="space-y-4">
               <h3 className="font-semibold">About the job</h3>
-
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground text-sm">
@@ -265,7 +266,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                   alt={jobData.company.name}
                   width={48}
                   height={48}
-                  className="rounded-full size-12"
+                  className="rounded-full"
                 />
                 <div>
                   <h3 className="font-semibold">{jobData.company.name}</h3>
@@ -274,9 +275,6 @@ const JobIdPage = async ({ params }: { params: Params }) => {
                   </p>
                 </div>
               </div>
-              {/*  <Button variant="outline" className="w-full">
-                View company profile
-              </Button> */}
             </div>
           </Card>
         </div>

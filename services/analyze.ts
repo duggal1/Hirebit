@@ -148,20 +148,57 @@ function ensureArray(value: unknown): string[] {
 }
 // Add this helper function for cleaning AI responses
 function cleanAIResponse(response: string): string {
-  // Remove code blocks and comments
-  let cleaned = response
-    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-    .replace(/\/\/.*/g, '')         // Remove single line comments
-    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-    .trim();
+  try {
+    // First, extract everything between the first { and last }
+    const match = response.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new Error('No JSON object found in response');
+    }
 
-  // Try to find a JSON object
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No valid JSON object found in response');
+    let jsonStr = match[0];
+
+    // Pre-clean the JSON string
+    jsonStr = jsonStr
+      // Remove code block markers
+      .replace(/```[a-z]*\n?/g, '')
+      .replace(/```/g, '')
+      // Remove all newlines and extra spaces
+      .replace(/\n/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Clean up JSON structure
+    jsonStr = jsonStr
+      // Fix unquoted keys
+      .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+      // Convert single quotes to double quotes
+      .replace(/'([^']*)'(?=\s*[:,\]}])/g, '"$1"')
+      // Remove trailing commas
+      .replace(/,(\s*[}\]])/g, '$1')
+      // Ensure proper array closing
+      .replace(/\[(.*?)\s*\]/, (match, content) => {
+        return `[${content.split(',').map(item => item.trim()).filter(Boolean).join(',')}]`;
+      });
+    
+    // Step 3: Parse and validate
+    const parsed = JSON.parse(jsonStr);
+    
+    // Step 4: Return properly formatted JSON
+    return JSON.stringify(parsed, null, 2);
+  } catch (error) {
+    console.error('Failed to clean AI response:', error);
+    // Return a minimal valid JSON object that matches the expected structure
+    return JSON.stringify({
+      primarySkills: ["Not specified"],
+      secondarySkills: ["Not specified"],
+      experienceLevel: "Senior",
+      domainKnowledge: ["Not specified"],
+      complexityLevel: "Expert",
+      technicalAreas: ["Not specified"],
+      tooling: ["Not specified"],
+      systemDesign: ["Not specified"]
+    });
   }
-
-  return jsonMatch[0];
 }
 
 function validateComplexityLevel(level: unknown): string {

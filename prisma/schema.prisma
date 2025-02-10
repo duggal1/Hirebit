@@ -278,6 +278,8 @@ model JobPost {
   benefits        String[]
   status          JobPostStatus    @default(DRAFT)
   applications    Int              @default(0)
+  views           Int              @default(0)
+  clicks          Int              @default(0)
   company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId       String
   createdAt       DateTime         @default(now())
@@ -285,8 +287,25 @@ model JobPost {
   SavedJobPost    SavedJobPost[]
   JobApplication  JobApplication[]
   JobAnalysis     JobAnalysis?
+  metrics         JobMetrics?
 
   @@map("job_posts")
+}
+
+model JobMetrics {
+  id           String   @id @default(uuid())
+  jobPost      JobPost  @relation(fields: [jobPostId], references: [id])
+  jobPostId    String   @unique
+  totalViews   Int      @default(0)
+  totalClicks  Int      @default(0)
+  applications Int      @default(0)
+  viewsByDate  Json // Store daily view counts
+  clicksByDate Json // Store daily click counts
+  locationData Json // Store location-based metrics
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("job_metrics")
 }
 
 enum JobPostStatus {

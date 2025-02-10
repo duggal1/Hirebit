@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         throw new Error("Resume is required to submit an application");
       }
 
-      const application = await tx.jobApplication.create({
+        const application = await tx.jobApplication.create({
         data: {
           jobSeeker: { connect: { id: jobSeekerId } },
           job: { connect: { id: jobPost.id } },
@@ -103,38 +103,68 @@ export async function POST(request: Request) {
           status: "PENDING",
           includeLinks,
           resume: jobSeeker.resume,
-          // If includeLinks is true, populate the "answers" JSON with enriched data:
           answers: includeLinks 
-            ? {
-                linkedin: jobSeeker.linkedin,
-                github: jobSeeker.github,
-                portfolio: jobSeeker.portfolio,
-                skills: jobSeeker.skills,
-                experience: jobSeeker.experience,
-                yearsOfExperience: jobSeeker.yearsOfExperience,
-                expectedSalaryMin: jobSeeker.expectedSalaryMin,
-                expectedSalaryMax: jobSeeker.expectedSalaryMax,
-                certifications: jobSeeker.certifications,
-                education: jobSeeker.education,
-                location: jobSeeker.location,
-                phoneNumber: jobSeeker.phoneNumber,
-                desiredEmployment: jobSeeker.desiredEmployment,
-              }
-            : undefined,
+          ? {
+            linkedin: jobSeeker.linkedin,
+            github: jobSeeker.github,
+            portfolio: jobSeeker.portfolio,
+            skills: jobSeeker.skills,
+            experience: jobSeeker.experience,
+            yearsOfExperience: jobSeeker.yearsOfExperience,
+            expectedSalaryMin: jobSeeker.expectedSalaryMin,
+            expectedSalaryMax: jobSeeker.expectedSalaryMax,
+            certifications: jobSeeker.certifications,
+            education: jobSeeker.education,
+            location: jobSeeker.location,
+            phoneNumber: jobSeeker.phoneNumber,
+            desiredEmployment: jobSeeker.desiredEmployment,
+            }
+          : undefined,
         },
-      });
+        });
 
-      console.log('Created application:', application);
+        console.log('Created application:', application);
 
-      // Update the job post's applications count
-      await tx.jobPost.update({
+        // Update job metrics
+        await tx.jobMetrics.upsert({
+        where: { jobPostId: jobPost.id },
+        create: {
+          jobPostId: jobPost.id,
+          totalViews: 0,
+          totalClicks: 0,
+          applications: 1,
+          viewsByDate: {},
+          clicksByDate: {},
+          locationData: jobSeeker.location ? { [jobSeeker.location]: 1 } : {}
+        },
+        update: {
+          applications: { increment: 1 },
+          locationData: {
+          set: jobSeeker.location 
+            ? await tx.jobMetrics.findUnique({ 
+              where: { jobPostId: jobPost.id },
+              select: { locationData: true }
+            }).then(current => {
+              const data = current?.locationData as any || {};
+              return {
+              ...data,
+              [jobSeeker.location]: (data[jobSeeker.location] || 0) + 1
+              };
+            })
+            : undefined
+          }
+        }
+        });
+
+        // Update the job post's applications count
+        await tx.jobPost.update({
         where: { id: jobPost.id },
         data: {
           applications: {
-            increment: 1,
+          increment: 1,
           },
         },
-      });
+        });
 
       return { application, jobSeeker };
     });

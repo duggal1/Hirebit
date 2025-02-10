@@ -4,8 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -51,15 +49,15 @@ const StatusMessage: React.FC<{ application: ApplicationData }> = ({ application
       <div className="relative rounded-xl bg-black/40 backdrop-blur-xl p-6 border border-white/10">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
         <div className="relative">
-          <p className="text-2xl font-bold text-gray-200 leading-relaxed">
+          <p className="text-3xl font-bold text-gray-200 leading-relaxed">
             Your application was {application.status.toLowerCase()} by{" "}
             <span className="font-extrabold text-blue-600 ">{companyName}</span> based in{" "}
             <span className="font-extrabold  text-violet-500">{companyLocation}</span>.
             {application.status === "ACCEPTED" && (
-              <span className="block mt-2 text-emerald-400">
+              <span className="block mt-2 text-emerald-600">
                 Congratulations! The company has accepted your application.
               </span>
-            )}
+            )}      vbnnbvnbv
           </p>
           <div className="mt-4 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
