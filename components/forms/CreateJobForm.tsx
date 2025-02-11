@@ -54,9 +54,13 @@ export function CreateJobForm({
   companyName,
   companyWebsite,
 }: CreateJobFormProps) {
+  // Local state to handle comma‑separated input for skills
+  const [skillsInput, setSkillsInput] = useState("");
+
   const form = useForm<z.infer<typeof jobSchema>>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
+      // Existing default fields
       benefits: [],
       companyDescription: companyAbout,
       companyLocation: companyLocation,
@@ -71,14 +75,22 @@ export function CreateJobForm({
       salaryTo: 0,
       companyLogo: companyLogo,
       listingDuration: 30,
+      // New fields default values
+      skillsRequired: [],
+      positionRequirement: "Entry",
+      requiredExperience: 0,
+      jobCategory: "",
+      interviewStages: 1,
+      visaSponsorship: false,
+      compensationDetails: "",
     },
   });
 
   const [pending, setPending] = useState(false);
+
   async function onSubmit(values: z.infer<typeof jobSchema>) {
     try {
       setPending(true);
-
       await createJob(values);
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -86,12 +98,14 @@ export function CreateJobForm({
       setPending(false);
     }
   }
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-8 col-span-1 lg:col-span-2"
       >
+        {/* Job Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Job Information</CardTitle>
@@ -136,7 +150,6 @@ export function CreateJobForm({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -170,7 +183,10 @@ export function CreateJobForm({
                         <SelectGroup>
                           <SelectLabel>Location</SelectLabel>
                           {countryList.map((country) => (
-                            <SelectItem value={country.name} key={country.code}>
+                            <SelectItem
+                              value={country.name}
+                              key={country.code}
+                            >
                               <span>{country.flagEmoji}</span>
                               <span className="pl-2">{country.name}</span>
                             </SelectItem>
@@ -178,7 +194,6 @@ export function CreateJobForm({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -207,11 +222,7 @@ export function CreateJobForm({
                 <FormItem>
                   <FormLabel>Job Description</FormLabel>
                   <FormControl>
-                    <JobDescriptionEditor 
-                      field={field}
-                    //  minLength={200}
-                      //requiredSkills={["requirements", "responsibilities"]}
-                    />
+                    <JobDescriptionEditor field={field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -234,6 +245,149 @@ export function CreateJobForm({
           </CardContent>
         </Card>
 
+        {/* Job Requirements Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Job Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Skills Required */}
+            <FormField
+              control={form.control}
+              name="skillsRequired"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Skills Required</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter skills separated by commas (e.g. JavaScript, React)"
+                      value={skillsInput}
+                      onChange={(e) => setSkillsInput(e.target.value)}
+                      onBlur={() => {
+                        field.onChange(
+                          skillsInput
+                            .split(",")
+                            .map((skill) => skill.trim())
+                            .filter((skill) => skill.length > 0)
+                        );
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Position Requirement */}
+            <FormField
+              control={form.control}
+              name="positionRequirement"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Position Requirement</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Position Requirement" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Entry">Entry</SelectItem>
+                      <SelectItem value="Mid">Mid</SelectItem>
+                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="Expert">Expert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Required Experience */}
+            <FormField
+              control={form.control}
+              name="requiredExperience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Required Experience (years)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g. 3" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Job Category */}
+            <FormField
+              control={form.control}
+              name="jobCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Job Category</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Software Development, Marketing" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Interview Stages */}
+            <FormField
+              control={form.control}
+              name="interviewStages"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Interview Stages</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g. 3" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Visa Sponsorship */}
+            <FormField
+              control={form.control}
+              name="visaSponsorship"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                  </FormControl>
+                  <FormLabel className="flex-1">Visa Sponsorship Available</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Compensation Details */}
+            <FormField
+              control={form.control}
+              name="compensationDetails"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Compensation Details</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder='Enter additional details in JSON format (e.g. {"bonus": 5000, "stockOptions": "0.05"})'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Company Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Company Information</CardTitle>
@@ -288,7 +442,6 @@ export function CreateJobForm({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -410,6 +563,7 @@ export function CreateJobForm({
           </CardContent>
         </Card>
 
+        {/* Job Listing Duration Card */}
         <Card>
           <CardHeader>
             <CardTitle>Job Listing Duration</CardTitle>
@@ -429,6 +583,7 @@ export function CreateJobForm({
             />
           </CardContent>
         </Card>
+
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Submitting..." : "Continue"}
         </Button>
