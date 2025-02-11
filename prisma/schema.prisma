@@ -262,6 +262,7 @@ enum CompanyType {
 
 model Company {
   id            String         @id @default(uuid())
+  companyID     String         @unique @default(uuid()) // Unique identifier for recruiters
   name          String
   location      String
   logo          String

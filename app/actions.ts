@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import { requireUser } from "./utils/hooks";
-
 import { prisma } from "./utils/db";
 import { redirect } from "next/navigation";
 import { stripe } from "./utils/stripe";
@@ -14,7 +13,8 @@ import { inngest } from "./utils/inngest/client";
 import { Prisma, UserType } from "@prisma/client";
 import { auth } from "./utils/auth";
 import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas";
- 
+import { v4 as uuidv4 } from "uuid"; // Import UUID generator
+
 const aj = arcjet
   .withRule(
     shield({
@@ -28,9 +28,11 @@ const aj = arcjet
     })
   );
 
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-domain.com'  // Replace with your actual production domain
-  : 'http://localhost:3000';
+const BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://your-production-domain.com"
+    : "http://localhost:3000";
+
 export async function createCompany(data: z.infer<typeof companySchema>) {
   const user = await requireUser();
 
@@ -44,10 +46,11 @@ export async function createCompany(data: z.infer<typeof companySchema>) {
   }
 
   // Server-side validation
-  const validatedData = companySchema.parse(data);  // (Line A)
+  const validatedData = companySchema.parse(data);
 
-  // Build companyData object with new fields
+  // Build companyData object with new fields, including generating a unique companyID
   const companyData = {
+    companyID: uuidv4(), // Generate unique recruiter-specific companyID
     name: validatedData.name,
     location: validatedData.location,
     about: validatedData.about,
@@ -60,12 +63,12 @@ export async function createCompany(data: z.infer<typeof companySchema>) {
     annualRevenue: validatedData.annualRevenue,
     companyType: validatedData.companyType,
     linkedInUrl: validatedData.linkedInUrl,
-    hiringStatus: validatedData.hiringStatus,      // NEW FIELD: actively hiring status
-    glassdoorRating: validatedData.glassdoorRating,  // NEW FIELD: average Glassdoor rating
-    techStack: validatedData.techStack,              // NEW FIELD: list of technologies
+    hiringStatus: validatedData.hiringStatus,
+    glassdoorRating: validatedData.glassdoorRating,
+    techStack: validatedData.techStack,
   };
 
-  console.log(companyData); // (Line B)
+  console.log(companyData);
 
   await prisma.user.update({
     where: {

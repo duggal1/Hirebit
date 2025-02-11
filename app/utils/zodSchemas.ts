@@ -10,17 +10,16 @@ export const companySchema = z.object({
   industry: z.string().min(1, "Industry is required"),
 
   foundedAt: z.string().optional(),
-  employeeCount: z.number().optional(),
-  annualRevenue: z.number().optional(),
+  employeeCount: z.coerce.number().optional(),
+  annualRevenue: z.coerce.number().optional(),
   companyType: z.enum(["PRIVATE", "PUBLIC", "NON_PROFIT", "OPEN_SOURCE"]).optional(),
   linkedInUrl: z.string().url("Invalid LinkedIn URL").optional(),
 
   // Newly added fields
   hiringStatus: z.boolean().optional().default(true),
-  glassdoorRating: z.number().optional(),
+  glassdoorRating: z.coerce.number().optional(),
   techStack: z.array(z.string()).optional()
 });
-
 
 export const jobSeekerSchema = z.object({
   name: z.string().min(2),
