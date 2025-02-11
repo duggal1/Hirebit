@@ -177,7 +177,7 @@ function cleanAIResponse(response: string): string {
       .replace(/,(\s*[}\]])/g, '$1')
       // Ensure proper array closing
       .replace(/\[(.*?)\s*\]/, (match, content) => {
-        return `[${content.split(',').map(item => item.trim()).filter(Boolean).join(',')}]`;
+        return `[${content.split(',').map((item: string) => item.trim()).filter(Boolean).join(',')}]`;
       });
     
     // Step 3: Parse and validate

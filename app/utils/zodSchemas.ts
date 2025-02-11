@@ -14,8 +14,6 @@ export const companySchema = z.object({
   annualRevenue: z.coerce.number().optional(),
   companyType: z.enum(["PRIVATE", "PUBLIC", "NON_PROFIT", "OPEN_SOURCE"]).optional(),
   linkedInUrl: z.string().url("Invalid LinkedIn URL").optional(),
-
-  // Newly added fields
   hiringStatus: z.boolean().optional().default(true),
   glassdoorRating: z.coerce.number().optional(),
   techStack: z.array(z.string()).optional()
@@ -56,16 +54,12 @@ export const jobSeekerSchema = z.object({
   linkedin: z.string().url("Invalid URL format").optional().or(z.literal("")),
   github: z.string().url("Invalid URL format").optional().or(z.literal("")),
   portfolio: z.string().url("Invalid URL format").optional().or(z.literal("")),
-  
-// NEW FIELD: availableFrom - Seeker's availability date as a string
 availableFrom: z.string().optional().nullable(),
-
-  // NEW FIELD: previousJobExperience - JSON field for previous job experience details
-  previousJobExperience: z.any().optional().nullable(),
-
-  // NEW FIELD: willingToRelocate - Indicates if the candidate is open to relocation
+   previousJobExperience: z.any().optional().nullable(),
   willingToRelocate: z.boolean().optional().nullable(),
 });
+
+
 
 export const jobSchema = z.object({
   jobTitle: z.string().min(2, "Job title must be at least 2 characters"),
@@ -78,8 +72,15 @@ export const jobSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   companyLocation: z.string().min(1, "Company location is required"),
   companyLogo: z.string().min(1, "Company logo is required"),
-  companyWebsite: z.string().min(1, "Company website is required"),
+  companyWebsite: z.string().url("Invalid URL").min(1, "Company website is required"),
   companyXAccount: z.string().optional(),
   companyDescription: z.string().min(1, "Company description is required"),
   listingDuration: z.number().min(1, "Listing duration is required"),
+  skillsRequired: z.array(z.string()).min(1, "At least one skill is required"),
+  positionRequirement: z.enum(["Entry", "Mid", "Senior", "Expert"]),
+  requiredExperience: z.number().min(0, "Required experience must be at least 0 years"),
+  jobCategory: z.string().min(1, "Job category is required"),
+  interviewStages: z.number().min(1, "There must be at least 1 interview stage"),
+  visaSponsorship: z.boolean(),
+  compensationDetails: z.any(), 
 });

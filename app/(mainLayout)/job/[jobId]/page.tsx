@@ -16,8 +16,9 @@ import { saveJobPost, unsaveJobPost } from "@/app/actions";
 import arcjet, { detectBot } from "@/app/utils/arcjet";
 import { request } from "@arcjet/next";
 import { prisma } from "@/app/utils/db";
-import { JobClickTracker, JobViewTracker } from "@/components/metrics/JobMetricsTracker";
-import JobMetricsWrapper from "@/components/JobMetricsWrapper";
+import { JobClickTracker } from "@/components/metrics/JobMetricsTracker";
+//import { JobClickTracker, JobViewTracker } from "@/components/metrics/JobMetricsTracker";
+//import JobMetricsWrapper from "@/components/JobMetricsWrapper";
 
 // Protect requests with arcjet
 const aj = arcjet.withRule(
@@ -94,7 +95,7 @@ const JobIdPage = async ({ params }: PageProps) => {
 
   return (
     <div className="mx-auto py-8 container">
-      <JobViewTracker jobId={jobId} />
+
       <div className="gap-8 grid lg:grid-cols-[1fr,400px]">
         {/* Main Content */}
         <div className="space-y-8">
@@ -135,7 +136,7 @@ const JobIdPage = async ({ params }: PageProps) => {
           </div>
 
           <section>
-            <JsonToHtml json={jobData.jobDescription} />
+            <JsonToHtml json={JSON.parse(jobData.jobDescription)} />
           </section>
 
           <section>
@@ -171,7 +172,7 @@ const JobIdPage = async ({ params }: PageProps) => {
             <div className="space-y-4">
               <h3 className="font-semibold">Job Performance Metrics</h3>
               {/* Use the client-side wrapper */}
-              <JobMetricsWrapper jobId={jobId} />
+            
             </div>
           </Card>
         </div>

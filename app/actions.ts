@@ -153,8 +153,10 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
 export async function createJob(data: z.infer<typeof jobSchema>) {
   const user = await requireUser();
 
+  // Validate the incoming data using the updated jobSchema
   const validatedData = jobSchema.parse(data);
 
+  // Look up the company associated with the current user
   const company = await prisma.company.findUnique({
     where: {
       userId: user.id,
@@ -175,6 +177,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
 
   let stripeCustomerId = company.user.stripeCustomerId;
 
+  // If the user doesn't have a Stripe customer ID, create one and update the user record
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
       email: user.email!,
@@ -183,14 +186,13 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
 
     stripeCustomerId = customer.id;
 
-    // Update user with Stripe customer ID
     await prisma.user.update({
       where: { id: user.id },
       data: { stripeCustomerId: customer.id },
     });
   }
 
-  // Create job post with ACTIVE status and job description
+  // Create the job post using the new fields along with the existing ones
   const jobPost = await prisma.jobPost.create({
     data: {
       companyId: company.id,
@@ -203,10 +205,17 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       benefits: validatedData.benefits,
       jobDescription: validatedData.jobDescription,
       status: "ACTIVE",
+      skillsRequired: validatedData.skillsRequired,
+      positionRequirement: validatedData.positionRequirement,
+      requiredExperience: validatedData.requiredExperience,
+      jobCategory: validatedData.jobCategory,
+      interviewStages: validatedData.interviewStages,
+      visaSponsorship: validatedData.visaSponsorship,
+      compensationDetails: validatedData.compensationDetails,
     },
   });
 
-  // Get price from pricing tiers based on duration
+  // Determine pricing based on the job listing duration
   const pricingTier = jobListingDurationPricing.find(
     (tier) => tier.days === validatedData.listingDuration
   );
@@ -215,6 +224,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
     throw new Error("Invalid listing duration selected");
   }
 
+  // Create a Stripe checkout session for payment
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
     line_items: [

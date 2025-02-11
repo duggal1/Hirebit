@@ -292,28 +292,35 @@ model Company {
 }
 
 model JobPost {
-  id              String           @id @default(uuid())
-  jobTitle        String
-  employmentType  String
-  codingQuestions CodingQuestion[]
-  location        String
-  salaryFrom      Int
-  salaryTo        Int
-  jobDescription  String
-  listingDuration Int
-  benefits        String[]
-  status          JobPostStatus    @default(DRAFT)
-  applications    Int              @default(0)
-  views           Int              @default(0)
-  clicks          Int              @default(0)
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId       String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  SavedJobPost    SavedJobPost[]
-  JobApplication  JobApplication[]
-  JobAnalysis     JobAnalysis?
-  metrics         JobMetrics?
+  id                  String           @id @default(uuid())
+  jobTitle            String
+  employmentType      String
+  codingQuestions     CodingQuestion[]
+  location            String
+  salaryFrom          Int
+  salaryTo            Int
+  jobDescription      String
+  listingDuration     Int
+  benefits            String[]
+  status              JobPostStatus    @default(DRAFT)
+  applications        Int              @default(0)
+  views               Int              @default(0)
+  clicks              Int              @default(0)
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId           String
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  SavedJobPost        SavedJobPost[]
+  JobApplication      JobApplication[]
+  JobAnalysis         JobAnalysis?
+  metrics             JobMetrics?
+  skillsRequired      String[] // List of required skills
+  positionRequirement String // Entry, Mid, Senior, Expert
+  requiredExperience  Int // Required years of experience
+  jobCategory         String // Example: Software Development, Marketing, Finance
+  interviewStages     Int // Number of interview rounds
+  visaSponsorship     Boolean // Whether visa sponsorship is available
+  compensationDetails Json // Flexible salary details, bonuses, stock options, etc.
 
   @@map("job_posts")
 }
