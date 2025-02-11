@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { XIcon } from "lucide-react";
-
 import { toast } from "sonner";
 import { companySchema } from "@/app/utils/zodSchemas";
 import { useState } from "react";
@@ -45,6 +44,15 @@ export default function CompanyForm() {
       logo: "",
       name: "",
       industry: "",
+      // New default values for additional fields:
+      foundedAt: "",
+      employeeCount: undefined,
+      annualRevenue: undefined,
+      companyType: undefined,
+      linkedInUrl: "",
+      hiringStatus: true,
+      glassdoorRating: undefined,
+      techStack: [],
     },
   });
 
@@ -55,7 +63,7 @@ export default function CompanyForm() {
       setPending(true);
       await createCompany({
         ...values,
-        industry: values.industry || 'Technology', // Provide default value
+        industry: values.industry || "Technology", // Provide default value
       });
       toast.success("Company profile created successfully!");
     } catch (error) {
@@ -93,10 +101,7 @@ export default function CompanyForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Location</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Location" />
@@ -176,45 +181,189 @@ export default function CompanyForm() {
             </FormItem>
           )}
         />
-       
-  {/* Add the industry field */}
-  <FormField
-    control={form.control}
-    name="industry"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Industry</FormLabel>
-        <Select
-          onValueChange={field.onChange}
-          defaultValue={field.value}
-        >
-          <FormControl>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Industry" />
-            </SelectTrigger>
-          </FormControl>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Select Industry</SelectLabel>
-              <SelectItem value="Technology">Technology</SelectItem>
-              <SelectItem value="Healthcare">Healthcare</SelectItem>
-              <SelectItem value="Finance">Finance</SelectItem>
-              <SelectItem value="Education">Education</SelectItem>
-              <SelectItem value="Retail">Retail</SelectItem>
-              <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-              <SelectItem value="Media">Media & Entertainment</SelectItem>
-              <SelectItem value="Consulting">Consulting</SelectItem>
-              <SelectItem value="Real Estate">Real Estate</SelectItem>
-              <SelectItem value="Energy">Energy</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
 
+        {/* Industry Field */}
+        <FormField
+          control={form.control}
+          name="industry"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Industry</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Industry" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Select Industry</SelectLabel>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="Healthcare">Healthcare</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Education">Education</SelectItem>
+                    <SelectItem value="Retail">Retail</SelectItem>
+                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="Media">Media & Entertainment</SelectItem>
+                    <SelectItem value="Consulting">Consulting</SelectItem>
+                    <SelectItem value="Real Estate">Real Estate</SelectItem>
+                    <SelectItem value="Energy">Energy</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* New Section: Additional Company Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Founded At */}
+          <FormField
+            control={form.control}
+            name="foundedAt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Founded At</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Employee Count */}
+          <FormField
+            control={form.control}
+            name="employeeCount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Employee Count</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="Number of Employees" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Annual Revenue */}
+          <FormField
+            control={form.control}
+            name="annualRevenue"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Annual Revenue (USD)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="Annual Revenue" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Company Type */}
+          <FormField
+            control={form.control}
+            name="companyType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Company Type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Type</SelectLabel>
+                      <SelectItem value="PRIVATE">Private</SelectItem>
+                      <SelectItem value="PUBLIC">Public</SelectItem>
+                      <SelectItem value="NON_PROFIT">Non-Profit</SelectItem>
+                      <SelectItem value="OPEN_SOURCE">Open-Source</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* LinkedIn URL */}
+          <FormField
+            control={form.control}
+            name="linkedInUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>LinkedIn URL</FormLabel>
+                <FormControl>
+                  <Input type="url" placeholder="https://linkedin.com/company/yourcompany" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Hiring Status */}
+          <FormField
+            control={form.control}
+            name="hiringStatus"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-2">
+                <FormControl>
+                  <Input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                  />
+                </FormControl>
+                <FormLabel>Actively Hiring</FormLabel>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Glassdoor Rating */}
+          <FormField
+            control={form.control}
+            name="glassdoorRating"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Glassdoor Rating</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 4.2" step="0.1" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Tech Stack */}
+          <FormField
+            control={form.control}
+            name="techStack"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tech Stack</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter technologies separated by commas"
+                    value={field.value ? field.value.join(", ") : ""}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value.split(",").map((item) => item.trim())
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Full width for logo upload */}
         <FormField
@@ -238,7 +387,7 @@ export default function CompanyForm() {
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 "
+                        className="absolute -top-2 -right-2"
                         onClick={() => field.onChange("")}
                       >
                         <XIcon className="h-4 w-4" />

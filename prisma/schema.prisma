@@ -114,10 +114,16 @@ model Verification {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  urls      Json? // Stores GitHub, LinkedIn, Portfolio URLs
-  analysis  Json? // Stores analysis results
+  urls      Json? // Store GitHub, LinkedIn, Portfolio URLs
+  analysis  Json? // Store analysis results
   status    String   @default("pending")
-  companyId String? // Add this field
+
+  // Make jobSeekerId required and unique
+  jobSeekerId String    @unique
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+
+  // Optional company relation for job application
+  companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
   @@map("verifications")
@@ -233,6 +239,7 @@ model JobSeeker {
   applications JobApplication[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  Verification Verification[]
 
   @@map("job_seekers")
 }
@@ -246,6 +253,13 @@ model JobAnalysis {
   jobPost   JobPost  @relation(fields: [jobPostId], references: [id])
 }
 
+enum CompanyType {
+  PRIVATE
+  PUBLIC
+  NON_PROFIT
+  OPEN_SOURCE
+}
+
 model Company {
   id            String         @id @default(uuid())
   name          String
@@ -255,12 +269,23 @@ model Company {
   xAccount      String?
   verifications Verification[]
   about         String
-  industry      String // Add this field
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String         @unique
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  JobPost       JobPost[]
+  industry      String // Field for the industry
+  foundedAt     DateTime?
+  employeeCount Int?
+  annualRevenue Float?
+  companyType   CompanyType? // Enum: 'Private', 'Public', 'Non-Profit', 'Open-Source'
+  linkedInUrl   String? // LinkedIn profile URL for the company
+
+  // Newly added fields
+  hiringStatus    Boolean? @default(true) // Indicates if the company is actively hiring
+  glassdoorRating Float? // Average Glassdoor rating (e.g., 4.2)
+  techStack       String[] // List of technologies the company primarily uses
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  JobPost   JobPost[]
 
   @@map("companies")
 }

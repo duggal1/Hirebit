@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { requireUser } from "./utils/hooks";
-import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas"; 
+
 import { prisma } from "./utils/db";
 import { redirect } from "next/navigation";
 import { stripe } from "./utils/stripe";
@@ -13,6 +13,7 @@ import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
 import { Prisma, UserType } from "@prisma/client";
 import { auth } from "./utils/auth";
+import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas";
  
 const aj = arcjet
   .withRule(
@@ -30,45 +31,57 @@ const aj = arcjet
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://your-production-domain.com'  // Replace with your actual production domain
   : 'http://localhost:3000';
+export async function createCompany(data: z.infer<typeof companySchema>) {
+  const user = await requireUser();
 
-  export async function createCompany(data: z.infer<typeof companySchema>) {
-    const user = await requireUser();
-  
-    // Access the request object so Arcjet can analyze it
-    const req = await request();
-    // Call Arcjet protect
-    const decision = await aj.protect(req);
-  
-    if (decision.isDenied()) {
-      throw new Error("Forbidden");
-    }
-  
-    // Server-side validation
-    const validatedData = companySchema.parse(data);
-  
-    console.log(validatedData);
-  
-    await prisma.user.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        onboardingCompleted: true,
-        userType: "COMPANY",
-        Company: {
-          create: {
-            ...validatedData,
-            industry: validatedData.industry || "Technology", // Provide default value
-          },
-        },
-      },
-    });
-  
-    return redirect("/");
+  // Access the request object so Arcjet can analyze it
+  const req = await request();
+  // Call Arcjet protect
+  const decision = await aj.protect(req);
+
+  if (decision.isDenied()) {
+    throw new Error("Forbidden");
   }
 
+  // Server-side validation
+  const validatedData = companySchema.parse(data);  // (Line A)
 
+  // Build companyData object with new fields
+  const companyData = {
+    name: validatedData.name,
+    location: validatedData.location,
+    about: validatedData.about,
+    logo: validatedData.logo,
+    website: validatedData.website,
+    xAccount: validatedData.xAccount,
+    industry: validatedData.industry || "Technology",
+    foundedAt: validatedData.foundedAt ? new Date(validatedData.foundedAt) : null,
+    employeeCount: validatedData.employeeCount,
+    annualRevenue: validatedData.annualRevenue,
+    companyType: validatedData.companyType,
+    linkedInUrl: validatedData.linkedInUrl,
+    hiringStatus: validatedData.hiringStatus,      // NEW FIELD: actively hiring status
+    glassdoorRating: validatedData.glassdoorRating,  // NEW FIELD: average Glassdoor rating
+    techStack: validatedData.techStack,              // NEW FIELD: list of technologies
+  };
 
+  console.log(companyData); // (Line B)
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      onboardingCompleted: true,
+      userType: "COMPANY",
+      Company: {
+        create: companyData,
+      },
+    },
+  });
+
+  return redirect("/");
+}
 
 
 export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {

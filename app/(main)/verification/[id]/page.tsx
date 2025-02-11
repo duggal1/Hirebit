@@ -63,16 +63,45 @@ const [companyData, setCompanyData] = useState<CompanyData | null>(null);
       if (!params?.id) return;
       
       try {
-        console.log('Fetching company data for verification:', params.id);
-        const response = await fetch(`/api/company?verificationId=${params.id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch company data');
+        // First get the verification data to check if there's a company assigned
+        const verificationResponse = await fetch(`/api/verification/${params.id}`);
+        if (!verificationResponse.ok) {
+          throw new Error('Failed to fetch verification data');
         }
-
-        const data = await response.json();
-        console.log('Received company data:', data);
-        setCompanyData(data);
+        
+        const verificationData = await verificationResponse.json();
+        
+        // If there's no company assigned yet, find an available company
+        if (!verificationData.companyId) {
+          const companiesResponse = await fetch('/api/companies/available');
+          if (!companiesResponse.ok) {
+            throw new Error('Failed to fetch available companies');
+          }
+          
+          const companies = await companiesResponse.json();
+          if (companies.length > 0) {
+            // Assign the first available company to this verification
+            const updateResponse = await fetch(`/api/verification/${params.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                companyId: companies[0].id,
+                urls: verificationData.urls || {}
+              })
+            });
+            
+            if (updateResponse.ok) {
+              setCompanyData(companies[0]);
+            }
+          }
+        } else if (verificationData.company) {
+          // Use the already assigned company
+          setCompanyData({
+            id: verificationData.company.id,
+            name: verificationData.company.name,
+            activeJobs: verificationData.company.JobPost?.length || 0
+          });
+        }
       } catch (error) {
         console.error('Error fetching company:', error);
         toast({
@@ -92,9 +121,15 @@ const [companyData, setCompanyData] = useState<CompanyData | null>(null);
 
       try {
         setIsLoading(true);
-        console.log('Fetching verification data for ID:', params.id);
-        const response = await fetch(`/api/verification/${params.id}`);
         
+        // First check if the ID is a valid JobSeeker ID
+        const jobSeekerResponse = await fetch(`/api/job-seeker/${params.id}`);
+        if (!jobSeekerResponse.ok) {
+          throw new Error('Invalid JobSeeker ID');
+        }
+
+        // Then get/create verification for this JobSeeker
+        const response = await fetch(`/api/verification/${params.id}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch verification data: ${response.statusText}`);
         }
@@ -102,27 +137,15 @@ const [companyData, setCompanyData] = useState<CompanyData | null>(null);
         const data = await response.json();
         console.log('Received verification data:', data);
 
-        if (!data) {
-          throw new Error('No verification data found');
-        }
-
-        if (!data.company) {
-          console.warn('No company data found in verification:', data);
-        } else {
-          console.log('Company data found:', data.company);
-        }
-
         setVerificationData(data);
         
         // Pre-fill URLs if they exist
         if (data.urls) {
-          console.log('Setting URLs from verification:', data.urls);
           setUrls(data.urls);
         }
 
         // Load existing analysis if available
         if (data.analysis) {
-          console.log('Setting analysis data:', data.analysis);
           if (data.analysis.github) setGithubData(data.analysis.github);
           if (data.analysis.portfolio) setPortfolioData(data.analysis.portfolio);
           if (data.analysis.linkedin) setLinkedinData(data.analysis.linkedin);
@@ -135,12 +158,15 @@ const [companyData, setCompanyData] = useState<CompanyData | null>(null);
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to load verification data",
         });
+        // Redirect to home if invalid JobSeeker ID
+        router.push('/');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchVerificationData();
+
   }, [params?.id, toast]);
    // Add loading state UI
    if (!params?.id || params.id === 'undefined') {
@@ -430,24 +456,22 @@ if (validatedUrls.linkedin) {
             <button
               type="button"
               onClick={() => {
-              console.log('Button clicked - Company data:', companyData);
-              if (companyData?.name && companyData.activeJobs > 0) {
-                const redirectUrl = `/apply/${params.id}/${companyData.name}/${params.id}`;
-                console.log('Redirecting to:', redirectUrl);
+              if (companyData?.id && companyData.name) {
+                const redirectUrl = `/apply/${companyData.id}/${companyData.name}/${params.id}`;
                 router.push(redirectUrl);
               } else {
-                console.error('Company data missing or no active jobs');
                 toast({
                 title: "Error",
-                description: companyData ? "No active jobs available" : "Company information not found",
+                description: "Please complete verification first",
                 variant: "destructive"
                 });
               }
               }}
               className="relative inline-flex items-center justify-center w-full px-8 py-4 font-bold text-white overflow-hidden rounded-lg group focus:outline-none shadow-md transition-shadow duration-500 ease-in-out group-hover:shadow-xl"
-              disabled={!companyData?.name || companyData.activeJobs === 0 || !githubData || !portfolioData || !linkedinData}
+              disabled={!companyData?.id || !githubData || !portfolioData || !linkedinData}
             >
               <span
+
               className="absolute inset-0 transition-transform duration-700 ease-out transform group-hover:scale-110 group-hover:rotate-3"
               style={{
                 background: 'linear-gradient(45deg, #7e22ce, #ec4899, #f97316)',
@@ -457,10 +481,9 @@ if (validatedUrls.linkedin) {
               ></span>
               <span className="absolute inset-0 rounded-lg bg-black opacity-0 transition-opacity duration-300 group-hover:opacity-10"></span>
                 <span className="relative z-10">
-                  {!companyData?.name ? "Complete verification first" :
-                   companyData.activeJobs === 0 ? "No active jobs available" :
-                   "Continue to Application"}
+                  {!companyData?.id ? "Complete verification first" : "Continue to Application"}
                 </span>
+
             </button>
 
 

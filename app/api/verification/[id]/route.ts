@@ -6,19 +6,30 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
-    console.log('GET Verification - ID:', id);
+    const { id: jobSeekerId } = context.params;
     
-    if (!id) {
-      console.log('GET Verification - Missing ID');
+    if (!jobSeekerId) {
       return NextResponse.json(
-        { error: 'Verification ID is required' },
+        { error: 'JobSeeker ID is required' },
         { status: 400 }
       );
     }
 
-    const verification = await prisma.verification.findUnique({
-      where: { id: id }, 
+    // First check if the JobSeeker exists
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { id: jobSeekerId }
+    });
+
+    if (!jobSeeker) {
+      return NextResponse.json(
+        { error: "JobSeeker not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get or create verification record for this JobSeeker
+    let verification = await prisma.verification.findUnique({
+      where: { jobSeekerId },
       include: {
         company: {
           select: {
@@ -29,14 +40,22 @@ export async function GET(
       },
     });
 
-    console.log('GET Verification - Result:', verification);
-
     if (!verification) {
-      console.log('GET Verification - Not Found');
-      return NextResponse.json(
-        { error: "Verification not found" },
-        { status: 404 }
-      );
+      // Create a new verification record if none exists
+      verification = await prisma.verification.create({
+        data: {
+          jobSeekerId,
+          status: 'pending'
+        },
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+            }
+          },
+        },
+      });
     }
 
     return NextResponse.json(verification);
@@ -54,68 +73,40 @@ export async function PUT(
   context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
-    console.log('PUT Verification - ID:', id);
+    const { id: jobSeekerId } = context.params;
+    const body = await request.json();
+    const { urls } = body;
 
-    if (!id) {
-      console.log('PUT Verification - Missing ID');
+    if (!jobSeekerId) {
       return NextResponse.json(
-        { error: 'Verification ID is required' },
+        { error: 'JobSeeker ID is required' },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
-    console.log('PUT Verification - Request Body:', body);
-    const { urls } = body;
-
-    // First check if verification exists with company data
-    const existingVerification = await prisma.verification.findUnique({
-      where: { id },
-      include: {
-        company: true
-      }
+    // Check if JobSeeker exists
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { id: jobSeekerId }
     });
 
-    console.log('PUT Verification - Existing:', existingVerification);
-
-    // If no company is associated, try to find one
-    if (!existingVerification?.company) {
-      // Find any company that might need verification
-      const company = await prisma.company.findFirst({
-        where: {
-          verifications: {
-            none: {}
-          }
-        }
-      });
-
-      if (company) {
-        // Update verification with company
-        const updatedVerification = await prisma.verification.update({
-          where: { id },
-          data: {
-            urls,
-            status: 'completed',
-            updatedAt: new Date(),
-            companyId: company.id
-          },
-          include: {
-            company: true
-          }
-        });
-        
-        console.log('PUT Verification - Updated with company:', updatedVerification);
-        return NextResponse.json(updatedVerification);
-      }
+    if (!jobSeeker) {
+      return NextResponse.json(
+        { error: "JobSeeker not found" },
+        { status: 404 }
+      );
     }
 
-    // Update existing verification
-    const updatedVerification = await prisma.verification.update({
-      where: { id },
-      data: {
+    // Update or create verification record
+    const verification = await prisma.verification.upsert({
+      where: { jobSeekerId },
+      create: {
+        jobSeekerId,
         urls,
-        status: 'completed',
+        status: 'pending'
+      },
+      update: {
+        urls,
+        status: 'pending',
         updatedAt: new Date()
       },
       include: {
@@ -123,8 +114,7 @@ export async function PUT(
       }
     });
 
-    console.log('PUT Verification - Updated:', updatedVerification);
-    return NextResponse.json(updatedVerification);
+    return NextResponse.json(verification);
   } catch (error) {
     console.error('PUT Verification - Error:', error);
     return NextResponse.json(
@@ -133,3 +123,4 @@ export async function PUT(
     );
   }
 }
+

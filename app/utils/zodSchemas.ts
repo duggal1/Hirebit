@@ -7,8 +7,20 @@ export const companySchema = z.object({
   logo: z.string().min(1, "Please upload a logo"),
   website: z.string().url("Please enter a valid website URL"),
   xAccount: z.string().optional(),
-  industry: z.string().min(1, "Industry is required"), // Add this line
+  industry: z.string().min(1, "Industry is required"),
+
+  foundedAt: z.string().optional(),
+  employeeCount: z.number().optional(),
+  annualRevenue: z.number().optional(),
+  companyType: z.enum(["PRIVATE", "PUBLIC", "NON_PROFIT", "OPEN_SOURCE"]).optional(),
+  linkedInUrl: z.string().url("Invalid LinkedIn URL").optional(),
+
+  // Newly added fields
+  hiringStatus: z.boolean().optional().default(true),
+  glassdoorRating: z.number().optional(),
+  techStack: z.array(z.string()).optional()
 });
+
 
 export const jobSeekerSchema = z.object({
   name: z.string().min(2),

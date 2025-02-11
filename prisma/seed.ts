@@ -9,7 +9,7 @@ async function main() {
       data: {
         urls: {
           github: 'https://github.com/duggal1',
-          portfolio: 'https://www.gbdev.me'
+          portfolio: 'https://shreyas-sihasane.vercel.app'
         },
         status: 'completed'
       }
@@ -18,7 +18,7 @@ async function main() {
       data: {
         urls: {
    github: 'https://github.com/duggal2',
-          portfolio: 'https://www.gbdev.me'
+          portfolio: 'https://shreyas-sihasane.vercel.app'
         },
         status: 'completed'
       }
@@ -27,7 +27,7 @@ async function main() {
       data: {
         urls: {
    github: 'https://github.com/harshitduggal',
-          portfolio: 'https://www.gbdev.me' },
+          portfolio: 'https://shreyas-sihasane.vercel.app' },
         status: 'completed'
       }
     })

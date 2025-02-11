@@ -105,7 +105,7 @@ async function generateQuestionsBasedOnSkills(
   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
   
   const prompt = `
-    Create SIX extremely advanced and complex coding challenges for a ${jobTitle} position.
+    Create ONLY 1 extremely advanced and complex coding challenges for a ${jobTitle} position.
     These challenges must be at a PhD-level of difficulty, tackling real-world problems that require
     innovative, robust, and highly efficient solutions. The challenges should push the boundaries of
     algorithmic thinking, system design, and the application of modern technologies.
@@ -260,7 +260,7 @@ export async function generateQuestionsForJob(jobPostId: string) {
     console.log('Using fallback advanced questions');
     // Fallback: generate 6 fallback questions
     const fallbackQuestions: CodingQuestion[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 1; i++) {
       fallbackQuestions.push({
         id: `${jobPostId}-default-${Date.now()}-${i}`,
         title: `${jobPost.jobTitle} Advanced Technical Assessment ${i + 1}`,
@@ -272,7 +272,7 @@ export async function generateQuestionsForJob(jobPostId: string) {
           ', '
         )}. The problem should simulate a real-world scenario that requires complex system design and high-performance algorithms.`,
         difficulty: "PhD",
-        timeLimit: 7200,
+        timeLimit: 70,
         testCases: [
           {
             input: "complex input scenario 1",
