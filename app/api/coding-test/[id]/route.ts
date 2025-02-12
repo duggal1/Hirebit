@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/utils/db';
-import { generateQuestionsForJob } from '@/services/questions';
+import generatePhdCodingQuestion from '@/services/questions';
 
 export async function GET(
   request: Request,
@@ -16,7 +16,7 @@ export async function GET(
   }
 
   try {
-    // Check cache first
+    // Check cache first for existing coding questions
     const cachedQuestions = await prisma.codingQuestion.findMany({
       where: { jobPostId: jobId }
     });
@@ -25,8 +25,21 @@ export async function GET(
       return NextResponse.json(cachedQuestions);
     }
 
-    // Generate new questions
-    const questions = await generateQuestionsForJob(jobId);
+    // Fetch the job post to get its jobTitle
+    const jobPost = await prisma.jobPost.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!jobPost) {
+      return NextResponse.json(
+        { error: 'Job post not found' },
+        { status: 404 }
+      );
+    }
+
+    
+  const questions = await generatePhdCodingQuestion([jobId], jobPost.jobTitle);
+
     return NextResponse.json(questions);
 
   } catch (error) {

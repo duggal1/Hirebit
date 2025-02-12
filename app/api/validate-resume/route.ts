@@ -120,7 +120,9 @@ export async function POST(req: Request) {
 
     // Analyze with Gemini
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model:"gemini-2.0-flash" });
+
+    
       const prompt = `You are a resume analyzer. Your task is to analyze the resume and return ONLY a JSON object with no additional text or explanation. The JSON must follow this exact structure:
       {
         "isValid": boolean,

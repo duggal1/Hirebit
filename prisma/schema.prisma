@@ -290,6 +290,15 @@ model Company {
 
   @@map("companies")
 }
+model JobSeekerResume {
+  resumeId    String  @id @default(uuid())
+  resumeName  String  @db.VarChar(255)
+  resumeBio   String
+  pdfUrlId    String  @db.VarChar(1024) // To store a URL for the uploaded PDF
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 
 model JobPost {
   id                  String           @id @default(uuid())

@@ -1,7 +1,8 @@
 import { requireUser } from "@/app/utils/hooks";
 import { prisma } from "@/app/utils/db";
 import { redirect } from "next/navigation";
-import { JobSeekerOnboarding } from "@/components/forms/JobSeekerOnboarding";
+import { JobSeekerResume } from "@/components/forms/JobSeekerOnboarding";
+
 
 export default async function ApplyPage({ params }: { params: { jobId: string } }) {
   const user = await requireUser();
@@ -50,7 +51,7 @@ export default async function ApplyPage({ params }: { params: { jobId: string } 
 
   // If no job seeker profile, show onboarding
   if (!jobSeeker) {
-    return <JobSeekerOnboarding jobId={jobId} job={job} />;
+    return <JobSeekerResume jobId={jobId} job={job} />;
   }
 
   // Otherwise, redirect to coding test

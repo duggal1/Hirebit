@@ -12,7 +12,7 @@ import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
 import { Prisma, UserType } from "@prisma/client";
 import { auth } from "./utils/auth";
-import { companySchema, jobSchema, jobSeekerSchema } from "./utils/zodSchemas";
+import { companySchema, jobSchema, jobSeekerSchema, resumeSchema } from "./utils/zodSchemas";
 import { v4 as uuidv4 } from "uuid"; // Import UUID generator
 
 const aj = arcjet
@@ -852,3 +852,58 @@ return {
 };
 }
 };
+
+
+export const submitJobSeekerResume = async (
+  prevState: FormState,  // new first parameter (can be ignored if not needed)
+  formData: FormData
+): Promise<FormState> => {
+
+  const user = await requireUser();
+  if (!user?.id) {
+    throw new Error("You must be logged in to submit your resume.");
+  }
+
+  // Extract the jobId from the formData so we can redirect later.
+  // (Assuming the client includes a hidden input named "jobId")
+  const jobId = formData.get("jobId")?.toString();
+  if (!jobId) {
+    throw new Error("Missing jobId in the submitted form data.");
+  }
+
+  // Build a raw resume data object from the formData.
+  const resumeDataRaw = {
+    // Optionally provided from the client, otherwise the prisma default uuid will be used.
+    resumeId: formData.get("resumeId")?.toString() || undefined,
+    resumeName: formData.get("resumeName")?.toString() || "",
+    resumeBio: formData.get("resumeBio")?.toString() || "",
+    pdfUrlId: formData.get("pdfUrlId")?.toString() || "",
+  };
+
+  // Validate the resume data using the Zod schema.
+  const parsedResult = resumeSchema.safeParse(resumeDataRaw);
+  if (!parsedResult.success) {
+    // You can customize this error handling as needed.
+    throw new Error(parsedResult.error.message);
+  }
+  const validResumeData = parsedResult.data;
+
+  // Create the JobSeekerResume record in Prisma.
+  try {
+    await prisma.jobSeekerResume.create({
+      data: {
+        // If resumeId is provided from the client, include it; otherwise Prisma will generate one.
+        ...(validResumeData.resumeId ? { resumeId: validResumeData.resumeId } : {}),
+        resumeName: validResumeData.resumeName,
+        resumeBio: validResumeData.resumeBio,
+        pdfUrlId: validResumeData.pdfUrlId,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating JobSeekerResume:", error);
+    throw new Error("Failed to create resume record.");
+  }
+
+  // After successful storage, redirect the user to the coding test page.
+  return redirect(`/coding-test/${jobId}`);
+}

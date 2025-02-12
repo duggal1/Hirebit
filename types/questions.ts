@@ -2,7 +2,8 @@ export interface CodingQuestion {
   id: string;
   title: string;
   description: string;
-  difficulty: "PhD";
+  difficulty: "PhD"
+  ;
   timeLimit: number;
   testCases: {
     input: string;

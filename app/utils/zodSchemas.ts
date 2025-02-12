@@ -84,3 +84,11 @@ export const jobSchema = z.object({
   visaSponsorship: z.boolean(),
   compensationDetails: z.any(), 
 });
+
+
+export const resumeSchema = z.object({
+  resumeId: z.string().uuid().optional(), // Can be generated on frontend or backend
+  resumeName: z.string().min(2, "Resume name must be at least 2 characters"),
+  resumeBio: z.string().min(10, "Resume bio must be at least 10 characters"),
+  pdfUrlId: z.string().url("Invalid PDF URL"), // This will be from UploadThing
+});

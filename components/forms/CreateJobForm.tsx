@@ -56,7 +56,10 @@ export function CreateJobForm({
 }: CreateJobFormProps) {
   // Local state to handle comma‑separated input for skills
   const [skillsInput, setSkillsInput] = useState("");
+  // State to manage preview generation
+  const [generatingPreview, setGeneratingPreview] = useState(false);
 
+  // Initialize react-hook-form with Zod validation
   const form = useForm<z.infer<typeof jobSchema>>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
@@ -75,7 +78,6 @@ export function CreateJobForm({
       salaryTo: 0,
       companyLogo: companyLogo,
       listingDuration: 30,
-      // New fields default values
       skillsRequired: [],
       positionRequirement: "Entry",
       requiredExperience: 0,
@@ -88,6 +90,49 @@ export function CreateJobForm({
 
   const [pending, setPending] = useState(false);
 
+  // Function to trigger Gemini preview generation.
+  async function generatePreview() {
+    try {
+      setGeneratingPreview(true);
+      // Get current validated form data
+      const currentValues = form.getValues();
+      // Call the API endpoint for Gemini content generation
+      const res = await fetch("/api/ai-jobpost-writer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobData: currentValues }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to generate preview");
+      }
+        const { generatedContent } = await res.json();
+        // Convert the generated content into a TipTap-compatible JSON format
+        const editorContent = {
+        type: "doc",
+        content: [
+          {
+          type: "paragraph",
+          content: [
+            {
+            type: "text",
+            text: generatedContent
+            }
+          ]
+          }
+        ]
+        };
+        // Update the jobDescription field with the JSON stringified content
+        form.setValue("jobDescription", JSON.stringify(editorContent));
+      toast.success("Preview generated successfully!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Error generating preview: " + error.message);
+    } finally {
+      setGeneratingPreview(false);
+    }
+  }
+
+  // Final form submission handler.
   async function onSubmit(values: z.infer<typeof jobSchema>) {
     try {
       setPending(true);
@@ -229,6 +274,17 @@ export function CreateJobForm({
               )}
             />
 
+            {/* Generate Preview Button */}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={generatePreview}
+                disabled={generatingPreview}
+              >
+                {generatingPreview ? "Generating Preview..." : "Generate Preview"}
+              </Button>
+            </div>
+
             <FormField
               control={form.control}
               name="benefits"
@@ -303,20 +359,25 @@ export function CreateJobForm({
               )}
             />
 
-            {/* Required Experience */}
-            <FormField
-              control={form.control}
-              name="requiredExperience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Required Experience (years)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g. 3" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+  control={form.control}
+  name="requiredExperience"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Required Experience (years)</FormLabel>
+      <FormControl>
+        <Input
+          type="number"
+          placeholder="e.g. 3"
+          value={field.value}
+          onChange={(e) => field.onChange(Number(e.target.value))}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
 
             {/* Job Category */}
             <FormField
@@ -333,20 +394,24 @@ export function CreateJobForm({
               )}
             />
 
-            {/* Interview Stages */}
-            <FormField
-              control={form.control}
-              name="interviewStages"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Interview Stages</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g. 3" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+  control={form.control}
+  name="interviewStages"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Number of Interview Stages</FormLabel>
+      <FormControl>
+        <Input
+          type="number"
+          placeholder="e.g. 3"
+          value={field.value}
+          onChange={(e) => field.onChange(Number(e.target.value))}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
             {/* Visa Sponsorship */}
             <FormField
