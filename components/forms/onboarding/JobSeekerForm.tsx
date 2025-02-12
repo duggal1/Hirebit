@@ -18,7 +18,7 @@ import { jobSeekerSchema } from "@/app/utils/zodSchemas";
 import { useState } from "react";
 import { toast } from "@/app/_components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, X, Upload, Loader2 } from "lucide-react";
+import { UploadIcon, PlusCircleIcon, XIcon, Loader2Icon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -63,10 +63,13 @@ export default function JobSeekerForm() {
       linkedin: "",
       github: "",
       portfolio: "",
-      // NEW FIELDS: Added new default values
       availableFrom: "",
       previousJobExperience: "",
       willingToRelocate: false,
+      email: "",
+      currentJobTitle: "",
+      industry: "",
+      jobSearchStatus: "OPEN_TO_OFFERS",
     },
   });
 
@@ -155,11 +158,11 @@ export default function JobSeekerForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {/* Debug section */}
         {Object.keys(form.formState.errors).length > 0 && (
-          <div className="rounded-md bg-destructive/15 p-3">
-            <h3 className="text-sm font-medium text-destructive">
+          <div className="bg-destructive/15 p-3 rounded-md">
+            <h3 className="font-medium text-destructive text-sm">
               Form has the following errors:
             </h3>
-            <ul className="mt-2 text-sm text-destructive">
+            <ul className="mt-2 text-destructive text-sm">
               {Object.entries(form.formState.errors).map(([field, error]) => (
                 <li key={field}>
                   {field}: {error?.message as string}
@@ -172,18 +175,88 @@ export default function JobSeekerForm() {
         {/* Basic Information */}
         <div className="space-y-4">
           <h2 className="font-semibold text-xl">Basic Information</h2>
+          
           <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+            <FormLabel>Email Address</FormLabel>
+            <FormControl>
+              <Input type="email" placeholder="your@email.com" {...field} />
+            </FormControl>
+            <FormDescription>Your primary contact email</FormDescription>
+            <FormMessage />
+            </FormItem>
+          )}
+          />
+
+          <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+            <FormLabel>Full Name</FormLabel>
+            <FormControl>
+              <Input placeholder="John Doe" {...field} />
+            </FormControl>
+            <FormMessage />
+            </FormItem>
+          )}
+          />
+
+          <FormField
+          control={form.control}
+          name="currentJobTitle"
+          render={({ field }) => (
+            <FormItem>
+            <FormLabel>Current Job Title</FormLabel>
+            <FormControl>
+              <Input placeholder="Software Engineer" {...field} value={field.value || ""} />
+            </FormControl>
+            <FormDescription>Your current or most recent job title</FormDescription>
+            <FormMessage />
+            </FormItem>
+          )}
+          />
+
+          <FormField
+          control={form.control}
+          name="industry"
+          render={({ field }) => (
+            <FormItem>
+            <FormLabel>Industry</FormLabel>
+            <FormControl>
+              <Input placeholder="Technology" {...field} />
+            </FormControl>
+            <FormDescription>Your primary industry of expertise</FormDescription>
+            <FormMessage />
+            </FormItem>
+          )}
+          />
+
+          <FormField
+          control={form.control}
+          name="jobSearchStatus"
+          render={({ field }) => (
+            <FormItem>
+            <FormLabel>Job Search Status</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your job search status" />
+              </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+              <SelectItem value="ACTIVELY_LOOKING">Actively Looking</SelectItem>
+              <SelectItem value="OPEN_TO_OFFERS">Open to Offers</SelectItem>
+              <SelectItem value="NOT_LOOKING">Not Looking</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription>Let employers know your current job search status</FormDescription>
+            <FormMessage />
+            </FormItem>
+          )}
           />
 
           <FormField
@@ -271,7 +344,7 @@ export default function JobSeekerForm() {
                   <div className="flex gap-2">
                     <Input {...field} placeholder="https://..." />
                     <Button type="button" variant="outline" size="icon">
-                      <Upload className="w-4 h-4" />
+                        <UploadIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </FormControl>
@@ -386,7 +459,7 @@ export default function JobSeekerForm() {
                               field.onChange(newSkills);
                             }}
                           >
-                            <X className="w-3 h-3" />
+                            <XIcon className="w-3 h-3" />
                           </Button>
                         </div>
                       ))}
@@ -442,7 +515,7 @@ export default function JobSeekerForm() {
                   })
                 }
               >
-                <PlusCircle className="mr-2 w-4 h-4" />
+                <PlusCircleIcon className="mr-2 w-4 h-4" />
                 Add Certification
               </Button>
             </div>
@@ -520,7 +593,7 @@ export default function JobSeekerForm() {
                     className="mt-2"
                     onClick={() => removeCert(index)}
                   >
-                    <X className="mr-2 w-4 h-4" />
+                    <XIcon className="mr-2 w-4 h-4" />
                     Remove
                   </Button>
                 </CardContent>
@@ -546,7 +619,7 @@ export default function JobSeekerForm() {
                 })
               }
             >
-              <PlusCircle className="mr-2 w-4 h-4" />
+                <PlusCircleIcon className="mr-2 w-4 h-4" />
               Add Education
             </Button>
           </div>
@@ -624,7 +697,7 @@ export default function JobSeekerForm() {
                   className="mt-2"
                   onClick={() => removeEducation(index)}
                 >
-                  <X className="mr-2 w-4 h-4" />
+                    <XIcon className="mr-2 w-4 h-4" />
                   Remove
                 </Button>
               </CardContent>
@@ -799,7 +872,7 @@ export default function JobSeekerForm() {
         >
           {pending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2Icon className="mr-2 w-4 h-4 animate-spin" />
               Submitting...
             </>
           ) : (
@@ -807,6 +880,7 @@ export default function JobSeekerForm() {
           )}
         </Button>
       </form>
-    </Form>
+      </Form>
+    
   );
 }

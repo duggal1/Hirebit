@@ -203,10 +203,21 @@ enum UserType {
   JOB_SEEKER
 }
 
+enum JobSearchStatus {
+  ACTIVELY_LOOKING
+  OPEN_TO_OFFERS
+  NOT_LOOKING
+}
+
 model JobSeeker {
   id     String @id @default(uuid())
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
+
+  email           String          @unique // Essential for communication
+  currentJobTitle String? // Latest job title for quick assessment
+  industry        String // Primary industry of expertise
+  jobSearchStatus JobSearchStatus @default(OPEN_TO_OFFERS)
 
   expectedSalaryMin  Int?
   expectedSalaryMax  Int?
@@ -290,15 +301,25 @@ model Company {
 
   @@map("companies")
 }
-model JobSeekerResume {
-  resumeId    String  @id @default(uuid())
-  resumeName  String  @db.VarChar(255)
-  resumeBio   String
-  pdfUrlId    String  @db.VarChar(1024) // To store a URL for the uploaded PDF
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
 
+model JobSeekerResume {
+  resumeId   String   @id @default(uuid())
+  resumeName String   @db.VarChar(255)
+  resumeBio  String
+  pdfUrlId   String   @db.VarChar(1024) // To store a URL for the uploaded PDF
+  version    Int      @default(1) // Track resume versions
+  isActive   Boolean  @default(true) // Current active version
+  keywords   String[] // Extracted keywords for search
+  parsedData Json? // Structured data from resume parsing
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Recruiter specific fields
+  recruiterViews Int       @default(0) // Number of recruiter views
+  lastViewedAt   DateTime? // Last time viewed by recruiter
+  rating         Int? // Recruiter rating (1-5)
+  tags           String[] // Custom tags added by recruiters
+}
 
 model JobPost {
   id                  String           @id @default(uuid())
@@ -392,6 +413,17 @@ model JobApplication {
   location          String?
   phoneNumber       String?
   desiredEmployment String?
+
+  // Additional fields for recruiter dashboard
+  recruiterNotes            String? // Notes added by recruiter
+  interviewFeedback         Json? // Structured feedback from interviews
+  applicationStage          String? // Current stage in recruitment process
+  lastReviewedAt            DateTime? // When recruiter last reviewed
+  reviewedBy                String? // Recruiter who last reviewed
+  codingTestResults         Json? // Results from coding assessments
+  technicalSkillsAssessment Json? // Detailed technical evaluation
+  cultureFitScore           Int? // Score for culture fit (1-10)
+  communicationScore        Int? // Score for communication (1-10)
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")

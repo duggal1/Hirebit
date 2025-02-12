@@ -25,12 +25,12 @@ export const jobSeekerSchema = z.object({
   resume: z.string().url(),
   location: z.string().min(2),
   expectedSalaryMin: z.number().min(0).nullable(),
-  desiredEmployment: z.enum(["Full-time", "Part-time", "Contract"]),
   expectedSalaryMax: z.number().min(0).nullable(),
   preferredLocation: z.string().min(2),
   remotePreference: z.enum(["Remote", "Hybrid", "On-site"]),
   yearsOfExperience: z.number().min(0),
   skills: z.array(z.string()),
+  desiredEmployment: z.enum(["Full-time", "Part-time", "Contract"]),
   certifications: z.array(
     z.object({
       name: z.string(),
@@ -54,9 +54,15 @@ export const jobSeekerSchema = z.object({
   linkedin: z.string().url("Invalid URL format").optional().or(z.literal("")),
   github: z.string().url("Invalid URL format").optional().or(z.literal("")),
   portfolio: z.string().url("Invalid URL format").optional().or(z.literal("")),
-availableFrom: z.string().optional().nullable(),
-   previousJobExperience: z.any().optional().nullable(),
+  availableFrom: z.string().optional().nullable(),
+  previousJobExperience: z.any().optional().nullable(),
   willingToRelocate: z.boolean().optional().nullable(),
+
+  // Newly added fields
+  email: z.string().email("Invalid email format"), // Required field for communication
+  currentJobTitle: z.string().min(2).optional().nullable(), // Latest job title
+  industry: z.string().min(2), // Industry of expertise
+  jobSearchStatus: z.enum(["ACTIVELY_LOOKING", "OPEN_TO_OFFERS", "NOT_LOOKING"]), // Job seeker status
 });
 
 
