@@ -7,10 +7,12 @@ export async function GET(
 ) {
 	try {
 		const { id } = context.params;
-		
-		if (!id) {
+
+		// Validate UUID format
+		const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		if (!id || !uuidRegex.test(id)) {
 			return NextResponse.json(
-				{ error: 'JobSeeker ID is required' },
+				{ error: 'Invalid JobSeeker ID format' },
 				{ status: 400 }
 			);
 		}
@@ -20,15 +22,21 @@ export async function GET(
 			select: {
 				id: true,
 				name: true,
-				skills: true,
-				experience: true,
-				location: true
+				email: true,
+				github: true,
+				linkedin: true,
+				portfolio: true,
+				Verification: {
+					include: {
+						company: true
+					}
+				}
 			}
 		});
 
 		if (!jobSeeker) {
 			return NextResponse.json(
-				{ error: "JobSeeker not found" },
+				{ error: 'JobSeeker not found. Please check the ID and try again.' },
 				{ status: 404 }
 			);
 		}
@@ -37,7 +45,7 @@ export async function GET(
 	} catch (error) {
 		console.error('GET JobSeeker - Error:', error);
 		return NextResponse.json(
-			{ error: "Failed to fetch job seeker" },
+			{ error: 'Failed to fetch JobSeeker data' },
 			{ status: 500 }
 		);
 	}

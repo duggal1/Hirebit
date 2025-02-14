@@ -11,113 +11,69 @@ interface VerificationResult {
 
 export const verifyPortfolio = async (portfolioData: PortfolioInsights): Promise<VerificationResult> => {
   try {
-    console.log('Starting portfolio verification with data:', {
-      name: portfolioData.data.basics.name,
-      projectCount: portfolioData.data.projects.length,
-      skillsCount: portfolioData.data.skills.technical.length
-    });
+    // Extract key fields
+    const { basics, projects, skills } = portfolioData.data;
+    const name = basics.name;
+    const title = basics.title;
+    const bio = basics.bio || 'Not provided';
+    const projectsCount = projects.length;
+    const technicalSkills = Array.isArray(skills?.technical) ? skills.technical.join(', ') : 'None';
 
-    const prompt = `Analyze this portfolio data and provide a detailed verification report:
-    Name: ${portfolioData.data.basics.name}
-    Title: ${portfolioData.data.basics.title}
-    Bio: ${portfolioData.data.basics.bio || 'Not provided'}
-    Projects Count: ${portfolioData.data.projects.length}
-    Technical Skills: ${portfolioData.data.skills.technical.join(', ') || 'None provided'}
-    
-    Verification Criteria:
-    1. Profile Completeness:
-       - Basic information (name, title, bio)
-       - Technical skills listed
-       - Projects showcased
-    
-    2. Authentication Factors:
-       - Professional details consistency
-       - Project legitimacy (presence of live/source links)
-       - Skills alignment with projects
-       - Technical depth demonstration
-    
-    3. Overall Assessment:
-       - Profile completeness: ${portfolioData.analysis.insights.score}%
-       - Projects verification
-       - Skills validation
-    
-    Return a JSON response with this format:
-    {
-      "isVerified": boolean,
-      "message": "Comprehensive verification feedback including authentication status",
-      "score": number (0-100),
-      "authentication": {
-        "status": "Fully Verified/Partially Verified/Unverified",
-        "confidenceScore": number (0-100),
-        "verifiedElements": ["list of verified elements"],
-        "recommendations": ["authentication improvements needed"]
-      }
-    }`;
+    // A simplified prompt to determine if the portfolio is genuine.
+    const prompt = `I have a portfolio with the following details:
+Name: ${name}
+Title: ${title}
+Bio: ${bio}
+Projects Count: ${projectsCount}
+Technical Skills: ${technicalSkills}
 
+A portfolio is considered genuine if it has a real non-empty name, at least one project, and at least one technical skill. Please verify this portfolio and return a JSON object with the following structure:
+{
+  "isVerified": boolean,
+  "message": string,
+  "score": number
+}`;
+    
     console.log('Sending prompt to Gemini:', prompt);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
     const response = await result.response.text();
     console.log('Raw Gemini response:', response);
     
+    // Clean up the response for JSON parsing
     const cleanedResponse = response
       .trim()
       .replace(/```json\s*|\s*```/g, '')
       .replace(/[\u201C\u201D]/g, '"')
       .replace(/^[^{]*/, '')
       .replace(/[^}]*$/, '');
-
-      console.log('Cleaned response:', cleanedResponse);
     
-    try {
-      const analysis = JSON.parse(cleanedResponse);
-      if (!analysis.authentication || 
-        typeof analysis.authentication.confidenceScore !== 'number' ||
-        !Array.isArray(analysis.authentication.verifiedElements)) {
-      throw new Error('Invalid authentication data');
+    console.log('Cleaned response:', cleanedResponse);
+    
+    const analysis = JSON.parse(cleanedResponse);
+    
+    // Validate expected fields
+    if (
+      typeof analysis.isVerified !== 'boolean' ||
+      typeof analysis.message !== 'string' ||
+      typeof analysis.score !== 'number'
+    ) {
+      throw new Error('Invalid response format');
     }
-
-  
-
-      
-      if (typeof analysis.isVerified !== 'boolean' || 
-          typeof analysis.message !== 'string' || 
-          typeof analysis.score !== 'number') {
-            console.error('Invalid analysis structure:', analysis);
-        throw new Error('Invalid response format');
-      }
-
-      const result = {
-        isVerified: analysis.isVerified,
-        message: `✅ ${analysis.authentication.status}: ${analysis.message}\n\nAuthentication Score: ${analysis.authentication.confidenceScore}/100\nVerified Elements: ${analysis.authentication.verifiedElements.join(', ')}`,
-        score: analysis.score
-      };
-  
-      return result;
-      console.log('Final verification result:', result);
-     
-
-    } catch (parseError) {
-      console.error('JSON parsing error:', {
-        error: parseError,
-        response: cleanedResponse,
-        responseType: typeof cleanedResponse
-      });
-      throw new Error('Failed to parse AI response');
-    }
-   
+    
+    console.log('Final verification result:', analysis);
+    
+    return {
+      isVerified: analysis.isVerified,
+      message: analysis.message,
+      score: analysis.score
+    };
+    
   } catch (error) {
-    console.error('Portfolio verification error:', {
-      error,
-      portfolioData: {
-        hasName: !!portfolioData?.data?.basics?.name,
-        hasProjects: !!portfolioData?.data?.projects?.length,
-        hasSkills: !!portfolioData?.data?.skills?.technical?.length
-      }
-    });
+    console.error('Portfolio verification error:', error);
     return {
       isVerified: false,
-      message: "Failed to verify portfolio. Please try again later.",
+      message: "Verification failed due to an error.",
       score: 0
     };
   }
