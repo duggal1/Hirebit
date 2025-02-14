@@ -6,33 +6,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
-    console.log("GET JobSeeker - Verification ID:", id);
+    const id = await Promise.resolve(params.id);
+    console.log("GET JobSeeker - ID:", id);
 
-    // Fetch the verification record by its id
-    const verification = await prisma.verification.findUnique({
-      where: { id },
-    });
-
-    console.log("GET JobSeeker - Verification:", verification);
-
-    if (!verification) {
-      console.log("GET JobSeeker - Verification not found");
-      return NextResponse.json(
-        { error: "Verification not found" },
-        { status: 404 }
-      );
-    }
-
-    // Fetch the most recently created jobSeeker with all fields
-    // and include its related applications
-    const jobSeeker = await prisma.jobSeeker.findFirst({
-      orderBy: {
-        createdAt: "desc",
+    // Directly fetch the jobSeeker by ID
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { 
+        id: id 
       },
       include: {
-        applications: true,
-      },
+        applications: true
+      }
     });
 
     console.log("GET JobSeeker - Found:", jobSeeker);
@@ -46,6 +30,7 @@ export async function GET(
     }
 
     return NextResponse.json(jobSeeker);
+
   } catch (error) {
     console.error("Error fetching job seeker:", error);
     return NextResponse.json(
@@ -54,3 +39,6 @@ export async function GET(
     );
   }
 }
+
+
+

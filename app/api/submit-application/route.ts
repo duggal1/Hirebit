@@ -1,6 +1,13 @@
 import { prisma } from "@/app/utils/db";
 import { NextResponse } from "next/server";
 
+// Add interface for URLs structure
+interface VerificationUrls {
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -8,182 +15,106 @@ export async function POST(request: Request) {
     
     const { jobSeekerId, companySlug, verificationId, coverLetter, includeLinks } = body;
 
-    // Check verification status
-    console.log('Checking verification status for ID:', verificationId);
-    const verification = await prisma.verification.findUnique({
-      where: { id: verificationId },
+    // First find the verification record
+    const verification = await prisma.verification.findFirst({
+      where: { 
+        OR: [
+          { id: verificationId },
+          { jobSeekerId: jobSeekerId }
+        ]
+      },
       include: {
+        jobSeeker: true,
         company: true
       }
     });
 
     console.log('Verification data:', verification);
 
-    if (!verification || verification.status !== "completed") {
-      console.log('Verification not completed:', verification);
+    if (!verification) {
+      console.log('Verification not found');
       return NextResponse.json(
-        { error: "Verification not completed" },
-        { status: 400 }
+      { error: "Verification not found" },
+      { status: 404 }
       );
     }
 
-    // Get job post from company name
-    console.log('Finding job post for company:', verification.company?.name);
-    const jobPosts = await prisma.jobPost.findMany({
+    // Type assert the urls object
+    const urls = verification.urls as VerificationUrls | null;
+
+    // Find active job post for the company
+    const jobPost = await prisma.jobPost.findFirst({
       where: {
         company: {
-          name: verification.company?.name
+          name: companySlug
         },
         status: "ACTIVE"
-      },
-      include: {
-        company: {
-          select: {
-            name: true,
-            id: true
-          }
-        }
       }
     });
 
-    console.log('Found job posts:', jobPosts);
-
-    if (!jobPosts.length) {
-      console.log('No active job posts found for company:', verification.company?.name);
+    if (!jobPost) {
       return NextResponse.json(
         { error: "No active job posts found for this company" },
         { status: 404 }
       );
     }
 
-    // Use the most recently created job post
-    const jobPost = jobPosts[0];
-    console.log('Selected job post for application:', jobPost);
-
-    // Create application with a transaction
-    console.log('Creating application with transaction');
-    const result = await prisma.$transaction(async (tx) => {
-      const jobSeeker = await tx.jobSeeker.findFirst({
-        where: { id: jobSeekerId },
-        select: {
-          id: true,
-          name: true,
-          resume: true,
-          linkedin: true,
-          github: true,
-          portfolio: true,
-          skills: true,
-          experience: true,
-          yearsOfExperience: true,
-          expectedSalaryMin: true,
-          expectedSalaryMax: true,
-          certifications: true,
-          education: true,
-          location: true,
-          phoneNumber: true,
-          desiredEmployment: true,
-        },
-      });
-
-      console.log('Job seeker data:', jobSeeker);
-
-      if (!jobSeeker) {
-        throw new Error("Job seeker not found. Please complete your profile first.");
+    // Create the application
+    const application = await prisma.jobApplication.create({
+      data: {
+        jobSeeker: { connect: { id: jobSeekerId } },
+        job: { connect: { id: jobPost.id } },
+        coverLetter: coverLetter || "",
+        status: "PENDING",
+        includeLinks,
+        resume: verification.jobSeeker?.resume || "",
+        answers: includeLinks ? {
+            linkedin: urls?.linkedin || "",
+            github: urls?.github || "",
+            portfolio: urls?.portfolio || "",
+          skills: verification.jobSeeker?.skills || [],
+          experience: verification.jobSeeker?.experience || 0,
+          yearsOfExperience: verification.jobSeeker?.yearsOfExperience || 0,
+          expectedSalaryMin: verification.jobSeeker?.expectedSalaryMin || null,
+          expectedSalaryMax: verification.jobSeeker?.expectedSalaryMax || null,
+          certifications: verification.jobSeeker?.certifications || null,
+          education: verification.jobSeeker?.education || null,
+          location: verification.jobSeeker?.location || "",
+          phoneNumber: verification.jobSeeker?.phoneNumber || "",
+          desiredEmployment: verification.jobSeeker?.desiredEmployment || ""
+        } : undefined
       }
-
-      if (!jobSeeker.resume) {
-        throw new Error("Resume is required to submit an application");
-      }
-
-        const application = await tx.jobApplication.create({
-        data: {
-          jobSeeker: { connect: { id: jobSeekerId } },
-          job: { connect: { id: jobPost.id } },
-          coverLetter,
-          status: "PENDING",
-          includeLinks,
-          resume: jobSeeker.resume,
-          answers: includeLinks 
-          ? {
-            linkedin: jobSeeker.linkedin,
-            github: jobSeeker.github,
-            portfolio: jobSeeker.portfolio,
-            skills: jobSeeker.skills,
-            experience: jobSeeker.experience,
-            yearsOfExperience: jobSeeker.yearsOfExperience,
-            expectedSalaryMin: jobSeeker.expectedSalaryMin,
-            expectedSalaryMax: jobSeeker.expectedSalaryMax,
-            certifications: jobSeeker.certifications,
-            education: jobSeeker.education,
-            location: jobSeeker.location,
-            phoneNumber: jobSeeker.phoneNumber,
-            desiredEmployment: jobSeeker.desiredEmployment,
-            }
-          : undefined,
-        },
-        });
-
-        console.log('Created application:', application);
-
-        // Update job metrics
-        await tx.jobMetrics.upsert({
-        where: { jobPostId: jobPost.id },
-        create: {
-          jobPostId: jobPost.id,
-          totalViews: 0,
-          totalClicks: 0,
-          applications: 1,
-          viewsByDate: {},
-          clicksByDate: {},
-          locationData: jobSeeker.location ? { [jobSeeker.location]: 1 } : {}
-        },
-        update: {
-          applications: { increment: 1 },
-          locationData: {
-          set: jobSeeker.location 
-            ? await tx.jobMetrics.findUnique({ 
-              where: { jobPostId: jobPost.id },
-              select: { locationData: true }
-            }).then(current => {
-              const data = current?.locationData as any || {};
-              return {
-              ...data,
-              [jobSeeker.location]: (data[jobSeeker.location] || 0) + 1
-              };
-            })
-            : undefined
-          }
-        }
-        });
-
-        // Update the job post's applications count
-        await tx.jobPost.update({
-        where: { id: jobPost.id },
-        data: {
-          applications: {
-          increment: 1,
-          },
-        },
-        });
-
-      return { application, jobSeeker };
     });
 
-    console.log('Transaction completed successfully:', result);
+    // Update job metrics
+    await prisma.jobMetrics.upsert({
+      where: { jobPostId: jobPost.id },
+      create: {
+        jobPostId: jobPost.id,
+        totalViews: 0,
+        totalClicks: 0,
+        applications: 1,
+        viewsByDate: {},
+        clicksByDate: {},
+        locationData: verification.jobSeeker?.location ? 
+          { [verification.jobSeeker.location]: 1 } : {}
+      },
+      update: {
+        applications: { increment: 1 }
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      applicationId: result.application.id,
-      jobSeekerName: result.jobSeeker.name
+      applicationId: application.id
     });
 
   } catch (error) {
     console.error("Error submitting application:", error);
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "Failed to submit application",
-        details: error instanceof Error ? error.stack : undefined
-      },
+      { error: "Failed to submit application" },
       { status: 500 }
     );
   }
 }
+

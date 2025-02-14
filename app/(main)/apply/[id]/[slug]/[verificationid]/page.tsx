@@ -129,32 +129,33 @@ export default function ApplyNowPage() {
 
   useEffect(() => {
     console.log("Apply Page - Route params:", params);
-    if (status === "authenticated" && session?.user?.id) {
-      fetchJobSeekerData(session.user.id);
+    if (params?.verificationid) {
+      const verificationId = typeof params.verificationid === 'string'
+        ? params.verificationid
+        : Array.isArray(params.verificationid)
+        ? params.verificationid[0]
+        : '';
+      fetchJobSeekerData(verificationId);
     }
-  }, [status, session, params]);
+  }, [params?.verificationid]);
 
-  const fetchJobSeekerData = async (userId: string) => {
+  const fetchJobSeekerData = async (verificationId: string) => {
     try {
-      console.log("Fetching job seeker data for user ID:", userId);
-      const response = await fetch(`/api/jobseeker/${params.id}`);
+      console.log("Fetching job seeker data for verification ID:", verificationId);
+      const response = await fetch(`/api/jobseeker/${verificationId}`);
       const data = await response.json();
       console.log("Fetched job seeker data:", data);
 
-      if (response.ok && data) {
+      if (response.ok && data && !data.error) {
         setJobSeeker(data);
-
-        // Safely narrow down params.slug to a string.
-        const companySlug =
-          typeof params.slug === "string"
-            ? params.slug
-            : Array.isArray(params.slug)
-            ? params.slug[0]
-            : "";
-
-        // Use the default manually written cover letter if AI hasn't generated one.
+        const companySlug = typeof params.slug === 'string'
+          ? params.slug
+          : Array.isArray(params.slug)
+          ? params.slug[0]
+          : '';
         const basicCoverLetter = generateBasicCoverLetter(data, companySlug);
         setCoverLetter(basicCoverLetter);
+
       } else {
         console.error("Failed to fetch job seeker:", data.error);
         toast.error("Failed to load profile data. Please complete your profile first.");
