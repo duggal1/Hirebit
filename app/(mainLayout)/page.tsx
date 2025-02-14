@@ -1,6 +1,7 @@
 import { JobFilters } from "@/components/general/JobFilters";
 import JobListings from "@/components/general/JobListings";
 import JobListingsLoading from "@/components/general/JobListingsLoading";
+import Sidebar from "@/components/sidebar/sidebar";
 import { Suspense } from "react";
 
 type SearchParamsProps = {
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: SearchParamsProps) {
             jobTypes={jobTypes}
             location={location}
           />
+          <Sidebar/>
         </Suspense>
       </div>
     </div>
