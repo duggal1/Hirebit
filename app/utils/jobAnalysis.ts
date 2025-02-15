@@ -2,8 +2,6 @@ import { prisma } from './db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { inngest } from './inngest/client';
 
-
-
 //
 // Initialize Gemini
 //
@@ -91,8 +89,7 @@ export async function analyzeCandidateMatch(jobId: string, applicationId: string
           },
         },
       },
-      // In our schema, jobSeeker.skills is string[] and experience is a number, education is JSON.
-      // Therefore we don't include further relations.
+      // jobSeeker.skills is string[] and experience is a number, education is JSON.
     }),
   ]);
 
@@ -162,7 +159,6 @@ ${JSON.stringify({
   experience: jobSeeker.experience,
   skills: jobSeeker.skills,
   education: jobSeeker.education,
-  // You can add more candidate details if needed
 }, null, 2)}
 
 Provide a detailed analysis with:
@@ -231,8 +227,8 @@ Format response as JSON with these exact keys:
       // Use jobSeeker.experience as the total years of experience
       experienceYearsMatch: jobPost.requiredExperience <= jobSeeker.experience,
       locationMatch: calculateLocationMatch(jobPost.location, jobSeeker.location || ''),
-      // For salary, assume jobSeeker has an expectedSalary field (if not, adjust accordingly)
-      salaryMatch: isSalaryInRange(jobPost.salaryFrom, jobPost.salaryTo, (jobSeeker as any).expectedSalary),
+      // For salary, assume jobSeeker has expectedSalaryMin and expectedSalaryMax fields
+      salaryMatch: isSalaryInRange(jobPost.salaryFrom, jobPost.salaryTo, (application as any).expectedSalaryMin),
     },
     recommendations: analysisData.recommendations,
   };
@@ -297,7 +293,6 @@ export async function analyzeApplicationQuality(jobId: string, applicationId: st
           },
         },
       },
-      // jobSeeker.skills is string[], education is JSON, experience is number.
     }),
   ]);
 
@@ -327,7 +322,7 @@ Education: ${JSON.stringify(jobSeeker.education)}
 
 Application:
 Status: ${application.status}
-Score: ${(application as any).score || 'N/A'}
+Score: ${(application as any).aiScore || 'N/A'}
 
 Provide:
 1. Overall application quality score (0-100)
@@ -374,7 +369,7 @@ export async function analyzeCompetitorBenchmark(jobId: string): Promise<Competi
     throw new Error('Job post not found');
   }
 
-  // Get similar job posts
+  // Get similar job posts (using a simple filter on title and active status)
   const similarJobs = await prisma.jobPost.findMany({
     where: {
       AND: [
@@ -484,7 +479,7 @@ function calculateSkillMatch(required: string[], candidate: string[]): {
 }
 
 function parseApplicationQualityResponse(text: string): ApplicationQualityResult {
-  // Implement your parsing logic here
+  // Implement your parsing logic here – for now return a placeholder.
   return {
     score: 0,
     feedback: '',
@@ -495,7 +490,7 @@ function parseApplicationQualityResponse(text: string): ApplicationQualityResult
 }
 
 function parseCompetitorAnalysisResponse(text: string): CompetitorAnalysisResult {
-  // Implement your parsing logic here
+  // Implement your parsing logic here – for now return a placeholder.
   return {
     marketPosition: '',
     salaryCompetitiveness: '',
@@ -515,5 +510,4 @@ function getSalaryRange(jobs: any[]): { min: number; max: number } {
     min: Math.min(...jobs.map(job => job.salaryFrom)),
     max: Math.max(...jobs.map(job => job.salaryTo)),
   };
-
 }
