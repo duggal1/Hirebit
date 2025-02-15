@@ -1,6 +1,4 @@
-
-"use client"
-
+"use client";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -8,55 +6,110 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Editor from "@monaco-editor/react";
-import { ArrowRight, Brain, Info, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
-import { evaluateCode } from '@/services/gemini';
+import {
+  ArrowRight,
+  Brain,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  Lightbulb,
+} from "lucide-react";
+import { evaluateCode } from "@/services/gemini";
 import { toast } from "@/app/_components/ui/use-toast";
-import Timer from '@/app/_components/Timer';
+import Timer from "@/app/_components/Timer";
 import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
 import { CodeProblem, EvaluationResult } from "@/types/code";
+
 export default function CodingTest() {
   const params = useParams();
   const router = useRouter();
+  const jobSeekerId = params.id as string;
   const [questions, setQuestions] = useState<CodeProblem[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const currentQuestion = questions[currentQuestionIndex] || null;
   const [code, setCode] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("problem");
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+
+  // Reset the hint when the current question changes
+  useEffect(() => {
+    setHint(null);
+  }, [currentQuestionIndex]);
+
+  // Fetch the hint when the user switches to the "hint" tab
+  useEffect(() => {
+    if (activeTab === "hint" && currentQuestion && !hint) {
+      fetchHint();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, currentQuestion]);
+
+  async function fetchHint() {
+    try {
+      const response = await fetch(
+        `/api/coding-test/hint/${jobSeekerId}?questionId=${currentQuestion?.id}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch hint");
+      }
+      const data = await response.json();
+      setHint(data.hint);
+    } catch (err) {
+      console.error("Error fetching hint:", err);
+      toast({
+        title: "Error fetching hint",
+        description: err instanceof Error ? err.message : "Failed to fetch hint",
+        variant: "destructive",
+      });
+    }
+  }
 
   // Add loadQuestions function
   async function loadQuestions() {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/coding-test/${params.id}`);
+
+      console.log("Fetching questions for jobSeekerId:", jobSeekerId);
+      const response = await fetch(`/api/coding-test/${jobSeekerId}`);
+
       if (!response.ok) {
-        throw new Error('Failed to load questions');
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to load questions");
       }
 
       const data = await response.json();
+      console.log("Received questions data:", data);
+
       if (!Array.isArray(data) || data.length === 0) {
-        throw new Error('No questions available');
+        console.error("No questions received from API");
+        throw new Error("No questions available for this test");
       }
 
       setQuestions(data);
     } catch (error) {
-      console.error('Loading error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load questions');
+      console.error("Loading error:", error);
+      setError(error instanceof Error ? error.message : "Failed to load questions");
+      toast({
+        title: "Error Loading Questions",
+        description: error instanceof Error ? error.message : "Failed to load questions",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Add useEffect for loading questions
   useEffect(() => {
-    if (params?.id) {
+    if (jobSeekerId) {
       loadQuestions();
     }
-  }, [params?.id]);
+  }, [jobSeekerId]);
 
   // Single handleSubmit function
   async function handleSubmit(): Promise<void> {
@@ -70,12 +123,12 @@ export default function CodingTest() {
       setEvaluationResult(result);
 
       // Store the evaluation data in localStorage
-      localStorage.setItem(`evaluationResult-${params.id}`, JSON.stringify(result));
-      localStorage.setItem(`submittedCode-${params.id}`, code);
-      localStorage.setItem(`problemDetails-${params.id}`, JSON.stringify(currentQuestion));
+      localStorage.setItem(`evaluationResult-${jobSeekerId}`, JSON.stringify(result));
+      localStorage.setItem(`submittedCode-${jobSeekerId}`, code);
+      localStorage.setItem(`problemDetails-${jobSeekerId}`, JSON.stringify(currentQuestion));
 
       if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
+        setCurrentQuestionIndex((prev) => prev + 1);
         setCode("");
         setEvaluationResult(null);
       } else {
@@ -83,12 +136,12 @@ export default function CodingTest() {
           title: "Test Completed",
           description: "Redirecting to results page...",
         });
-        
+
         // Use the router from component level
-        router.push(`/coding-test/${params.id}/result`);
+        router.push(`/coding-test/${jobSeekerId}/result`);
       }
     } catch (error) {
-      console.error('Evaluation error:', error);
+      console.error("Evaluation error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to evaluate code",
@@ -99,78 +152,82 @@ export default function CodingTest() {
     }
   }
 
-  // Get current question
-  const currentQuestion = questions[currentQuestionIndex] || null;
-
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-cyan-400" />
+      <div className="flex items-center justify-center min-h-screen bg-transparent">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full blur-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 opacity-20 animate-pulse" />
+          <div className="relative animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-cyan-400" />
+        </div>
       </div>
     );
   }
 
   if (error || !currentQuestion) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-        <h1 className="text-2xl font-bold text-red-400 mb-4">
-          {error || 'No questions available'}
-        </h1>
-        <Button
-          onClick={() => router.push('/dashboard')}
-          className="bg-white/[0.05] hover:bg-white/[0.08]"
-        >
-          Return to Dashboard
-        </Button>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+        <div className="relative p-8 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/10">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-600 mb-4">
+            {error || "No questions available"}
+          </h1>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            className="bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-xl"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative bg-black min-h-screen text-white">
-      {/* Background Pattern */}
-      <div 
-        className="absolute inset-0 bg-[url('/grid.svg')] bg-center pointer-events-none [mask-image:radial-gradient(white,transparent_85%)]"
-        style={{ 
+    <div className="relative min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+      {/* Background Elements */}
+      <div
+        className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(white,transparent_85%)] pointer-events-none"
+        style={{
           backgroundSize: "30px 30px",
-          opacity: 0.2,
-        }} 
+          opacity: 0.15,
+        }}
       />
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob" />
+      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000" />
+      <div className="absolute top-40 left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000" />
 
-      <div className="relative mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
+      {/* Main Content */}
+      <div className="relative z-10 mx-auto px-6 py-12 max-w-8xl">
+        <div className="mb-12">
           <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="bg-cyan-400 rounded-full w-1.5 h-1.5 animate-pulse" />
-                <h1 className="font-bold text-4xl">
-                  <span className="bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-transparent">
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 blur-sm bg-cyan-400 rounded-full animate-pulse" />
+                  <div className="relative bg-cyan-400 rounded-full w-2 h-2" />
+                </div>
+                <h1 className="font-bold text-5xl tracking-tight">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient">
                     {currentQuestion.title}
                   </span>
                 </h1>
               </div>
-              <div className="flex items-center gap-6 pl-4">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-8 pl-6">
+                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
                   <div className="bg-red-400 rounded-full w-2 h-2" />
                   <span className="font-medium text-red-400/90 text-sm">
                     {currentQuestion.difficulty}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                <div className="bg-yellow-400 rounded-full w-2 h-2" />
-                  {/* Timer moved here and wrapped in null check */}
+                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
+                  <div className="bg-yellow-400 rounded-full w-2 h-2" />
                   {currentQuestion.timeLimit && (
-                    <Timer 
-                      duration={currentQuestion.timeLimit} 
-                      onComplete={handleSubmit}
-                    />
+                    <Timer duration={currentQuestion.timeLimit} onComplete={handleSubmit} />
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
                   <div className="bg-green-400 rounded-full w-2 h-2" />
                   <span className="font-medium text-green-400/90 text-sm">
-                  {currentQuestionIndex + 1} of {questions.length}
+                    {currentQuestionIndex + 1} of {questions.length}
                   </span>
                 </div>
               </div>
@@ -178,16 +235,20 @@ export default function CodingTest() {
           </div>
         </div>
 
-        <div className="gap-6 grid lg:grid-cols-2">
+        <div className="gap-8 grid lg:grid-cols-2">
           {/* Problem Description */}
-          <Card className="relative border-white/[0.05] bg-black/20 backdrop-blur-xl border overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-blue-500/5 to-cyan-500/5" />
-            <div className="relative p-6">
+          <Card className="relative border-0 bg-white/5 backdrop-blur-xl overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10" />
+            <div className="relative p-8">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="border-white/[0.05] bg-white/[0.05] border">
                   <TabsTrigger value="problem" className="data-[state=active]:bg-white/[0.08]">
                     <Info className="mr-2 w-4 h-4" />
                     Problem
+                  </TabsTrigger>
+                  <TabsTrigger value="hint" className="data-[state=active]:bg-white/[0.08]">
+                    <Lightbulb className="mr-2 w-4 h-4" />
+                    Hint
                   </TabsTrigger>
                   <TabsTrigger value="solution" className="data-[state=active]:bg-white/[0.08]">
                     <Brain className="mr-2 w-4 h-4" />
@@ -197,7 +258,9 @@ export default function CodingTest() {
 
                 <TabsContent value="problem" className="space-y-6 mt-6">
                   <div>
-                    <p className="text-gray-300 whitespace-pre-wrap">{currentQuestion.description}</p>
+                    <p className="text-gray-300 whitespace-pre-wrap">
+                      {currentQuestion.description}
+                    </p>
                   </div>
 
                   <div>
@@ -240,6 +303,14 @@ export default function CodingTest() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="hint" className="space-y-6 mt-6">
+                  {hint ? (
+                    <p className="text-gray-300 whitespace-pre-wrap">{hint}</p>
+                  ) : (
+                    <p className="text-gray-300">Loading hint...</p>
+                  )}
+                </TabsContent>
+
                 <TabsContent value="solution" className="mt-6">
                   <div className="border-white/[0.05] border rounded-lg overflow-hidden">
                     <Editor
@@ -278,7 +349,7 @@ export default function CodingTest() {
                     <div className="flex gap-2">
                       {currentQuestionIndex > 0 && (
                         <Button
-                          onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                          onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
                           className="bg-white/[0.05] hover:bg-white/[0.08]"
                         >
                           <ChevronLeft className="mr-1 w-4 h-4" />
@@ -297,7 +368,7 @@ export default function CodingTest() {
                           </>
                         ) : (
                           <>
-                           {currentQuestionIndex < questions.length - 1 ? (
+                            {currentQuestionIndex < questions.length - 1 ? (
                               <>
                                 Next Question
                                 <ChevronRight className="ml-1 w-4 h-4" />

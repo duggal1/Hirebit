@@ -15,13 +15,15 @@ export async function POST(request: Request) {
     console.log("Generate Cover Letter - Request body:", body);
     const { jobSeekerId, companySlug, verificationId } = body;
 
-    // Fetch job seeker data with additional fields from the schema
+    // Fetch job seeker data with additional useful fields
     console.log("Fetching job seeker data for ID:", jobSeekerId);
     const jobSeeker = await prisma.jobSeeker.findFirst({
       where: { id: jobSeekerId },
       select: {
         id: true,
         name: true,
+        currentJobTitle: true,
+        industry: true,
         about: true,
         skills: true,
         yearsOfExperience: true,
@@ -57,15 +59,29 @@ export async function POST(request: Request) {
 
     // Fetch verification (and associated company) data
     console.log("Fetching verification data for ID:", verificationId);
-    const verification = await prisma.verification.findUnique({
+    let verification = await prisma.verification.findUnique({
       where: { id: verificationId },
       include: {
         company: true,
       },
     });
 
+    // Fallback: if no verification is found by primary key, try using jobSeekerId.
+    if (!verification) {
+      console.log(
+        "Verification not found by id, trying by jobSeekerId:",
+        jobSeekerId
+      );
+      verification = await prisma.verification.findUnique({
+        where: { jobSeekerId },
+        include: {
+          company: true,
+        },
+      });
+    }
+
     console.log("Verification data:", verification);
-    if (!verification?.company) {
+    if (!verification || !verification.company) {
       console.log("Company not found");
       return NextResponse.json(
         { error: "Company not found" },
@@ -106,11 +122,24 @@ export async function POST(request: Request) {
           : JSON.stringify(jobSeeker.previousJobExperience)
         : "Not specified";
 
-    // Refined prompt for generating a formal, human-like cover letter
-    const prompt = `Generate a formal, human-like cover letter for a software engineer application using the following details. The cover letter must be direct, honest, warm, calm, fresh, and formal. Avoid using vague buzzwords or generic phrases and do not include any header placeholders like "[Your Name]", "[Your Address]", or "[Date]".
+    // Fetch resume details (pdf url and resume bio) from JobSeekerResume
+    console.log("Fetching resume details for job seeker:", jobSeekerId);
+    const jobSeekerResume = await prisma.jobSeekerResume.findFirst({
+      where: { resumeId: jobSeeker.resume },
+      select: {
+        pdfUrlId: true,
+        resumeBio: true,
+      },
+    });
+    console.log("Job seeker resume details:", jobSeekerResume);
+
+    // Refined prompt with a highly appealing, straightforward, and formal tone
+    const prompt = `Generate a highly appealing and formal cover letter for a software engineer application. The cover letter must be straightforward, direct, and calm—no unnecessary buzzwords or generic phrases.
 
 Candidate Details:
 - Name: ${jobSeeker.name}
+- Current Job Title: ${jobSeeker.currentJobTitle || "Not specified"}
+- Industry: ${jobSeeker.industry || "Not specified"}
 - Years of Experience: ${jobSeeker.yearsOfExperience} years
 - Skills: ${jobSeeker.skills?.join(", ")}
 - Education: ${
@@ -127,12 +156,13 @@ Candidate Details:
 - Current Location: ${jobSeeker.location} (Preferred: ${jobSeeker.preferredLocation})
 - Remote Preference: ${jobSeeker.remotePreference}
 - Salary Expectation: ${salaryRange}
-- Availability: ${jobSeeker.availabilityPeriod} days notice
-- Available From: ${availableFromStr}
+- Availability: ${jobSeeker.availabilityPeriod} days notice (Available from: ${availableFromStr})
 - Willing to Relocate: ${relocateStr}
 - Previous Job Experience: ${previousExp}
 - Professional Links: ${professionalLinks}
-- Background: ${jobSeeker.about}
+- About: ${jobSeeker.about}
+- Resume Bio: ${jobSeekerResume?.resumeBio || "Not provided"}
+- Resume PDF URL: ${jobSeekerResume?.pdfUrlId || "Not provided"}
 
 Company Details:
 - Name: ${verification.company.name}
@@ -140,12 +170,13 @@ Company Details:
 - About: ${verification.company.about}
 
 Instructions:
-1. Write a clear, specific, and formal cover letter that is direct and honest.
-2. Use natural, warm, and calm language with concrete details.
-3. Avoid vague buzzwords and generic phrases.
-4. Do not include any header placeholders such as "[Your Name]", "[Your Address]", or "[Date]".
-5. Conclude with a call to action inviting further discussion.
-6. Maximum length: 400 words.`;
+1. Write a highly appealing and formal cover letter that is straightforward and direct.
+2. Use a fresh, calm, and honest tone.
+3. Avoid any unnecessary buzzwords or generic phrases.
+4. Do not include any header placeholders like "[Your Name]", "[Your Address]", or "[Date]".
+5. Conclude with a call to action for further discussion.
+6. Maximum length: 400 words.
+7. please include skills in the application letter and resume bio and pdf url of resume at last `;
 
     console.log("✔️Generating cover letter with prompt:", prompt);
     const result = await model.generateContent(prompt);

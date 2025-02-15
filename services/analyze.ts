@@ -146,48 +146,95 @@ function ensureArray(value: unknown): string[] {
   }
   return ['Not specified'];
 }
-// Add this helper function for cleaning AI responses
 function cleanAIResponse(response: string): string {
   try {
-    // First, extract everything between the first { and last }
-    const match = response.match(/\{[\s\S]*\}/);
-    if (!match) {
+    // First, try to find JSON-like content
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
       throw new Error('No JSON object found in response');
     }
 
-    let jsonStr = match[0];
+    let jsonStr = jsonMatch[0];
 
-    // Pre-clean the JSON string
+    // Enhanced cleaning steps
     jsonStr = jsonStr
-      // Remove code block markers
-      .replace(/```[a-z]*\n?/g, '')
-      .replace(/```/g, '')
-      // Remove all newlines and extra spaces
+      // Remove code blocks and markdown
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`/g, '')
+      // Remove comments
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+      // Normalize whitespace
       .replace(/\n/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    // Clean up JSON structure
+    // More comprehensive JSON structure cleanup
     jsonStr = jsonStr
-      // Fix unquoted keys
-      .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
-      // Convert single quotes to double quotes
-      .replace(/'([^']*)'(?=\s*[:,\]}])/g, '"$1"')
+      // Handle unquoted property names more aggressively
+      .replace(/([{,]\s*)([a-zA-Z0-9_$]+)(\s*:)/g, '$1"$2"$3')
+      // Fix property names with special characters
+      .replace(/([{,]\s*)([^"{\s][^:]*?)(\s*:)/g, '$1"$2"$3')
+      // Normalize string values
+      .replace(/:\s*'([^']*)'(?=\s*[,}])/g, ':"$1"')
+      .replace(/:\s*"([^"]*)"(?=\s*[,}])/g, ':"$1"')
+      // Fix boolean and number values
+      .replace(/:\s*(true|false|null)(?=\s*[,}])/g, ':"$1"')
+      .replace(/:\s*(-?\d+\.?\d*)(?=\s*[,}])/g, ':"$1"')
       // Remove trailing commas
       .replace(/,(\s*[}\]])/g, '$1')
-      // Ensure proper array closing
-      .replace(/\[(.*?)\s*\]/, (match, content) => {
-        return `[${content.split(',').map((item: string) => item.trim()).filter(Boolean).join(',')}]`;
+      // Fix array formatting with improved handling
+      .replace(/\[(.*?)\]/g, (match, content) => {
+        const items = content.split(',')
+          .map((item: string) => item.trim())
+          .filter(Boolean)
+          .map((item: string) => {
+            // Ensure all array items are properly quoted
+            item = item.replace(/^['"](.*)['"]$/, '$1'); // Remove existing quotes
+            return `"${item.replace(/"/g, '\\"')}"`;    // Add new quotes and escape internal quotes
+          });
+        return `[${items.join(',')}]`;
       });
-    
-    // Step 3: Parse and validate
+
+    // Additional validation
+    if (!jsonStr.startsWith('{') || !jsonStr.endsWith('}')) {
+      throw new Error('Invalid JSON structure');
+    }
+
+    // Try to parse and format
     const parsed = JSON.parse(jsonStr);
     
-    // Step 4: Return properly formatted JSON
+    // Ensure all required fields exist with proper types
+    const requiredFields = [
+      'primarySkills',
+      'secondarySkills',
+      'experienceLevel',
+      'domainKnowledge',
+      'complexityLevel',
+      'technicalAreas',
+      'tooling',
+      'systemDesign'
+    ];
+
+    for (const field of requiredFields) {
+      if (!(field in parsed)) {
+        parsed[field] = field.endsWith('Skills') || field.endsWith('Knowledge') || 
+                       field === 'technicalAreas' || field === 'tooling' || 
+                       field === 'systemDesign' 
+                       ? ["Not specified"] 
+                       : "Not specified";
+      }
+      // Ensure arrays are actually arrays
+      if (Array.isArray(parsed[field])) {
+        parsed[field] = parsed[field].map(String);
+      } else if (typeof parsed[field] !== 'string') {
+        parsed[field] = String(parsed[field]);
+      }
+    }
+
     return JSON.stringify(parsed, null, 2);
   } catch (error) {
     console.error('Failed to clean AI response:', error);
-    // Return a minimal valid JSON object that matches the expected structure
+    // Return a guaranteed valid JSON structure
     return JSON.stringify({
       primarySkills: ["Not specified"],
       secondarySkills: ["Not specified"],
@@ -197,7 +244,7 @@ function cleanAIResponse(response: string): string {
       technicalAreas: ["Not specified"],
       tooling: ["Not specified"],
       systemDesign: ["Not specified"]
-    });
+    }, null, 2);
   }
 }
 

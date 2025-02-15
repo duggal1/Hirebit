@@ -6,41 +6,51 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const jobId = params?.id;
-  
-  if (!jobId) {
-    return NextResponse.json(
-      { error: 'Job ID is required' },
-      { status: 400 }
-    );
-  }
-
   try {
-    // Check cache first for existing coding questions
-    const cachedQuestions = await prisma.codingQuestion.findMany({
-      where: { jobPostId: jobId }
-    });
-
-    if (cachedQuestions && cachedQuestions.length > 0) {
-      return NextResponse.json(cachedQuestions);
+    const jobSeekerId = params.id;
+    console.log('Generating questions for jobSeeker:', jobSeekerId);
+    
+    if (!jobSeekerId) {
+      return NextResponse.json(
+        { error: 'JobSeeker ID is required' },
+        { status: 400 }
+      );
     }
 
-    // Fetch the job post to get its jobTitle
-    const jobPost = await prisma.jobPost.findUnique({
-      where: { id: jobId }
+    // Find the jobSeeker to get their skills and title
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { id: jobSeekerId },
+      select: {
+        skills: true,
+        currentJobTitle: true
+      }
     });
 
-    if (!jobPost) {
+    if (!jobSeeker) {
+      console.log('JobSeeker not found:', jobSeekerId);
       return NextResponse.json(
-        { error: 'Job post not found' },
+        { error: 'JobSeeker not found' },
         { status: 404 }
       );
     }
 
-    
-  const questions = await generatePhdCodingQuestion([jobId], jobPost.jobTitle);
+    console.log('Generating questions with skills:', jobSeeker.skills);
+    // Generate questions using the jobSeeker's skills and title
+    const questions = await generatePhdCodingQuestion(
+      jobSeeker.skills,
+      jobSeeker.currentJobTitle || 'Software Developer'
+    );
 
-    return NextResponse.json(questions);
+    if (!questions) {
+      console.log('Failed to generate questions');
+      return NextResponse.json(
+        { error: 'Failed to generate questions' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Successfully generated questions');
+    return NextResponse.json([questions]); // Wrap in array since frontend expects array
 
   } catch (error) {
     console.error('API error:', error);
@@ -50,3 +60,4 @@ export async function GET(
     );
   }
 }
+

@@ -7,7 +7,6 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY!);
 
 /**
  * Generates one extremely advanced PhD-level coding challenge based on the provided skills.
- * The challenge is designed to solve a real-world problem using cutting-edge techniques.
  */
 async function generatePhdCodingQuestion(
   skills: string[],
@@ -16,40 +15,23 @@ async function generatePhdCodingQuestion(
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const prompt = `
-    Create ONLY 1 extremely advanced and highly complex coding challenge for a ${jobTitle} position.
-    The problem must be at PhD-level difficulty, addressing a real-world problem with innovative, robust,
-    and scalable solutions using state-of-the-art algorithms and system design. The challenge should test
-    the following skills: ${skills.join(', ')}.
-    
-    Return ONLY a valid JSON object (no markdown or extra text) with the following structure:
-    {
-      "title": "A clear and descriptive problem title",
-      "description": "A detailed description of the problem including real-world context and requirements",
-      "difficulty": "PhD",
-      "timeLimit": 7200,
-      "testCases": [
-        {
-          "input": "detailed input format",
-          "expectedOutput": "detailed expected output format"
-        },
-        {
-          "input": "detailed input format",
-          "expectedOutput": "detailed expected output format"
-        }
-      ],
-      "constraints": [
-        "specific constraint 1",
-        "specific constraint 2"
-      ],
-      "examples": [
-        {
-          "input": "example input",
-          "output": "example output",
-          "explanation": "detailed explanation of the example"
-        }
-      ]
-    }
-  `;
+Generate 1 advanced PhD-level coding challenge for a ${jobTitle} position that solves a real-world problem using cutting-edge techniques. The challenge should test the following skills: ${skills.join(', ')}.
+Return ONLY a valid JSON object with this structure:
+{
+  "title": "A descriptive title",
+  "description": "Detailed problem description with context and requirements",
+  "difficulty": "PhD",
+  "timeLimit": 7200,
+  "testCases": [
+    {"input": "input format", "expectedOutput": "output format"},
+    {"input": "input format", "expectedOutput": "output format"}
+  ],
+  "constraints": ["constraint 1", "constraint 2"],
+  "examples": [
+    {"input": "example input", "output": "example output", "explanation": "explanation"}
+  ]
+}
+`;
 
   try {
     const result = await model.generateContent(prompt);
@@ -84,6 +66,36 @@ async function generatePhdCodingQuestion(
 }
 
 /**
+ * Generates a hint for the provided coding question.
+ */
+async function generatePhdCodingQuestionHint(question: CodingQuestion): Promise<string | null> {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  
+  const prompt = `
+Based on the following coding challenge:
+Title: ${question.title}
+Description: ${question.description}
+
+Provide a concise hint that guides the candidate on how to approach solving this problem without revealing the full solution.
+Return ONLY the hint as plain text.
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    let text = (await result.response).text();
+    text = text
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*$/g, '')
+      .replace(/`/g, '')
+      .trim();
+    return text;
+  } catch (error) {
+    console.error("Error generating hint for coding question:", error);
+    return null;
+  }
+}
+
+/**
  * Finds a job post by ID and generates a coding question using the job's required skills.
  */
 export async function generateQuestionForJob(jobPostId: string): Promise<CodingQuestion> {
@@ -105,44 +117,12 @@ export async function generateQuestionForJob(jobPostId: string): Promise<CodingQ
       console.log("Successfully generated coding question:", question.title);
       return question;
     }
-
-    // Fallback default question if AI generation fails
-    console.warn("Falling back to a default coding question.");
-    return {
-      id: `default-${Date.now()}`,
-      title: `${jobTitle} Advanced Coding Challenge`,
-      description: `Design and implement an innovative solution addressing a complex real-world problem.
-        The solution should demonstrate expert-level proficiency in the required skills: ${skillsRequired.join(', ')}.
-        Emphasize advanced algorithmic strategies, robust system design, and scalability.`,
-      difficulty: "PhD",
-      timeLimit: 7200,
-      testCases: [
-        {
-          input: "sample complex input 1",
-          expectedOutput: "expected output 1"
-        },
-        {
-          input: "sample complex input 2",
-          expectedOutput: "expected output 2"
-        }
-      ],
-      constraints: [
-        "Utilize advanced algorithms and data structures",
-        "Optimize for performance and scalability"
-      ],
-      examples: [
-        {
-          input: "example input",
-          output: "example output",
-          explanation: "This example demonstrates how the solution addresses multiple edge cases and system constraints."
-        }
-      ]
-    };
+    throw new Error("Failed to generate coding question.");
   } catch (error) {
     console.error("Error generating question for job:", error);
     throw error;
   }
 }
 
-
 export default generatePhdCodingQuestion;
+export { generatePhdCodingQuestionHint };

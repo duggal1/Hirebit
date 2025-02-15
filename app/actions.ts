@@ -718,6 +718,13 @@ export const submitJobSeeker = async (
         success: false 
       };
     }
+
+    const email = formData.get('email') as string;
+    
+    // First check if a profile already exists with this email
+    const existingProfile = await prisma.jobSeeker.findUnique({
+      where: { email }
+    });
     
     const rawData = {
       educationDetails: formData.get('education')
@@ -765,7 +772,10 @@ export const submitJobSeeker = async (
 
     const validatedData = jobSeekerSchema.parse(rawData);
     
-    const jobSeeker = await prisma.jobSeeker.create({
+    if (existingProfile) {
+      // Update existing profile
+      const updatedJobSeeker = await prisma.jobSeeker.update({
+      where: { email },
       data: {
         name: validatedData.name,
         about: validatedData.about,
@@ -781,8 +791,8 @@ export const submitJobSeeker = async (
         availabilityPeriod: validatedData.availabilityPeriod,
         desiredEmployment: validatedData.desiredEmployment,
         certifications: validatedData.certifications 
-          ? (validatedData.certifications as unknown as Prisma.JsonArray)
-          : Prisma.JsonNull,
+        ? (validatedData.certifications as unknown as Prisma.JsonArray)
+        : Prisma.JsonNull,
         phoneNumber: validatedData.phoneNumber,
         linkedin: validatedData.linkedin || null,
         github: validatedData.github || null,
@@ -790,14 +800,55 @@ export const submitJobSeeker = async (
         availableFrom: validatedData.availableFrom,
         previousJobExperience: validatedData.previousJobExperience,
         willingToRelocate: validatedData.willingToRelocate,
-        // New fields
-        email: validatedData.email,
         currentJobTitle: validatedData.currentJobTitle,
         industry: validatedData.industry,
         jobSearchStatus: validatedData.jobSearchStatus,
         user: {
-          connect: { id: session.user.id }
+        connect: { id: session.user.id }
         }
+      },
+      });
+
+      return { 
+        message: "Profile created successfully!",
+      success: true,
+      redirect: '/'
+      };
+    }
+
+    // Create new profile if none exists
+    const jobSeeker = await prisma.jobSeeker.create({
+      data: {
+      name: validatedData.name,
+      about: validatedData.about,
+      resume: validatedData.resume,
+      location: validatedData.location,
+      skills: validatedData.skills,
+      experience: validatedData.experience,
+      education: validatedData.education as Prisma.JsonArray,
+      expectedSalaryMax: validatedData.expectedSalaryMax,
+      preferredLocation: validatedData.preferredLocation,
+      remotePreference: validatedData.remotePreference,
+      yearsOfExperience: validatedData.yearsOfExperience,
+      availabilityPeriod: validatedData.availabilityPeriod,
+      desiredEmployment: validatedData.desiredEmployment,
+      certifications: validatedData.certifications 
+        ? (validatedData.certifications as unknown as Prisma.JsonArray)
+        : Prisma.JsonNull,
+      phoneNumber: validatedData.phoneNumber,
+      linkedin: validatedData.linkedin || null,
+      github: validatedData.github || null,
+      portfolio: validatedData.portfolio || null,
+      availableFrom: validatedData.availableFrom,
+      previousJobExperience: validatedData.previousJobExperience,
+      willingToRelocate: validatedData.willingToRelocate,
+      email: validatedData.email,
+      currentJobTitle: validatedData.currentJobTitle,
+      industry: validatedData.industry,
+      jobSearchStatus: validatedData.jobSearchStatus,
+      user: {
+        connect: { id: session.user.id }
+      }
       },
     });
 

@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
