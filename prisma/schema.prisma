@@ -1,467 +1,496 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-provider = "postgresql"
-url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-id                  String          @id @default(cuid())
-email               String?         @unique
-emailVerified       DateTime?
-name                String?
-image               String?
-hashedPassword      String?
-createdAt           DateTime        @default(now())
-updatedAt           DateTime        @updatedAt
-userType            UserType?
-stripeCustomerId    String?
-onboardingCompleted Boolean         @default(false)
-Account             Account[]
-Session             Session[]
-Authenticator       Authenticator[]
-Company             Company?
-JobSeeker           JobSeeker?
-SavedJobPost        SavedJobPost[]
-Resume              Resume?
+  id                  String          @id @default(cuid())
+  email               String?         @unique
+  emailVerified       DateTime?
+  name                String?
+  image               String?
+  hashedPassword      String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  userType            UserType?
+  stripeCustomerId    String?
+  onboardingCompleted Boolean         @default(false)
+  Account             Account[]
+  Session             Session[]
+  Authenticator       Authenticator[]
+  Company             Company?
+  JobSeeker           JobSeeker?
+  SavedJobPost        SavedJobPost[]
+  Resume              Resume?
 
-@@map("users")
+  @@map("users")
 }
 
 model Resume {
-id             String           @id @default(cuid())
-userId         String           @unique
-user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-personalInfo   PersonalInfo?
-workExperience WorkExperience[]
-projects       Project[]
-education      Education[]
-skills         Skill[]
-createdAt      DateTime         @default(now())
-updatedAt      DateTime         @updatedAt
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalInfo   PersonalInfo?
+  workExperience WorkExperience[]
+  projects       Project[]
+  education      Education[]
+  skills         Skill[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-@@map("resumes")
+  @@map("resumes")
 }
 
 model PersonalInfo {
-id        String   @id @default(cuid())
-resumeId  String   @unique
-resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-fullName  String
-email     String
-location  String
-portfolio String?
-github    String?
-linkedin  String?
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id        String   @id @default(cuid())
+  resumeId  String   @unique
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  fullName  String
+  email     String
+  location  String
+  portfolio String?
+  github    String?
+  linkedin  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@map("personal_info")
+  @@map("personal_info")
 }
 
 model WorkExperience {
-id           String    @id @default(cuid())
-resumeId     String
-resume       Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-position     String
-company      String
-location     String?
-startDate    DateTime
-endDate      DateTime?
-current      Boolean   @default(false)
-highlights   String[]
-technologies String[]
-createdAt    DateTime  @default(now())
-updatedAt    DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  resumeId     String
+  resume       Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  position     String
+  company      String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  highlights   String[]
+  technologies String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-@@map("work_experience")
+  @@map("work_experience")
 }
 
 model Project {
-id           String   @id @default(cuid())
-resumeId     String
-resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-name         String
-description  String
-url          String?
-technologies String[]
-highlights   String[]
-createdAt    DateTime @default(now())
-updatedAt    DateTime @updatedAt
+  id           String   @id @default(cuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name         String
+  description  String
+  url          String?
+  technologies String[]
+  highlights   String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-@@map("projects")
+  @@map("projects")
 }
 
 model Education {
-id           String   @id @default(cuid())
-resumeId     String
-resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-degree       String
-field        String?
-institution  String
-location     String?
-year         Int
-achievements String[]
-createdAt    DateTime @default(now())
-updatedAt    DateTime @updatedAt
+  id           String   @id @default(cuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  degree       String
+  field        String?
+  institution  String
+  location     String?
+  year         Int
+  achievements String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-@@map("education")
+  @@map("education")
 }
 
 model Verification {
-id        String   @id @default(cuid())
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-urls      Json? // Store GitHub, LinkedIn, Portfolio URLs
-analysis  Json? // Store analysis results
-status    String   @default("pending")
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  urls      Json? // Store GitHub, LinkedIn, Portfolio URLs
+  analysis  Json? // Store analysis results
+  status    String   @default("pending")
 
-// Make jobSeekerId required and unique
-jobSeekerId String    @unique
-jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  // Make jobSeekerId required and unique
+  jobSeekerId String    @unique
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
 
-// Optional company relation for job application
-companyId String?
-company   Company? @relation(fields: [companyId], references: [id])
+  // Optional company relation for job application
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
-@@map("verifications")
+  @@map("verifications")
 }
 
 model Skill {
-id          String   @id @default(cuid())
-resumeId    String
-resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-name        String
-category    String
-proficiency Int?
-createdAt   DateTime @default(now())
-updatedAt   DateTime @updatedAt
+  id          String   @id @default(cuid())
+  resumeId    String
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  proficiency Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-@@map("skills")
+  @@map("skills")
 }
 
 model Account {
-userId            String
-type              String
-provider          String
-providerAccountId String
-refresh_token     String?
-access_token      String?
-expires_at        Int?
-token_type        String?
-scope             String?
-id_token          String?
-session_state     String?
-createdAt         DateTime @default(now())
-updatedAt         DateTime @updatedAt
-user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-@@id([provider, providerAccountId])
-@@map("accounts")
+  @@id([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
-sessionToken String   @unique
-userId       String
-expires      DateTime
-user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-createdAt    DateTime @default(now())
-updatedAt    DateTime @updatedAt
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-@@map("sessions")
+  @@map("sessions")
 }
 
 model VerificationToken {
-identifier String
-token      String
-expires    DateTime
+  identifier String
+  token      String
+  expires    DateTime
 
-@@id([identifier, token])
-@@map("verification_tokens")
+  @@id([identifier, token])
+  @@map("verification_tokens")
 }
 
 // Optional for WebAuthn support
 model Authenticator {
-credentialID         String  @unique
-userId               String
-providerAccountId    String
-credentialPublicKey  String
-counter              Int
-credentialDeviceType String
-credentialBackedUp   Boolean
-transports           String?
-user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-@@id([userId, credentialID])
-@@map("authenticators")
+  @@id([userId, credentialID])
+  @@map("authenticators")
 }
 
 enum UserType {
-COMPANY
-JOB_SEEKER
+  COMPANY
+  JOB_SEEKER
 }
 
 enum JobSearchStatus {
-ACTIVELY_LOOKING
-OPEN_TO_OFFERS
-NOT_LOOKING
+  ACTIVELY_LOOKING
+  OPEN_TO_OFFERS
+  NOT_LOOKING
 }
 
 model JobSeeker {
-id     String @id @default(uuid())
-user   User   @relation(fields: [userId], references: [id])
-userId String @unique
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
 
-email           String          @unique // Essential for communication
-currentJobTitle String? // Latest job title for quick assessment
-industry        String // Primary industry of expertise
-jobSearchStatus JobSearchStatus @default(OPEN_TO_OFFERS)
+  email           String          @unique // Essential for communication
+  currentJobTitle String? // Latest job title for quick assessment
+  industry        String // Primary industry of expertise
+  jobSearchStatus JobSearchStatus @default(OPEN_TO_OFFERS)
 
-expectedSalaryMin  Int?
-expectedSalaryMax  Int?
-preferredLocation  String
-remotePreference   String // "Remote" | "Hybrid" | "On-site"
-yearsOfExperience  Int
-certifications     Json? // Array of certification objects
-availabilityPeriod Int // Notice period in days
-availableFrom      DateTime? // Seeker’s Availability: date available to start
+  expectedSalaryMin  Int?
+  expectedSalaryMax  Int?
+  preferredLocation  String
+  remotePreference   String // "Remote" | "Hybrid" | "On-site"
+  yearsOfExperience  Int
+  certifications     Json? // Array of certification objects
+  availabilityPeriod Int // Notice period in days
+  availableFrom      DateTime? // Seeker’s Availability: date available to start
 
-education         Json // Main education array
-educationDetails  Json? // Optional additional education details
-desiredEmployment String // "Full-time" | "Part-time" | "Contract"
-name              String
-about             String
-resume            String   @db.VarChar(2048) // Increased length for URLs
-skills            String[]
-experience        Int
+  education         Json // Main education array
+  educationDetails  Json? // Optional additional education details
+  desiredEmployment String // "Full-time" | "Part-time" | "Contract"
+  name              String
+  about             String
+  resume            String   @db.VarChar(2048) // Increased length for URLs
+  skills            String[]
+  experience        Int
 
-previousJobExperience Json? // Array of previous job experience objects
+  previousJobExperience Json? // Array of previous job experience objects
 
-location          String
-phoneNumber       String?
-linkedin          String?   @db.VarChar(2048)
-github            String?   @db.VarChar(2048)
-portfolio         String?   @db.VarChar(2048)
-willingToRelocate Boolean? // Candidate’s Availability to Relocate
-lastAttemptAt     DateTime?
+  location          String
+  phoneNumber       String?
+  linkedin          String?   @db.VarChar(2048)
+  github            String?   @db.VarChar(2048)
+  portfolio         String?   @db.VarChar(2048)
+  willingToRelocate Boolean? // Candidate’s Availability to Relocate
+  lastAttemptAt     DateTime?
 
-applications JobApplication[]
-createdAt    DateTime         @default(now())
-updatedAt    DateTime         @updatedAt
-Verification Verification[]
+  applications JobApplication[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  Verification Verification[]
 
-@@map("job_seekers")
+  @@map("job_seekers")
 }
 
 model JobAnalysis {
-id        String   @id @default(cuid())
-jobPostId String   @unique
-analysis  Json
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-jobPost   JobPost  @relation(fields: [jobPostId], references: [id])
+  id        String   @id @default(cuid())
+  jobPostId String   @unique
+  analysis  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  jobPost   JobPost  @relation(fields: [jobPostId], references: [id])
 }
 
 enum CompanyType {
-PRIVATE
-PUBLIC
-NON_PROFIT
-OPEN_SOURCE
+  PRIVATE
+  PUBLIC
+  NON_PROFIT
+  OPEN_SOURCE
 }
 
 model Company {
-id            String         @id @default(uuid())
-companyID     String         @unique @default(uuid()) // Unique identifier for recruiters
-name          String
-location      String
-logo          String
-website       String
-xAccount      String?
-verifications Verification[]
-about         String
-industry      String // Field for the industry
-foundedAt     DateTime?
-employeeCount Int?
-annualRevenue Float?
-companyType   CompanyType? // Enum: 'Private', 'Public', 'Non-Profit', 'Open-Source'
-linkedInUrl   String? // LinkedIn profile URL for the company
+  id            String         @id @default(uuid())
+  companyID     String         @unique @default(uuid()) // Unique identifier for recruiters
+  name          String
+  location      String
+  logo          String
+  website       String
+  xAccount      String?
+  verifications Verification[]
+  about         String
+  industry      String // Field for the industry
+  foundedAt     DateTime?
+  employeeCount Int?
+  annualRevenue Float?
+  companyType   CompanyType? // Enum: 'Private', 'Public', 'Non-Profit', 'Open-Source'
+  linkedInUrl   String? // LinkedIn profile URL for the company
 
-// Newly added fields
-hiringStatus    Boolean? @default(true) // Indicates if the company is actively hiring
-glassdoorRating Float? // Average Glassdoor rating (e.g., 4.2)
-techStack       String[] // List of technologies the company primarily uses
+  // Newly added fields
+  hiringStatus    Boolean? @default(true) // Indicates if the company is actively hiring
+  glassdoorRating Float? // Average Glassdoor rating (e.g., 4.2)
+  techStack       String[] // List of technologies the company primarily uses
 
-user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-userId    String    @unique
-createdAt DateTime  @default(now())
-updatedAt DateTime  @updatedAt
-JobPost   JobPost[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  JobPost   JobPost[]
 
-@@map("companies")
+  @@map("companies")
 }
 
 model JobSeekerResume {
-resumeId   String   @id @default(uuid())
-resumeName String   @db.VarChar(255)
-resumeBio  String
-pdfUrlId   String   @db.VarChar(1024) // To store a URL for the uploaded PDF
-version    Int      @default(1) // Track resume versions
-isActive   Boolean  @default(true) // Current active version
-keywords   String[] // Extracted keywords for search
-parsedData Json? // Structured data from resume parsing
-createdAt  DateTime @default(now())
-updatedAt  DateTime @updatedAt
+  resumeId   String   @id @default(uuid())
+  resumeName String   @db.VarChar(255)
+  resumeBio  String
+  pdfUrlId   String   @db.VarChar(1024) // To store a URL for the uploaded PDF
+  version    Int      @default(1) // Track resume versions
+  isActive   Boolean  @default(true) // Current active version
+  keywords   String[] // Extracted keywords for search
+  parsedData Json? // Structured data from resume parsing
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-// Recruiter specific fields
-recruiterViews Int       @default(0) // Number of recruiter views
-lastViewedAt   DateTime? // Last time viewed by recruiter
-rating         Int? // Recruiter rating (1-5)
-tags           String[] // Custom tags added by recruiters
+  // Recruiter specific fields
+  recruiterViews Int       @default(0) // Number of recruiter views
+  lastViewedAt   DateTime? // Last time viewed by recruiter
+  rating         Int? // Recruiter rating (1-5)
+  tags           String[] // Custom tags added by recruiters
 }
 
 model JobPost {
-id                  String           @id @default(uuid())
-jobTitle            String
-employmentType      String
-codingQuestions     CodingQuestion[]
-location            String
-salaryFrom          Int
-salaryTo            Int
-jobDescription      String
-listingDuration     Int
-benefits            String[]
-status              JobPostStatus    @default(DRAFT)
-applications        Int              @default(0)
-views               Int              @default(0)
-clicks              Int              @default(0)
-company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-companyId           String
-createdAt           DateTime         @default(now())
-updatedAt           DateTime         @updatedAt
-SavedJobPost        SavedJobPost[]
-JobApplication      JobApplication[]
-JobAnalysis         JobAnalysis?
-metrics             JobMetrics?
-skillsRequired      String[] // List of required skills
-positionRequirement String // Entry, Mid, Senior, Expert
-requiredExperience  Int // Required years of experience
-jobCategory         String // Example: Software Development, Marketing, Finance
-interviewStages     Int // Number of interview rounds
-visaSponsorship     Boolean // Whether visa sponsorship is available
-compensationDetails Json // Flexible salary details, bonuses, stock options, etc.
+  id                  String           @id @default(uuid())
+  jobTitle            String
+  employmentType      String
+  codingQuestions     CodingQuestion[]
+  location            String
+  salaryFrom          Int
+  salaryTo            Int
+  jobDescription      String
+  listingDuration     Int
+  benefits            String[]
+  status              JobPostStatus    @default(DRAFT)
+  applications        Int              @default(0)
+  views               Int              @default(0)
+  clicks              Int              @default(0)
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId           String
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  SavedJobPost        SavedJobPost[]
+  JobApplication      JobApplication[]
+  JobAnalysis         JobAnalysis?
+  metrics             JobMetrics?
+  skillsRequired      String[] // List of required skills
+  positionRequirement String // Entry, Mid, Senior, Expert
+  requiredExperience  Int // Required years of experience
+  jobCategory         String // Example: Software Development, Marketing, Finance
+  interviewStages     Int // Number of interview rounds
+  visaSponsorship     Boolean // Whether visa sponsorship is available
+  compensationDetails Json // Flexible salary details, bonuses, stock options, etc.
 
-@@map("job_posts")
+  @@map("job_posts")
 }
 
 model JobMetrics {
-id           String   @id @default(uuid())
-jobPost      JobPost  @relation(fields: [jobPostId], references: [id])
-jobPostId    String   @unique
-totalViews   Int      @default(0)
-totalClicks  Int      @default(0)
-applications Int      @default(0)
-viewsByDate  Json // Store daily view counts
-clicksByDate Json // Store daily click counts
-locationData Json // Store location-based metrics
-createdAt    DateTime @default(now())
-updatedAt    DateTime @updatedAt
+  id             String  @id @default(uuid())
+  jobPost        JobPost @relation(fields: [jobPostId], references: [id])
+  jobPostId      String  @unique
+  totalViews     Int     @default(0)
+  totalClicks    Int     @default(0)
+  applications   Int     @default(0)
+  ctr            Float   @default(0) // Click-through rate as percentage
+  conversionRate Float   @default(0) // Conversion rate as percentage
+  viewsByDate    Json    @default("{}")
+  clicksByDate   Json    @default("{}")
+  locationData   Json    @default("{}")
 
-@@map("job_metrics")
+  // Candidate Match Analysis
+  topCandidateMatch    Json? @default("{}") // Stores detailed match scores for top candidates
+  candidateMatchScores Json? @default("{}") // Stores all candidate match scores and criteria
+  skillsMatchData      Json? @default("{}") // Detailed skills matching analysis
+  experienceMatchData  Json? @default("{}") // Experience level matching analysis
+  locationMatchData    Json? @default("{}") // Location preference matching
+  salaryMatchData      Json? @default("{}") // Salary expectations matching
+
+  // Application Quality Analysis
+  applicationQuality  Json? @default("{}") // Overall application quality metrics
+  applicationScores   Json? @default("{}") // Individual application scores
+  applicationFeedback Json? @default("{}") // Detailed feedback for each application
+  skillGaps           Json? @default("{}") // Identified skill gaps in applications
+
+  // Competitor Analysis
+  competitorBenchmark Json? @default("{}") // Overall competitor comparison
+  marketSalaryData    Json? @default("{}") // Salary benchmarking
+  marketSkillsData    Json? @default("{}") // Required skills in similar jobs
+  industryTrends      Json? @default("{}") // Relevant industry trends
+
+  // Time and Progress Analysis
+  timeToFillEstimate  Int? // Estimated days to fill position
+  dropOffAnalysis     Json? @default("{}") // Application funnel analysis
+  applicationTimeline Json? @default("{}") // Timeline of application process
+  hiringVelocity      Json? @default("{}") // Speed of hiring process metrics
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("job_metrics")
 }
 
 enum JobPostStatus {
-DRAFT
-ACTIVE
-EXPIRED
+  DRAFT
+  ACTIVE
+  EXPIRED
 }
 
 model SavedJobPost {
-id        String   @id @default(uuid())
-jobId     String
-userId    String
-job       JobPost  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id        String   @id @default(uuid())
+  jobId     String
+  userId    String
+  job       JobPost  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@unique([userId, jobId])
-@@map("saved_job_posts")
+  @@unique([userId, jobId])
+  @@map("saved_job_posts")
 }
 
 model JobApplication {
-id                String            @id @default(uuid())
-jobSeeker         JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
-jobSeekerId       String
-job               JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-jobId             String
-status            ApplicationStatus @default(PENDING)
-coverLetter       String?
-resume            String
-includeLinks      Boolean           @default(false)
-answers           Json?
-aiScore           Int?
-isActive          Boolean           @default(true)
-lastActivity      DateTime          @default(now())
-createdAt         DateTime          @default(now())
-updatedAt         DateTime          @updatedAt
-expectedSalaryMin Int?
-expectedSalaryMax Int?
-certifications    Json?
-education         Json?
-location          String?
-phoneNumber       String?
-desiredEmployment String?
+  id                String            @id @default(uuid())
+  jobSeeker         JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  jobSeekerId       String
+  job               JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId             String
+  status            ApplicationStatus @default(PENDING)
+  coverLetter       String?
+  resume            String
+  includeLinks      Boolean           @default(false)
+  answers           Json?
+  aiScore           Int?
+  isActive          Boolean           @default(true)
+  lastActivity      DateTime          @default(now())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  expectedSalaryMin Int?
+  expectedSalaryMax Int?
+  certifications    Json?
+  education         Json?
+  location          String?
+  phoneNumber       String?
+  desiredEmployment String?
 
-// Additional fields for recruiter dashboard
-recruiterNotes            String? // Notes added by recruiter
-interviewFeedback         Json? // Structured feedback from interviews
-applicationStage          String? // Current stage in recruitment process
-lastReviewedAt            DateTime? // When recruiter last reviewed
-reviewedBy                String? // Recruiter who last reviewed
-codingTestResults         Json? // Results from coding assessments
-technicalSkillsAssessment Json? // Detailed technical evaluation
-cultureFitScore           Int? // Score for culture fit (1-10)
-communicationScore        Int? // Score for communication (1-10)
+  // Additional fields for recruiter dashboard
+  recruiterNotes            String? // Notes added by recruiter
+  interviewFeedback         Json? // Structured feedback from interviews
+  applicationStage          String? // Current stage in recruitment process
+  lastReviewedAt            DateTime? // When recruiter last reviewed
+  reviewedBy                String? // Recruiter who last reviewed
+  codingTestResults         Json? // Results from coding assessments
+  technicalSkillsAssessment Json? // Detailed technical evaluation
+  cultureFitScore           Int? // Score for culture fit (1-10)
+  communicationScore        Int? // Score for communication (1-10)
 
-@@unique([jobSeekerId, jobId])
-@@map("job_applications")
+  @@unique([jobSeekerId, jobId])
+  @@map("job_applications")
 }
 
 model TestViolation {
-id        String   @id @default(cuid())
-testId    String
-count     Int
-timestamp DateTime @default(now())
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id        String   @id @default(cuid())
+  testId    String
+  count     Int
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CodingQuestion {
-id          String   @id @default(cuid())
-jobPostId   String
-jobPost     JobPost  @relation(fields: [jobPostId], references: [id])
-title       String
-description String
-difficulty  String
-timeLimit   Int
-testCases   Json
-constraints Json
-examples    Json
-createdAt   DateTime @default(now())
-updatedAt   DateTime @updatedAt
+  id          String   @id @default(cuid())
+  jobPostId   String
+  jobPost     JobPost  @relation(fields: [jobPostId], references: [id])
+  title       String
+  description String
+  difficulty  String
+  timeLimit   Int
+  testCases   Json
+  constraints Json
+  examples    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-@@map("coding_questions")
+  @@map("coding_questions")
 }
 
 enum ApplicationStatus {
-PENDING
-REVIEWED
-SHORTLISTED
-REJECTED
-ACCEPTED
-READY
-NOT_READY
-ACTIVE
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
+  ACCEPTED
+  READY
+  NOT_READY
+  ACTIVE
 }

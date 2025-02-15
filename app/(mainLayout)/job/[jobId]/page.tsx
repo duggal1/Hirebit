@@ -1,26 +1,31 @@
-// app/(mainLayout)/job/[jobId]/page.tsx
+
+
+import { prisma } from "@/app/utils/db";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
 import { notFound } from "next/navigation";
 import React from "react";
+
 import { benefits } from "@/app/utils/listOfBenefits";
 import Image from "next/image";
 import { Heart } from "lucide-react";
+
 import Link from "next/link";
 import { auth } from "@/app/utils/auth";
-import { SaveJobButton } from "@/components/general/SubmitButtons";
+import {
+  GeneralSubmitButton,
+  SaveJobButton,
+} from "@/components/general/SubmitButtons";
 import { getFlagEmoji } from "@/app/utils/countriesList";
 import { JsonToHtml } from "@/components/general/JsonToHtml";
-import { saveJobPost, unsaveJobPost } from "@/app/actions";
+import { saveJobPost, unsaveJobPost, trackJobView } from "@/app/actions";
+import { JobClickTracker } from "@/components/job/JobClickTracker";
+
 import arcjet, { detectBot } from "@/app/utils/arcjet";
 import { request } from "@arcjet/next";
-import { prisma } from "@/app/utils/db";
-import { JobClickTracker } from "@/components/metrics/JobMetricsTracker";
-//import { JobClickTracker, JobViewTracker } from "@/components/metrics/JobMetricsTracker";
-//import JobMetricsWrapper from "@/components/JobMetricsWrapper";
 
-// Protect requests with arcjet
 const aj = arcjet.withRule(
   detectBot({
     mode: "LIVE",
@@ -28,7 +33,6 @@ const aj = arcjet.withRule(
   })
 );
 
-// Fetch the job data from the database.
 async function getJob(jobId: string, userId?: string) {
   const [jobData, savedJob] = await Promise.all([
     prisma.jobPost.findUnique({
@@ -73,16 +77,23 @@ async function getJob(jobId: string, userId?: string) {
     return notFound();
   }
 
-  return { jobData, savedJob };
+  return {
+    jobData,
+    savedJob,
+  };
 }
 
-type PageProps = {
-  params: { jobId: string };
+type Params = Promise<{ jobId: string }>;
+
+const trackJobViewAction = async (jobId: string) => {
+  'use server';
+  await trackJobView(jobId);
 };
 
-const JobIdPage = async ({ params }: PageProps) => {
-  const { jobId } = params;
+const JobIdPage = async ({ params }: { params: Params }) => {
+  const { jobId } = await params;
   const req = await request();
+
   const decision = await aj.protect(req);
 
   if (decision.isDenied()) {
@@ -91,11 +102,13 @@ const JobIdPage = async ({ params }: PageProps) => {
 
   const session = await auth();
   const { jobData, savedJob } = await getJob(jobId, session?.user?.id);
+  
+  // Track view after getting job data
+  await trackJobViewAction(jobId);
   const locationFlag = getFlagEmoji(jobData.location);
 
   return (
     <div className="mx-auto py-8 container">
-
       <div className="gap-8 grid lg:grid-cols-[1fr,400px]">
         {/* Main Content */}
         <div className="space-y-8">
@@ -105,16 +118,20 @@ const JobIdPage = async ({ params }: PageProps) => {
               <h1 className="font-bold text-3xl">{jobData.jobTitle}</h1>
               <div className="flex items-center gap-2 mt-2">
                 <span className="font-medium">{jobData.company.name}</span>
+
                 <Badge className="rounded-full" variant="secondary">
                   {jobData.employmentType}
                 </Badge>
-                <span className="md:inline hidden text-muted-foreground">•</span>
+                <span className="md:inline hidden text-muted-foreground">
+                  •
+                </span>
                 <Badge className="rounded-full">
                   {locationFlag && <span className="mr-1">{locationFlag}</span>}
                   {jobData.location} Only
                 </Badge>
               </div>
             </div>
+
             {session?.user ? (
               <form
                 action={
@@ -128,7 +145,7 @@ const JobIdPage = async ({ params }: PageProps) => {
             ) : (
               <Button variant="outline" asChild>
                 <Link href="/login">
-                  <Heart className="mr-2" size={16} />
+                  <Heart className="mr-2 size-4" />
                   Save Job
                 </Link>
               </Button>
@@ -154,7 +171,7 @@ const JobIdPage = async ({ params }: PageProps) => {
                     key={benefit.id}
                     variant={isOffered ? "default" : "outline"}
                     className={`text-sm px-4 py-1.5 rounded-full ${
-                      !isOffered && "opacity-75 cursor-not-allowed"
+                      !isOffered && " opacity-75 cursor-not-allowed"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -166,15 +183,6 @@ const JobIdPage = async ({ params }: PageProps) => {
               })}
             </div>
           </section>
-
-          {/* Metrics Section */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold">Job Performance Metrics</h3>
-              {/* Use the client-side wrapper */}
-            
-            </div>
-          </Card>
         </div>
 
         {/* Sidebar */}
@@ -191,19 +199,13 @@ const JobIdPage = async ({ params }: PageProps) => {
                   JobMarshal. This helps us grow!
                 </p>
               </div>
-              {session?.user ? (
-                <form action={`/job/${jobId}/apply`}>
-                  <JobClickTracker jobId={jobId} location={jobData.location}>
-                    <Button className="w-full" size="lg">
-                      Apply Now
-                    </Button>
-                  </JobClickTracker>
-                </form>
-              ) : (
-                <Button asChild className="w-full" size="lg">
-                  <Link href="/login">Sign in to Apply</Link>
-                </Button>
-              )}
+              <form action={`/job/${jobId}/apply`}>
+                <JobClickTracker jobId={jobId}>
+                  <Button className="w-full" size="lg">
+                    Apply Now
+                  </Button>
+                </JobClickTracker>
+              </form>
             </div>
           </Card>
 
@@ -211,6 +213,7 @@ const JobIdPage = async ({ params }: PageProps) => {
           <Card className="p-6">
             <div className="space-y-4">
               <h3 className="font-semibold">About the job</h3>
+
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground text-sm">
@@ -267,7 +270,7 @@ const JobIdPage = async ({ params }: PageProps) => {
                   alt={jobData.company.name}
                   width={48}
                   height={48}
-                  className="rounded-full"
+                  className="rounded-full size-12"
                 />
                 <div>
                   <h3 className="font-semibold">{jobData.company.name}</h3>
@@ -276,6 +279,9 @@ const JobIdPage = async ({ params }: PageProps) => {
                   </p>
                 </div>
               </div>
+              {/*  <Button variant="outline" className="w-full">
+                View company profile
+              </Button> */}
             </div>
           </Card>
         </div>

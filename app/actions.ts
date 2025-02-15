@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import arcjet, { detectBot, shield } from "./utils/arcjet";
 import { request } from "@arcjet/next";
 import { inngest } from "./utils/inngest/client";
+import { calculateAndUpdateJobMetrics, updateMetricsWithLocation } from './utils/jobMetrics';
 import { Prisma, UserType } from "@prisma/client";
 import { auth } from "./utils/auth";
 import { companySchema, jobSchema, jobSeekerSchema, resumeSchema } from "./utils/zodSchemas";
@@ -86,7 +87,6 @@ export async function createCompany(data: z.infer<typeof companySchema>) {
   return redirect("/");
 }
 
-
 export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
   const user = await requireUser();
 
@@ -128,8 +128,6 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
         jobSearchStatus: validatedData.jobSearchStatus
       },
     });
-
-   
 
     // Create job application if jobId is provided
     if (jobId) {
@@ -395,17 +393,24 @@ export async function submitJobApplication(jobId: string, formData: FormData) {
     }
   });
 
-  // Trigger AI evaluation
+  // Trigger AI evaluation via Inngest (this line now correctly uses the `application` variable)
   await inngest.send({
     name: "application/submitted",
     data: { applicationId: application.id }
   });
 
+  // Also update job metrics to trigger Gemini analysis and store metrics data
+  await calculateAndUpdateJobMetrics(jobId);
+
   revalidatePath(`/job/${jobId}`);
   return { success: true };
 }
 
-// Add the type definitions
+
+//
+// Code Evaluation and Test Functions
+//
+
 export interface CodeEvaluation {
   score: number;
   feedback: string;
@@ -425,9 +430,6 @@ export interface GeneratedTest {
   duration: number;
   skillsTested: string[];
 }
-
-// Remove the first duplicate submitTest function and evaluateCode function
-// Keep only the more complete version
 
 async function evaluateCode(code: string, question: any): Promise<CodeEvaluation> {
   try {
@@ -504,7 +506,7 @@ export async function submitTest(
     score = evaluation.score;
   }
 
-  // Store results
+  // Store results in a new job application record
   const application = await prisma.jobApplication.create({
     data: {
       jobSeeker: {
@@ -521,7 +523,7 @@ export async function submitTest(
     }
   });
 
-  // Apply cooldown if failed
+  // If candidate failed, apply cooldown
   if (score < 70) {
     await prisma.jobSeeker.update({
       where: { id: jobSeeker.id },
@@ -542,160 +544,41 @@ function isInCooldown(lastAttemptAt: Date | null): boolean {
 }
 
 export async function trackJobView(jobId: string) {
+  "use server";
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const [jobPost, metrics] = await Promise.all([
-      prisma.jobPost.update({
-        where: { id: jobId },
-        data: { views: { increment: 1 } }
-      }),
-      prisma.jobMetrics.findUnique({
-        where: { jobPostId: jobId }
-      })
-    ]);
+    // Update job post views
+    await prisma.jobPost.update({
+      where: { id: jobId },
+      data: { views: { increment: 1 } }
+    });
 
-    if (!metrics) {
-      // Create initial metrics if they don't exist
-      await prisma.jobMetrics.create({
-        data: {
-          jobPostId: jobId,
-          totalViews: 1,
-          viewsByDate: { [today]: 1 },
-          clicksByDate: {},
-          locationData: {}
-        }
-      });
-    } else {
-      // Update existing metrics
-      const viewsByDate = { ...metrics.viewsByDate as any };
-      viewsByDate[today] = (viewsByDate[today] || 0) + 1;
-
-      await prisma.jobMetrics.update({
-        where: { jobPostId: jobId },
-        data: {
-          totalViews: { increment: 1 },
-          viewsByDate
-        }
-      });
-    }
-
-    revalidatePath(`/job/${jobId}`);
+    // Update metrics with location data
+    await updateMetricsWithLocation(jobId, 'view');
   } catch (error) {
     console.error('Failed to track job view:', error);
   }
 }
 
-export async function trackJobClick(jobId: string, location?: string) {
+
+export async function trackJobClick(jobId: string) {
+  "use server";
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const [jobPost, metrics] = await Promise.all([
-      prisma.jobPost.update({
-        where: { id: jobId },
-        data: { clicks: { increment: 1 } }
-      }),
-      prisma.jobMetrics.findUnique({
-        where: { jobPostId: jobId }
-      })
-    ]);
+    // Update job post clicks
+    await prisma.jobPost.update({
+      where: { id: jobId },
+      data: { clicks: { increment: 1 } }
+    });
 
-    if (!metrics) {
-      // Create initial metrics
-      await prisma.jobMetrics.create({
-        data: {
-          jobPostId: jobId,
-          totalClicks: 1,
-          clicksByDate: { [today]: 1 },
-          viewsByDate: {},
-          locationData: location ? { [location]: 1 } : {}
-        }
-      });
-    } else {
-      // Update existing metrics
-      const clicksByDate = { ...metrics.clicksByDate as any };
-      clicksByDate[today] = (clicksByDate[today] || 0) + 1;
-
-      const locationData = { ...metrics.locationData as any };
-      if (location) {
-        locationData[location] = (locationData[location] || 0) + 1;
-      }
-
-      await prisma.jobMetrics.update({
-        where: { jobPostId: jobId },
-        data: {
-          totalClicks: { increment: 1 },
-          clicksByDate,
-          locationData
-        }
-      });
-    }
-
-    revalidatePath(`/job/${jobId}`);
+    // Update metrics with location data
+    await updateMetricsWithLocation(jobId, 'click');
   } catch (error) {
     console.error('Failed to track job click:', error);
   }
 }
+
 export async function getJobMetrics(jobId: string) {
-  const [metrics, applications] = await Promise.all([
-    prisma.jobMetrics.findUnique({
-      where: { jobPostId: jobId },
-      include: {
-        jobPost: {
-          select: {
-            applications: true,
-            views: true,
-            clicks: true
-          }
-        }
-      }
-    }),
-    // Get actual submitted applications count
-    prisma.jobApplication.count({
-      where: {
-        jobId,
-        status: {
-          in: ['PENDING', 'REVIEWED', 'SHORTLISTED', 'ACCEPTED']
-        }
-      }
-    })
-  ]);
-
-  if (!metrics) {
-    return {
-      totalViews: 0,
-      totalClicks: 0,
-      applications: 0,
-      ctr: 0,
-      conversionRate: 0,
-      viewsByDate: {},
-      clicksByDate: {},
-      locationData: {}
-    };
-  }
-
-  // CTR: Clicks divided by Views
-  const ctr = metrics.totalViews > 0
-    ? (metrics.totalClicks / metrics.totalViews) * 100
-    : 0;
-
-  // Conversion Rate: Actual Applications divided by Clicks
-  const conversionRate = metrics.totalClicks > 0
-    ? (applications / metrics.totalClicks) * 100
-    : 0;
-
-  return {
-    totalViews: metrics.totalViews,
-    totalClicks: metrics.totalClicks,
-    applications, // Actual submitted applications
-    ctr: Number(ctr.toFixed(2)), // Round to 2 decimal places
-    conversionRate: Number(conversionRate.toFixed(2)),
-    viewsByDate: metrics.viewsByDate,
-    clicksByDate: metrics.clicksByDate,
-    locationData: metrics.locationData
-  };
+  return calculateAndUpdateJobMetrics(jobId);
 }
-
 
 export type FormState = {
   message: string;
@@ -718,13 +601,6 @@ export const submitJobSeeker = async (
         success: false 
       };
     }
-
-    const email = formData.get('email') as string;
-    
-    // First check if a profile already exists with this email
-    const existingProfile = await prisma.jobSeeker.findUnique({
-      where: { email }
-    });
     
     const rawData = {
       educationDetails: formData.get('education')
@@ -767,15 +643,12 @@ export const submitJobSeeker = async (
       email: formData.get('email') as string,
       currentJobTitle: formData.get('currentJobTitle') as string || null,
       industry: formData.get('industry') as string,
-        jobSearchStatus: formData.get('jobSearchStatus') as "ACTIVELY_LOOKING" | "OPEN_TO_OFFERS" | "NOT_LOOKING"
+      jobSearchStatus: formData.get('jobSearchStatus') as "ACTIVELY_LOOKING" | "OPEN_TO_OFFERS" | "NOT_LOOKING"
     };
 
     const validatedData = jobSeekerSchema.parse(rawData);
     
-    if (existingProfile) {
-      // Update existing profile
-      const updatedJobSeeker = await prisma.jobSeeker.update({
-      where: { email },
+    const jobSeeker = await prisma.jobSeeker.create({
       data: {
         name: validatedData.name,
         about: validatedData.about,
@@ -791,8 +664,8 @@ export const submitJobSeeker = async (
         availabilityPeriod: validatedData.availabilityPeriod,
         desiredEmployment: validatedData.desiredEmployment,
         certifications: validatedData.certifications 
-        ? (validatedData.certifications as unknown as Prisma.JsonArray)
-        : Prisma.JsonNull,
+          ? (validatedData.certifications as unknown as Prisma.JsonArray)
+          : Prisma.JsonNull,
         phoneNumber: validatedData.phoneNumber,
         linkedin: validatedData.linkedin || null,
         github: validatedData.github || null,
@@ -800,55 +673,14 @@ export const submitJobSeeker = async (
         availableFrom: validatedData.availableFrom,
         previousJobExperience: validatedData.previousJobExperience,
         willingToRelocate: validatedData.willingToRelocate,
+        // New fields
+        email: validatedData.email,
         currentJobTitle: validatedData.currentJobTitle,
         industry: validatedData.industry,
         jobSearchStatus: validatedData.jobSearchStatus,
         user: {
-        connect: { id: session.user.id }
+          connect: { id: session.user.id }
         }
-      },
-      });
-
-      return { 
-        message: "Profile created successfully!",
-      success: true,
-      redirect: '/'
-      };
-    }
-
-    // Create new profile if none exists
-    const jobSeeker = await prisma.jobSeeker.create({
-      data: {
-      name: validatedData.name,
-      about: validatedData.about,
-      resume: validatedData.resume,
-      location: validatedData.location,
-      skills: validatedData.skills,
-      experience: validatedData.experience,
-      education: validatedData.education as Prisma.JsonArray,
-      expectedSalaryMax: validatedData.expectedSalaryMax,
-      preferredLocation: validatedData.preferredLocation,
-      remotePreference: validatedData.remotePreference,
-      yearsOfExperience: validatedData.yearsOfExperience,
-      availabilityPeriod: validatedData.availabilityPeriod,
-      desiredEmployment: validatedData.desiredEmployment,
-      certifications: validatedData.certifications 
-        ? (validatedData.certifications as unknown as Prisma.JsonArray)
-        : Prisma.JsonNull,
-      phoneNumber: validatedData.phoneNumber,
-      linkedin: validatedData.linkedin || null,
-      github: validatedData.github || null,
-      portfolio: validatedData.portfolio || null,
-      availableFrom: validatedData.availableFrom,
-      previousJobExperience: validatedData.previousJobExperience,
-      willingToRelocate: validatedData.willingToRelocate,
-      email: validatedData.email,
-      currentJobTitle: validatedData.currentJobTitle,
-      industry: validatedData.industry,
-      jobSearchStatus: validatedData.jobSearchStatus,
-      user: {
-        connect: { id: session.user.id }
-      }
       },
     });
 
@@ -877,8 +709,6 @@ export const submitJobSeeker = async (
     };
   }
 };
-
-
 
 export const submitJobSeekerResume = async (
   prevState: FormState,  // new first parameter (can be ignored if not needed)
@@ -932,4 +762,4 @@ export const submitJobSeekerResume = async (
 
   // After successful storage, redirect the user to the coding test page.
   return redirect(`/coding-test/${jobId}`);
-}
+};
