@@ -7,6 +7,7 @@ import { inngest } from './inngest/client';
 //
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+console.log('Gemini model initialized.');
 
 //
 // Types
@@ -62,63 +63,128 @@ interface CompetitorAnalysisResult {
 }
 
 //
-// Main functions
+// Helper: Clean JSON output from Gemini
+//
+function cleanJSON(text: string): string {
+  let cleaned = text.trim();
+  // Remove triple backticks and an optional "json" specifier if present.
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  }
+  return cleaned;
+}
+
+//
+// Helper functions for matching calculations
+//
+function normalizeSkills(skills: string[]): string[] {
+  return skills.map(skill => skill.toLowerCase().trim());
+}
+
+function calculateSkillMatch(required: string[], candidate: string[]): { matched: string[]; missing: string[]; score: number } {
+  const normalizedRequired = normalizeSkills(required);
+  const normalizedCandidate = normalizeSkills(candidate);
+  const matched = normalizedRequired.filter(skill => normalizedCandidate.includes(skill));
+  const missing = normalizedRequired.filter(skill => !normalizedCandidate.includes(skill));
+  return {
+    matched,
+    missing,
+    score: normalizedRequired.length ? (matched.length / normalizedRequired.length) * 100 : 0,
+  };
+}
+
+function calculateLocationMatch(jobLocation: string, candidateLocation: string): number {
+  if (!jobLocation || !candidateLocation) return 0;
+  return jobLocation.toLowerCase() === candidateLocation.toLowerCase() ? 100 : 0;
+}
+
+function isSalaryInRange(min: number, max: number, expected?: number): boolean {
+  if (!expected) return false;
+  return expected >= min && expected <= max;
+}
+
+function getTotalExperience(workExperience: any[] = []): number {
+  return workExperience.reduce((total, exp) => {
+    const start = new Date(exp.startDate);
+    const end = exp.endDate ? new Date(exp.endDate) : new Date();
+    return total + (end.getFullYear() - start.getFullYear());
+  }, 0);
+}
+
+function calculateAverageSalary(jobs: any[]): number {
+  const salaries = jobs.map(job => (job.salaryFrom + job.salaryTo) / 2);
+  return salaries.reduce((a, b) => a + b, 0) / (salaries.length || 1);
+}
+
+function getSalaryRange(jobs: any[]): { min: number; max: number } {
+  return {
+    min: Math.min(...jobs.map(job => job.salaryFrom)),
+    max: Math.max(...jobs.map(job => job.salaryTo)),
+  };
+}
+
+//
+// Parsing placeholders – replace these with your actual parsing logic if available
+//
+function parseApplicationQualityResponse(text: string): ApplicationQualityResult {
+  console.log('Parsing application quality response...');
+  // Placeholder: return an empty structure
+  return {
+    score: 0,
+    feedback: '',
+    skillGaps: [],
+    strengths: [],
+    recommendations: [],
+  };
+}
+
+function parseCompetitorAnalysisResponse(text: string): CompetitorAnalysisResult {
+  console.log('Parsing competitor analysis response...');
+  // Placeholder: return an empty structure
+  return {
+    marketPosition: '',
+    salaryCompetitiveness: '',
+    requiredSkillsAnalysis: {},
+    industryTrends: [],
+    recommendations: [],
+  };
+}
+
+//
+// Main Functions
 //
 
 export async function analyzeCandidateMatch(jobId: string, applicationId: string): Promise<CandidateMatchResult> {
+  console.log('Starting candidate match analysis...');
+
   // Fetch data from all relevant tables
   const [jobPost, application, jobSeeker] = await Promise.all([
     prisma.jobPost.findUnique({
       where: { id: jobId },
-      include: {
-        company: true,
-        metrics: true,
-      },
+      include: { company: true, metrics: true },
     }),
     prisma.jobApplication.findUnique({
       where: { id: applicationId },
-      include: { 
-        jobSeeker: true // include relation so we can use application.jobSeeker if needed 
-      }
+      include: { jobSeeker: true },
     }),
     prisma.jobSeeker.findFirst({
-      where: {
-        applications: {
-          some: {
-            id: applicationId,
-          },
-        },
-      },
-      // jobSeeker.skills is string[] and experience is a number, education is JSON.
+      where: { applications: { some: { id: applicationId } } },
     }),
   ]);
 
-  if (!jobPost) {
-    throw new Error('Job post not found');
-  }
+  if (!jobPost) throw new Error('Job post not found');
+  console.log('Job post found:', jobPost.id);
+  if (!application) throw new Error('Application not found');
+  console.log('Application found:', application.id);
+  if (!jobSeeker) throw new Error('Job seeker not found');
+  console.log('Job seeker found:', jobSeeker.id);
 
-  if (!application) {
-    throw new Error('Application not found');
-  }
-
-  if (!jobSeeker) {
-    throw new Error('Job seeker not found');
-  }
-
-  // Extract keywords from job description using Gemini
+  // Keyword extraction prompt
   const keywordExtractionPrompt = `
 Extract key requirements and keywords from this job description:
 ${jobPost.jobDescription}
 
-Please identify:
-1. Required technical skills
-2. Soft skills
-3. Industry knowledge
-4. Experience requirements
-5. Education requirements
-6. Cultural aspects
-
-Format as JSON with these exact keys:
+Please output ONLY valid JSON (with no additional text) using these exact keys:
 {
   "technical": string[],
   "soft": string[],
@@ -128,19 +194,26 @@ Format as JSON with these exact keys:
   "culture": string[]
 }
   `;
-
+  console.log('Sending keyword extraction prompt...');
   const keywordsResult = await model.generateContent(keywordExtractionPrompt);
-  const extractedKeywords = JSON.parse(keywordsResult.response.text());
+  const rawKeywordsText = cleanJSON(keywordsResult.response.text());
+  console.log('Raw keyword extraction output:', rawKeywordsText);
+
+  let extractedKeywords: any;
+  try {
+    extractedKeywords = JSON.parse(rawKeywordsText);
+  } catch (err) {
+    console.error('Error parsing keywords result. Cleaned output:', rawKeywordsText);
+    throw err;
+  }
+  console.log('Extracted keywords:', extractedKeywords);
 
   // Calculate initial skill match
-  // Here, jobSeeker.skills is string[]
-  const skillMatch = calculateSkillMatch(
-    extractedKeywords.technical,
-    jobSeeker.skills || []
-  );
+  const skillMatch = calculateSkillMatch(extractedKeywords.technical, jobSeeker.skills || []);
+  console.log('Calculated skill match:', skillMatch);
 
   // Main analysis prompt
-  const prompt = `
+  const mainPrompt = `
 Perform a detailed candidate match analysis using these weights:
 - Experience: 40% weight
 - Skills: 30% weight
@@ -148,18 +221,10 @@ Perform a detailed candidate match analysis using these weights:
 - Salary: 10% weight
 
 Job Details:
-${JSON.stringify({
-  ...jobPost,
-  extractedKeywords,
-  skillMatch
-}, null, 2)}
+${JSON.stringify({ ...jobPost, extractedKeywords, skillMatch }, null, 2)}
 
 Candidate Profile:
-${JSON.stringify({
-  experience: jobSeeker.experience,
-  skills: jobSeeker.skills,
-  education: jobSeeker.education,
-}, null, 2)}
+${JSON.stringify({ experience: jobSeeker.experience, skills: jobSeeker.skills, education: jobSeeker.education }, null, 2)}
 
 Provide a detailed analysis with:
 1. Semantic matching scores (0-100) for each category
@@ -172,30 +237,26 @@ Provide a detailed analysis with:
 
 Format response as JSON with these exact keys:
 {
-  "scores": {
-    "skills": number,
-    "experience": number,
-    "location": number,
-    "salary": number
-  },
-  "semanticMatch": {
-    "skillsSimilarity": number,
-    "experienceSimilarity": number,
-    "domainKnowledge": number,
-    "cultureFit": number
-  },
-  "keywordAnalysis": {
-    "matched": string[],
-    "missing": string[]
-  },
+  "scores": { "skills": number, "experience": number, "location": number, "salary": number },
+  "semanticMatch": { "skillsSimilarity": number, "experienceSimilarity": number, "domainKnowledge": number, "cultureFit": number },
+  "keywordAnalysis": { "matched": string[], "missing": string[] },
   "feedback": string,
   "recommendations": string[]
 }
   `;
+  console.log('Sending main candidate analysis prompt...');
+  const mainResult = await model.generateContent(mainPrompt);
+  const rawMainResponse = cleanJSON(mainResult.response.text());
+  console.log('Raw main analysis output:', rawMainResponse);
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const analysisData = JSON.parse(response.text());
+  let analysisData: any;
+  try {
+    analysisData = JSON.parse(rawMainResponse);
+  } catch (err) {
+    console.error('Error parsing main analysis response. Cleaned output:', rawMainResponse);
+    throw err;
+  }
+  console.log('Analysis data received:', analysisData);
 
   // Calculate weighted score
   const weightedScore = {
@@ -204,109 +265,80 @@ Format response as JSON with these exact keys:
     location: analysisData.scores.location * 0.2,
     salary: analysisData.scores.salary * 0.1,
   };
-
   const overallScore = Object.values(weightedScore).reduce((a, b) => a + b, 0);
+  console.log('Weighted scores:', weightedScore, 'Overall score:', overallScore);
 
-  const analysis: CandidateMatchResult = {
+  const candidateAnalysis: CandidateMatchResult = {
     overallScore,
-    skillsScore: analysisData.scores.skills,
-    experienceScore: analysisData.scores.experience,
-    locationScore: analysisData.scores.location,
-    salaryScore: analysisData.scores.salary,
-    feedback: analysisData.feedback,
+    skillsScore: analysisData.scores.skills || 0,
+    experienceScore: analysisData.scores.experience || 0,
+    locationScore: analysisData.scores.location || 0,
+    salaryScore: analysisData.scores.salary || 0,
+    feedback: analysisData.feedback || '',
     extractedKeywords: {
       jobRequirements: (extractedKeywords.technical || []).concat(extractedKeywords.soft || []),
       candidateSkills: jobSeeker.skills || [],
-      matchedSkills: analysisData.keywordAnalysis.matched,
-      missingSkills: analysisData.keywordAnalysis.missing,
+      matchedSkills: analysisData.keywordAnalysis?.matched || [],
+      missingSkills: analysisData.keywordAnalysis?.missing || [],
     },
-    semanticMatchDetails: analysisData.semanticMatch,
+    semanticMatchDetails: analysisData.semanticMatch || {},
     matchDetails: {
       weightedScores: weightedScore,
-      keywordMatchRate: analysisData.keywordAnalysis.matched.length / (extractedKeywords.technical.length || 1),
-      // Use jobSeeker.experience as the total years of experience
+      keywordMatchRate: analysisData.keywordAnalysis?.matched
+        ? analysisData.keywordAnalysis.matched.length / (extractedKeywords.technical.length || 1)
+        : 0,
       experienceYearsMatch: jobPost.requiredExperience <= jobSeeker.experience,
       locationMatch: calculateLocationMatch(jobPost.location, jobSeeker.location || ''),
-      // For salary, assume jobSeeker has expectedSalaryMin and expectedSalaryMax fields
       salaryMatch: isSalaryInRange(jobPost.salaryFrom, jobPost.salaryTo, (application as any).expectedSalaryMin),
     },
-    recommendations: analysisData.recommendations,
+    recommendations: analysisData.recommendations || [],
   };
+  console.log('Final candidate match analysis:', candidateAnalysis);
 
-  // Prepare metrics update data – store as JSON strings
-  const metricsUpdate: any = {
-    candidateMatchScores: JSON.stringify({
-      [applicationId]: {
-        scores: analysisData.scores,
-        feedback: analysisData.feedback,
-      },
-    }),
-    skillsMatchData: JSON.stringify({
-      [applicationId]: {
-        matched: analysisData.keywordAnalysis.matched,
-        missing: analysisData.keywordAnalysis.missing,
-        matchRate: analysisData.keywordAnalysis.matched.length / (extractedKeywords.technical.length || 1),
-      },
-    }),
-    experienceMatchData: JSON.stringify({
-      [applicationId]: {
-        // Assuming experienceSimilarity and domainKnowledge are available
-        relevantExperience: analysisData.semanticMatch.experienceSimilarity,
-        domainKnowledge: analysisData.semanticMatch.domainKnowledge,
-      },
-    }),
-  };
-
-  if (overallScore > 80) {
-    metricsUpdate.topCandidateMatch = JSON.stringify({
+  // Update job metrics for candidate match analysis (ensuring organized structure)
+  const candidateMetrics = {
+    candidateMatchScores: { [applicationId]: analysisData.scores || {} },
+    skillsMatchData: { [applicationId]: analysisData.keywordAnalysis || {} },
+    experienceMatchData: { [applicationId]: analysisData.semanticMatch || {} },
+    locationMatchData: { [applicationId]: analysisData.locationMatch || {} },
+    salaryMatchData: { [applicationId]: analysisData.salaryMatch || {} },
+    topCandidateMatch: {
       [applicationId]: {
         score: overallScore,
-        feedback: analysisData.feedback,
+        feedback: analysisData.feedback || "",
         matchDetails: weightedScore,
-        recommendations: analysisData.recommendations,
+        recommendations: analysisData.recommendations || [],
       },
-    });
-  }
-
+    },
+  };
+  console.log('Updating job metrics for candidate match analysis...');
   await prisma.jobMetrics.update({
     where: { jobPostId: jobId },
-    data: metricsUpdate,
+    data: {
+      candidateMatchScores: JSON.stringify(candidateMetrics.candidateMatchScores),
+      skillsMatchData: JSON.stringify(candidateMetrics.skillsMatchData),
+      experienceMatchData: JSON.stringify(candidateMetrics.experienceMatchData),
+      locationMatchData: JSON.stringify(candidateMetrics.locationMatchData),
+      salaryMatchData: JSON.stringify(candidateMetrics.salaryMatchData),
+      topCandidateMatch: JSON.stringify(candidateMetrics.topCandidateMatch),
+    },
   });
+  console.log('Job metrics updated successfully for candidate match analysis.');
 
-  return analysis;
+  return candidateAnalysis;
 }
 
 export async function analyzeApplicationQuality(jobId: string, applicationId: string): Promise<ApplicationQualityResult> {
+  console.log('Starting application quality analysis...');
   const [jobPost, application, jobSeeker] = await Promise.all([
-    prisma.jobPost.findUnique({
-      where: { id: jobId },
-      include: { company: true },
-    }),
-    prisma.jobApplication.findUnique({
-      where: { id: applicationId },
-    }),
-    prisma.jobSeeker.findFirst({
-      where: {
-        applications: {
-          some: {
-            id: applicationId,
-          },
-        },
-      },
-    }),
+    prisma.jobPost.findUnique({ where: { id: jobId }, include: { company: true } }),
+    prisma.jobApplication.findUnique({ where: { id: applicationId } }),
+    prisma.jobSeeker.findFirst({ where: { applications: { some: { id: applicationId } } } }),
   ]);
-
-  if (!jobPost) {
-    throw new Error('Job post not found');
-  }
-
-  if (!application) {
-    throw new Error('Application not found');
-  }
-
-  if (!jobSeeker) {
-    throw new Error('Job seeker not found');
-  }
+  if (!jobPost) throw new Error('Job post not found for application quality analysis');
+  if (!application) throw new Error('Application not found for application quality analysis');
+  if (!jobSeeker) throw new Error('Job seeker not found for application quality analysis');
+  console.log('Job post, application, and job seeker found for application quality analysis.');
 
   const prompt = `
 Analyze this job application quality:
@@ -331,45 +363,50 @@ Provide:
 4. Key strengths
 5. Recommendations for improvement
   `;
+  console.log('Sending application quality prompt...');
+  const qualityResult = await model.generateContent(prompt);
+  const rawAppQuality = cleanJSON(qualityResult.response.text());
+  console.log('Raw application quality output:', rawAppQuality);
+  let qualityAnalysis: ApplicationQualityResult;
+  try {
+    qualityAnalysis = JSON.parse(rawAppQuality);
+  } catch (err) {
+    console.error('Error parsing application quality response. Cleaned output:', rawAppQuality);
+    throw err;
+  }
+  console.log('Application quality analysis received:', qualityAnalysis);
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const analysis = parseApplicationQualityResponse(response.text());
-
+  // Update job metrics for application quality (ensuring organized structure)
+  const qualityMetrics = {
+    applicationQuality: { [applicationId]: qualityAnalysis || {} },
+    applicationScores: { [applicationId]: qualityAnalysis.score || 0 },
+    applicationFeedback: { [applicationId]: qualityAnalysis.feedback || "" },
+    skillGaps: { [applicationId]: qualityAnalysis.skillGaps || [] },
+  };
+  console.log('Updating job metrics for application quality...');
   await prisma.jobMetrics.update({
     where: { jobPostId: jobId },
     data: {
-      applicationQuality: JSON.stringify({
-        [applicationId]: analysis,
-      }),
-      applicationScores: JSON.stringify({
-        [applicationId]: analysis.score,
-      }),
-      applicationFeedback: JSON.stringify({
-        [applicationId]: analysis.feedback,
-      }),
-      skillGaps: JSON.stringify({
-        [applicationId]: analysis.skillGaps,
-      }),
+      applicationQuality: JSON.stringify(qualityMetrics.applicationQuality),
+      applicationScores: JSON.stringify(qualityMetrics.applicationScores),
+      applicationFeedback: JSON.stringify(qualityMetrics.applicationFeedback),
+      skillGaps: JSON.stringify(qualityMetrics.skillGaps),
     },
   });
+  console.log('Job metrics updated with application quality data.');
 
-  return analysis;
+  return qualityAnalysis;
 }
 
 export async function analyzeCompetitorBenchmark(jobId: string): Promise<CompetitorAnalysisResult> {
+  console.log('Starting competitor benchmark analysis for jobId:', jobId);
   const jobPost = await prisma.jobPost.findUnique({
     where: { id: jobId },
-    include: {
-      company: true,
-    },
+    include: { company: true },
   });
+  if (!jobPost) throw new Error('Job post not found for competitor benchmark analysis');
+  console.log('Job post found:', jobPost.id);
 
-  if (!jobPost) {
-    throw new Error('Job post not found');
-  }
-
-  // Get similar job posts (using a simple filter on title and active status)
   const similarJobs = await prisma.jobPost.findMany({
     where: {
       AND: [
@@ -380,6 +417,7 @@ export async function analyzeCompetitorBenchmark(jobId: string): Promise<Competi
     },
     take: 10,
   });
+  console.log('Found', similarJobs.length, 'similar jobs.');
 
   const prompt = `
 Analyze this job posting compared to similar positions:
@@ -406,108 +444,41 @@ Provide:
 4. Industry trends
 5. Recommendations for improvement
   `;
+  console.log('Sending competitor benchmark prompt...');
+  const competitorResult = await model.generateContent(prompt);
+  const rawCompetitor = cleanJSON(competitorResult.response.text());
+  console.log('Raw competitor benchmark output:', rawCompetitor);
+  let competitorAnalysis: CompetitorAnalysisResult;
+  try {
+    competitorAnalysis = JSON.parse(rawCompetitor);
+  } catch (err) {
+    console.error('Error parsing competitor benchmark response. Cleaned output:', rawCompetitor);
+    throw err;
+  }
+  console.log('Competitor analysis received:', competitorAnalysis);
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const analysis = parseCompetitorAnalysisResponse(response.text());
-
+  // Update job metrics for competitor analysis (ensuring organized structure)
+  const competitorMetrics = {
+    competitorBenchmark: competitorAnalysis || {},
+    marketSalaryData: {
+      average: calculateAverageSalary(similarJobs),
+      range: getSalaryRange(similarJobs),
+      competitiveness: competitorAnalysis.salaryCompetitiveness || "",
+    },
+    marketSkillsData: competitorAnalysis.requiredSkillsAnalysis || {},
+    industryTrends: competitorAnalysis.industryTrends || [],
+  };
+  console.log('Updating job metrics for competitor benchmark analysis...');
   await prisma.jobMetrics.update({
     where: { jobPostId: jobId },
     data: {
-      competitorBenchmark: JSON.stringify(analysis),
-      marketSalaryData: JSON.stringify({
-        average: calculateAverageSalary(similarJobs),
-        range: getSalaryRange(similarJobs),
-        competitiveness: analysis.salaryCompetitiveness,
-      }),
-      marketSkillsData: JSON.stringify(analysis.requiredSkillsAnalysis),
-      industryTrends: JSON.stringify(analysis.industryTrends),
+      competitorBenchmark: JSON.stringify(competitorMetrics.competitorBenchmark),
+      marketSalaryData: JSON.stringify(competitorMetrics.marketSalaryData),
+      marketSkillsData: JSON.stringify(competitorMetrics.marketSkillsData),
+      industryTrends: JSON.stringify(competitorMetrics.industryTrends),
     },
   });
+  console.log('Job metrics updated with competitor benchmark analysis.');
 
-  return analysis;
-}
-
-//
-// Helper functions
-//
-
-function getTotalExperience(workExperience: any[] = []): number {
-  // Not used now – we use jobSeeker.experience (a number)
-  return workExperience.reduce((total, exp) => {
-    const start = new Date(exp.startDate);
-    const end = exp.endDate ? new Date(exp.endDate) : new Date();
-    return total + (end.getFullYear() - start.getFullYear());
-  }, 0);
-}
-
-function calculateLocationMatch(jobLocation: string, candidateLocation: string): number {
-  if (!jobLocation || !candidateLocation) return 0;
-  return jobLocation.toLowerCase() === candidateLocation.toLowerCase() ? 100 : 0;
-}
-
-function isSalaryInRange(min: number, max: number, expected?: number): boolean {
-  if (!expected) return false;
-  return expected >= min && expected <= max;
-}
-
-function normalizeSkills(skills: string[]): string[] {
-  return skills.map(skill => skill.toLowerCase().trim());
-}
-
-function calculateSkillMatch(required: string[], candidate: string[]): {
-  matched: string[];
-  missing: string[];
-  score: number;
-} {
-  const normalizedRequired = normalizeSkills(required);
-  const normalizedCandidate = normalizeSkills(candidate);
-
-  const matched = normalizedRequired.filter(skill =>
-    normalizedCandidate.includes(skill)
-  );
-
-  const missing = normalizedRequired.filter(skill =>
-    !normalizedCandidate.includes(skill)
-  );
-
-  return {
-    matched,
-    missing,
-    score: normalizedRequired.length ? (matched.length / normalizedRequired.length) * 100 : 0,
-  };
-}
-
-function parseApplicationQualityResponse(text: string): ApplicationQualityResult {
-  // Implement your parsing logic here – for now return a placeholder.
-  return {
-    score: 0,
-    feedback: '',
-    skillGaps: [],
-    strengths: [],
-    recommendations: [],
-  };
-}
-
-function parseCompetitorAnalysisResponse(text: string): CompetitorAnalysisResult {
-  // Implement your parsing logic here – for now return a placeholder.
-  return {
-    marketPosition: '',
-    salaryCompetitiveness: '',
-    requiredSkillsAnalysis: {},
-    industryTrends: [],
-    recommendations: [],
-  };
-}
-
-function calculateAverageSalary(jobs: any[]): number {
-  const salaries = jobs.map(job => (job.salaryFrom + job.salaryTo) / 2);
-  return salaries.reduce((a, b) => a + b, 0) / (salaries.length || 1);
-}
-
-function getSalaryRange(jobs: any[]): { min: number; max: number } {
-  return {
-    min: Math.min(...jobs.map(job => job.salaryFrom)),
-    max: Math.max(...jobs.map(job => job.salaryTo)),
-  };
+  return competitorAnalysis;
 }

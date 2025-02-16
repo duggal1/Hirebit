@@ -15,6 +15,7 @@ import { Prisma, UserType } from "@prisma/client";
 import { auth } from "./utils/auth";
 import { companySchema, jobSchema, jobSeekerSchema, resumeSchema } from "./utils/zodSchemas";
 import { v4 as uuidv4 } from "uuid"; // Import UUID generator
+import { errorHandler } from "./middleware/errorHandler";
 
 const aj = arcjet
   .withRule(
@@ -393,11 +394,7 @@ export async function submitJobApplication(jobId: string, formData: FormData) {
     }
   });
 
-  // Trigger AI evaluation via Inngest (this line now correctly uses the `application` variable)
-  await inngest.send({
-    name: "application/submitted",
-    data: { applicationId: application.id }
-  });
+ 
 
   // Also update job metrics to trigger Gemini analysis and store metrics data
   await calculateAndUpdateJobMetrics(jobId);
@@ -553,7 +550,7 @@ export async function trackJobView(jobId: string) {
     });
 
     // Update metrics with location data
-    await updateMetricsWithLocation(jobId, 'view');
+    await updateMetricsWithLocation(jobId, 'view')
   } catch (error) {
     console.error('Failed to track job view:', error);
   }
