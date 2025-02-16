@@ -179,7 +179,7 @@ Rules for analysis:
 2. Focus on technical skills, experience, and education.
 3. Provide actionable improvement suggestions.
 4. Analyze the resume for excessive use of buzzwords that might turn off recruiters.
-5. Identify any critical flaws in the resume.
+5. Identify any critical flaws in the resume. Critical flaws include: overuse of buzzwords, overlapping engineering jargon, multiple job titles that conflict or confuse, a confusing overall structure, or language that appears shady or unprofessional.
 6. Offer additional recommendations for improvement.
 
 Resume text to analyze:

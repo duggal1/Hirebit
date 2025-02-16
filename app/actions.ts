@@ -729,26 +729,30 @@ export const submitJobSeeker = async (
   }
 };
 
+
+
+
+
 export const submitJobSeekerResume = async (
-  prevState: FormState,  // new first parameter (can be ignored if not needed)
+  prevState: FormState, // new first parameter (can be ignored if not needed)
   formData: FormData
 ): Promise<FormState> => {
-
   const user = await requireUser();
   if (!user?.id) {
     throw new Error("You must be logged in to submit your resume.");
   }
 
-  // Extract the jobId from the formData so we can redirect later.
-  // (Assuming the client includes a hidden input named "jobId")
-  const jobId = formData.get("jobId")?.toString();
-  if (!jobId) {
-    throw new Error("Missing jobId in the submitted form data.");
+  // Query the JobSeeker record using the logged-in user's ID.
+  const jobSeeker = await prisma.jobSeeker.findUnique({
+    where: { userId: user.id },
+  });
+  if (!jobSeeker || !jobSeeker.id) {
+    throw new Error("JobSeeker record not found.");
   }
 
   // Build a raw resume data object from the formData.
   const resumeDataRaw = {
-    // Optionally provided from the client, otherwise the prisma default uuid will be used.
+    // Optionally provided from the client; otherwise, Prisma will generate one.
     resumeId: formData.get("resumeId")?.toString() || undefined,
     resumeName: formData.get("resumeName")?.toString() || "",
     resumeBio: formData.get("resumeBio")?.toString() || "",
@@ -758,7 +762,6 @@ export const submitJobSeekerResume = async (
   // Validate the resume data using the Zod schema.
   const parsedResult = resumeSchema.safeParse(resumeDataRaw);
   if (!parsedResult.success) {
-    // You can customize this error handling as needed.
     throw new Error(parsedResult.error.message);
   }
   const validResumeData = parsedResult.data;
@@ -767,11 +770,12 @@ export const submitJobSeekerResume = async (
   try {
     await prisma.jobSeekerResume.create({
       data: {
-        // If resumeId is provided from the client, include it; otherwise Prisma will generate one.
         ...(validResumeData.resumeId ? { resumeId: validResumeData.resumeId } : {}),
         resumeName: validResumeData.resumeName,
         resumeBio: validResumeData.resumeBio,
         pdfUrlId: validResumeData.pdfUrlId,
+        // Note: The JobSeekerResume model does not have a jobSeekerId field.
+        // We omit linking here because the schema does not allow it.
       },
     });
   } catch (error) {
@@ -779,6 +783,6 @@ export const submitJobSeekerResume = async (
     throw new Error("Failed to create resume record.");
   }
 
-  // After successful storage, redirect the user to the coding test page.
-  return redirect(`/coding-test/${jobId}`);
+  // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.
+  return redirect(`/coding-test/${jobSeeker.id}`);
 };
