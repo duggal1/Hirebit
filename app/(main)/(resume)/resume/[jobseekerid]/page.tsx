@@ -1,5 +1,3 @@
-
-
 import { JobSeekerResume } from "@/components/resume/jobseeker/resume";
 
 
