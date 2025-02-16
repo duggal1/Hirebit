@@ -1,6 +1,5 @@
 import { prisma } from '@/app/utils/db';
 import { NextResponse } from 'next/server';
-import { ApplicationStatus } from '@prisma/client';
 
 export async function GET(
   request: Request,
@@ -9,62 +8,38 @@ export async function GET(
   try {
     const companyId = params.companyid;
 
-    // Get all job applications for the company with job seeker details
-    const applications = await prisma.jobApplication.findMany({
+    // Forcefully fetch all job seekers who have applied to jobs for the given company.
+    // We include full related data from the User record and all applications.
+    const jobSeekers = await prisma.jobSeeker.findMany({
       where: {
-        job: {
-          companyId: companyId,
-        },
-      },
-      include: {
-        jobSeeker: true,
-        job: {
-          select: {
-            jobTitle: true,
-            company: {
-              select: {
-                name: true,
+        applications: {
+          some: {
+            job: {
+              company: {
+                companyID: companyId, // filtering based on the company's unique identifier
               },
             },
           },
         },
       },
-      distinct: ['jobSeekerId'],
+      include: {
+        user: true,       // includes the user's details (name, email, etc.)
+        applications: {
+          include: {
+            job: {
+              include: {
+                company: true,
+              },
+            },
+          },
+        },
+        Verification: true,
+      },
     });
 
-    // Transform the data to match the frontend interface
-    const transformedJobSeekers = applications.map((application) => ({
-      id: application.jobSeekerId,
-      name: application.jobSeeker.name || 'Anonymous',
-      email: application.jobSeeker.email || '',
-      phone: application.phoneNumber,
-      status: application.status || ApplicationStatus.PENDING,
-      jobTitle: application.job.jobTitle,
-      companyName: application.job.company.name,
-      appliedDate: application.createdAt.toISOString(),
-      lastActivity: application.lastActivity.toISOString(),
-      coverLetter: application.coverLetter,
-      resume: application.resume,
-      education: application.education,
-      location: application.location,
-      expectedSalary: {
-        min: application.expectedSalaryMin,
-        max: application.expectedSalaryMax,
-      },
-      codingTestResults: application.codingTestResults,
-      technicalSkills: application.technicalSkillsAssessment,
-      cultureFitScore: application.cultureFitScore,
-      communicationScore: application.communicationScore,
-      recruiterNotes: application.recruiterNotes,
-      interviewFeedback: application.interviewFeedback,
-      applicationStage: application.applicationStage,
-      lastReviewedAt: application.lastReviewedAt?.toISOString(),
-      reviewedBy: application.reviewedBy,
-    }));
-
-    return NextResponse.json(transformedJobSeekers);
+    return NextResponse.json(jobSeekers);
   } catch (error) {
-    console.error('Error fetching job seekers:', error);
+    console.error('Error fetching all job seekers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch job seekers' },
       { status: 500 }
