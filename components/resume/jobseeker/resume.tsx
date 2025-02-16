@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "../general/FileUpload";
-import { Rocket, FileText, UploadCloud, Loader2 } from "lucide-react";
+import { FileUpload } from "@/components/general/FileUpload";
+import { Rocket, UploadCloud, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useMemo, useEffect } from "react";
@@ -39,17 +39,10 @@ interface FormState {
 }
 
 interface JobSeekerResumeProps {
-  jobId: string;
-  job: {
-    jobTitle: string;
-    company: {
-      name: string;
-      logo: string;
-    };
-  };
+  jobSeekerId: string;
 }
 
-export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
+export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
   const router = useRouter();
   const [analyzing, setAnalyzing] = useState(false);
   // State to store the complete analysis data from the API.
@@ -98,7 +91,8 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
       Object.entries(values).forEach(([key, value]) => {
         formData.append(key, typeof value === "string" ? value : JSON.stringify(value));
       });
-      formData.append("jobId", jobId);
+      // Append the jobSeekerId from the Prisma model.
+      formData.append("jobSeekerId", jobSeekerId);
       formAction(formData);
     } catch (error) {
       console.error("Submission error:", error);
@@ -110,11 +104,11 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
-      router.push(`/coding-test/${jobId}`);
+      router.push(`/coding-test/${jobSeekerId}`);
     } else if (state.message) {
       toast.error(state.message);
     }
-  }, [state, router, jobId]);
+  }, [state, router, jobSeekerId]);
 
   // Handle resume file upload using UploadThing.
   const handleResumeUpload = async (url: string) => {
@@ -173,26 +167,9 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
         >
           {/* Header */}
           <div className="flex items-center gap-6">
-            <motion.div
-              className="group relative"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-700 to-blue-600 opacity-30 group-hover:opacity-50 blur rounded-xl transition" />
-              <div className="relative bg-gray-900 p-4 rounded-xl shadow-xl">
-                {job.company.logo ? (
-                  <img
-                    src={job.company.logo}
-                    alt={job.company.name}
-                    className="w-16 h-16 object-contain"
-                  />
-                ) : (
-                  <div className="flex justify-center items-center w-16 h-16">
-                    <Rocket className="w-8 h-8 text-blue-400 animate-pulse" />
-                  </div>
-                )}
-              </div>
-            </motion.div>
+            <div className="bg-gray-900 p-4 rounded-xl shadow-xl">
+              <Rocket className="w-8 h-8 text-blue-400 animate-pulse" />
+            </div>
             <div>
               <motion.h1
                 className="text-3xl font-bold text-white"
@@ -208,9 +185,7 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                Applying for{" "}
-                <span className="font-medium text-white">{job.jobTitle}</span> at{" "}
-                <span className="font-medium text-white">{job.company.name}</span>
+                Complete your resume details below.
               </motion.p>
             </div>
           </div>
@@ -218,7 +193,7 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
           {/* Form */}
           <Form {...form}>
             <form onSubmit={onSubmit} className="space-y-6">
-              <input type="hidden" name="jobId" value={jobId} />
+              <input type="hidden" name="jobSeekerId" value={jobSeekerId} />
               <input type="hidden" name="resumeId" value={generatedResumeId} />
 
               {/* Resume Details Section */}
@@ -275,7 +250,7 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
               >
                 <div className="flex items-center gap-3 mb-6">
                   <div className="bg-blue-900 p-2 rounded-lg">
-                    <FileText className="w-5 h-5 text-blue-400" />
+                    <Rocket className="w-5 h-5 text-blue-400" />
                   </div>
                   <h2 className="text-xl font-semibold text-white">Upload Your Resume</h2>
                 </div>
@@ -316,7 +291,9 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
                   >
                     <div className="flex items-center gap-3">
                       <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-                      <p className="text-blue-400 font-medium text-sm">Uploading and Analyzing your resume...</p>
+                      <p className="text-blue-400 font-medium text-sm">
+                        Uploading and Analyzing your resume...
+                      </p>
                     </div>
                   </motion.div>
                 )}
@@ -340,31 +317,82 @@ export function JobSeekerResume({ jobId, job }: JobSeekerResumeProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-white">Feedback:</h3>
-                      <p className="text-white">Overall: {resumeAnalysis.feedback.overallFeedback}</p>
-                      <p className="text-white">Strengths: {resumeAnalysis.feedback.strengths.join(', ')}</p>
-                      <p className="text-white">Improvements: {resumeAnalysis.feedback.improvements.join(', ')}</p>
+                      <p className="text-white">
+                        Overall: {resumeAnalysis.feedback.overallFeedback}
+                      </p>
+                      <p className="text-white">
+                        Strengths: {resumeAnalysis.feedback.strengths.join(", ")}
+                      </p>
+                      <p className="text-white">
+                        Improvements: {resumeAnalysis.feedback.improvements.join(", ")}
+                      </p>
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-white">Skills:</h3>
-                      <p className="text-white">{resumeAnalysis.skills.join(', ')}</p>
+                      <p className="text-white">{resumeAnalysis.skills.join(", ")}</p>
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-white">Experience:</h3>
                       <p className="text-white">
-                        Years: {resumeAnalysis.experience.years}, Level: {resumeAnalysis.experience.level}
+                        Years: {resumeAnalysis.experience.years}, Level:{" "}
+                        {resumeAnalysis.experience.level}
                       </p>
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-white">Education:</h3>
                       <ul className="list-disc ml-6 text-white">
                         {resumeAnalysis.education.map(
-                          (edu: { degree: string; institution: string; year: number | string }, idx: number) => (
+                          (
+                            edu: { degree: string; institution: string; year: number | string },
+                            idx: number
+                          ) => (
                             <li key={idx}>
                               {edu.degree} from {edu.institution} ({edu.year})
                             </li>
                           )
                         )}
                       </ul>
+                    </div>
+                    {/* New Section: Buzzwords Analysis */}
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">Buzzwords Analysis:</h3>
+                      <p className="text-white">
+                        Buzzwords Count: {resumeAnalysis.buzzwords.count}
+                      </p>
+                      {resumeAnalysis.buzzwords.list.length > 0 ? (
+                        <p className="text-white">
+                          Buzzwords: {resumeAnalysis.buzzwords.list.join(", ")}
+                        </p>
+                      ) : (
+                        <p className="text-white">No buzzwords detected.</p>
+                      )}
+                      {resumeAnalysis.buzzwords.warning && (
+                        <p className="text-red-400 font-semibold">
+                          Warning: Excessive buzzwords may turn off recruiters!
+                        </p>
+                      )}
+                    </div>
+                    {/* New Section: Critical Flaws */}
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">Critical Flaws:</h3>
+                      {resumeAnalysis.criticalFlaws.length > 0 ? (
+                        <ul className="list-disc ml-6 text-white">
+                          {resumeAnalysis.criticalFlaws.map((flaw: string, idx: number) => (
+                            <li key={idx}>{flaw}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-white">No critical flaws detected.</p>
+                      )}
+                    </div>
+                    {/* New Section: Additional Recommendations */}
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">
+                        Additional Recommendations:
+                      </h3>
+                      <p className="text-white">
+                        {resumeAnalysis.additionalRecommendations || "No additional recommendations."}
+                      </p>
                     </div>
                   </div>
                 </motion.section>

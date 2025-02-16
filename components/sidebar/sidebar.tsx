@@ -15,30 +15,32 @@ import {
   Menu,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 
-// Define type for Company from session
+// Define type for Company from API response
 interface Company {
-    id: string;
-    companyID: string;
-    name: string;
-    // ... other fields
-  }
-  
-  interface SessionUser {
-    id: string;
-    email?: string | null;
-    Company?: Company | null;
-    // ... other fields
-  }
-  
-  // Update getMenuItems to use proper types
-  const getMenuItems = (userId?: string, companyID?: string) => [
-    {
-      id: 1,
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      link: `/dashboard/${userId}/${companyID}` 
-    },
+  id: string;
+  companyID: string;
+  name: string;
+  // ... other fields as needed
+}
+
+interface SessionUser {
+  id: string;
+  email?: string | null;
+  // We no longer rely solely on session for Company info.
+  // Company?: Company | null;
+  // ... other fields
+}
+
+// Update getMenuItems to use proper types
+const getMenuItems = (userId?: string, companyID?: string) => [
+  {
+    id: 1,
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    link: `/dashboard/${userId || "no-user"}/${companyID || "no-company"}`,
+  },
   { id: 2, label: "Job Listings", icon: Briefcase, link: "/jobs" },
   { id: 3, label: "Applications", icon: FileText, link: "/applications" },
   { id: 4, label: "Interviews", icon: Video, link: "/interviews" },
@@ -47,52 +49,88 @@ interface Company {
 ];
 
 export default function Sidebar() {
-    const pathname = usePathname();
-    const [isExpanded, setIsExpanded] = useState(true);
-    const [hoveredItem, setHoveredItem] = useState<number | null>(null);
-    const { data: session } = useSession();
-  
-    // Safely access user and company data with proper type checking
-    const user = session?.user as SessionUser | undefined;
-    const userId = user?.id;
-    const companyID = user?.Company?.companyID;
-  
-    // Get menu items with dynamic dashboard link
-    const menuItems = getMenuItems(userId, companyID);
-  
+  const pathname = usePathname();
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null);
+  const { data: session, status } = useSession();
+
+  // While session is loading, show a loading state
+  if (status === "loading") {
+    return <div className="p-4 text-white">Loading...</div>;
+  }
+
+  // Safely get the user id from the session.
+  const user = session?.user as SessionUser | undefined;
+  const userId = user?.id;
+
+  // Use React Query to fetch company data from an API endpoint.
+  // Ensure your API endpoint (/api/company) returns the company record for the current user.
+  const {
+    data: company,
+    isLoading: isCompanyLoading,
+    error: companyError,
+  } = useQuery<Company>({
+    queryKey: ["company", userId],
+    queryFn: async () => {
+      const response = await fetch("/api/companys");
+      if (!response.ok) throw new Error("Failed to fetch company");
+      return response.json();
+    },
+    enabled: !!userId, // Only run if userId is available
+  });
+
+  // Show a loading indicator while fetching company info.
+  if (isCompanyLoading) {
+    return <div className="p-4 text-white">Loading company info...</div>;
+  }
+
+  // If there was an error or no company is returned, show a fallback message.
+  if (!company || companyError) {
+    return (
+      <div className="p-4 text-white">
+        Please complete your company profile to access the dashboard.
+      </div>
+    );
+  }
+
+  const companyID = company.companyID;
+
+  // Get menu items with dynamic dashboard link
+  const menuItems = getMenuItems(userId, companyID);
+
   return (
     <motion.div
       initial={false}
-      animate={{ 
+      animate={{
         width: isExpanded ? 320 : 80,
-        transition: { 
-          duration: 0.5, 
+        transition: {
+          duration: 0.5,
           type: "spring",
           stiffness: 200,
-          damping: 25
-        }
+          damping: 25,
+        },
       }}
-      className="fixed left-0 top-0 h-screen bg-black  overflow-hidden"
+      className="fixed left-0 top-0 h-screen bg-black overflow-hidden"
     >
       {/* Sophisticated Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-violet-500/10 via-transparent to-blue-500/10" />
         <div className="absolute h-full w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-500/10 via-transparent to-transparent" />
-        <motion.div 
+        <motion.div
           className="absolute -left-32 top-20 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.2, 0.3, 0.2],
           }}
           transition={{
             duration: 4,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        <motion.div 
+        <motion.div
           className="absolute -right-32 bottom-20 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.3, 0.2, 0.3],
           }}
@@ -100,7 +138,7 @@ export default function Sidebar() {
             duration: 4,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: 2
+            delay: 2,
           }}
         />
       </div>
@@ -137,7 +175,7 @@ export default function Sidebar() {
               <span className="text-white text-xl font-bold">H</span>
             </div>
           </motion.div>
-          
+
           <AnimatePresence>
             {isExpanded && (
               <motion.div
@@ -147,7 +185,7 @@ export default function Sidebar() {
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 className="flex flex-col"
               >
-                <motion.span 
+                <motion.span
                   className="text-2xl font-bold bg-gradient-to-r from-white via-white to-zinc-400 bg-clip-text text-transparent"
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -155,7 +193,7 @@ export default function Sidebar() {
                 >
                   HireBit
                 </motion.span>
-                <motion.span 
+                <motion.span
                   className="text-xs text-zinc-500"
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -175,7 +213,7 @@ export default function Sidebar() {
           const isActive = pathname === item.link;
           const isHovered = hoveredItem === item.id;
           const Icon = item.icon;
-          
+
           return (
             <Link href={item.link} key={item.id}>
               <motion.div
@@ -187,7 +225,7 @@ export default function Sidebar() {
                 className={`
                   relative group flex items-center gap-4 px-4 py-4 mb-2
                   rounded-xl cursor-pointer
-                  ${isActive ? 'text-white' : 'text-zinc-400 hover:text-white'}
+                  ${isActive ? "text-white" : "text-zinc-400 hover:text-white"}
                 `}
               >
                 {/* Hover Effect */}
@@ -212,10 +250,12 @@ export default function Sidebar() {
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   className="relative z-10"
                 >
-                  <div className={`
+                  <div
+                    className={`
                     p-2 rounded-lg transition-colors duration-300
-                    ${isActive ? 'bg-gradient-to-br from-violet-500/80 to-blue-500/80 shadow-lg' : 'bg-white/5'}
-                  `}>
+                    ${isActive ? "bg-gradient-to-br from-violet-500/80 to-blue-500/80 shadow-lg" : "bg-white/5"}
+                  `}
+                  >
                     <Icon className="w-5 h-5" />
                   </div>
                 </motion.div>

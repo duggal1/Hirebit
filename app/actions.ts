@@ -151,114 +151,136 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
         : "Failed to create profile"
     );
   }
-}
-
-export async function createJob(data: z.infer<typeof jobSchema>) {
+}export async function createJob(data: z.infer<typeof jobSchema>) {
+  console.log("[createJob] Received data:", data);
   const user = await requireUser();
+  console.log("[createJob] Current user:", user);
 
-  // Validate the incoming data using the updated jobSchema
+  // Validate incoming data
   const validatedData = jobSchema.parse(data);
+  console.log("[createJob] Validated data:", validatedData);
 
   // Look up the company associated with the current user
   const company = await prisma.company.findUnique({
-    where: {
-      userId: user.id,
-    },
+    where: { userId: user.id },
     select: {
       id: true,
-      user: {
-        select: {
-          stripeCustomerId: true,
-        },
-      },
+      user: { select: { stripeCustomerId: true } },
     },
   });
+  console.log("[createJob] Company record:", company);
 
   if (!company?.id) {
-    return redirect("/");
+    console.error("[createJob] No company associated with user");
+    throw new Error("No company associated with user");
   }
 
   let stripeCustomerId = company.user.stripeCustomerId;
+  console.log("[createJob] Initial stripeCustomerId:", stripeCustomerId);
 
-  // If the user doesn't have a Stripe customer ID, create one and update the user record
+  // If no Stripe customer ID, create one
   if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: user.email!,
-      name: user.name || undefined,
-    });
+    console.log("[createJob] Creating new Stripe customer for:", user.email);
+    try {
+      const customer = await stripe.customers.create({
+        email: user.email!,
+        name: user.name || undefined,
+      });
+      stripeCustomerId = customer.id;
+      console.log("[createJob] New Stripe customer created:", stripeCustomerId);
 
-    stripeCustomerId = customer.id;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { stripeCustomerId: customer.id },
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: customer.id },
+      });
+      console.log("[createJob] Updated user with new stripeCustomerId");
+    } catch (error) {
+      console.error("[createJob] Stripe customer creation failed:", error);
+      throw new Error("Failed to create Stripe customer");
+    }
   }
 
-  // Create the job post using the new fields along with the existing ones
-  const jobPost = await prisma.jobPost.create({
-    data: {
-      companyId: company.id,
-      jobTitle: validatedData.jobTitle,
-      employmentType: validatedData.employmentType,
-      location: validatedData.location,
-      salaryFrom: validatedData.salaryFrom,
-      salaryTo: validatedData.salaryTo,
-      listingDuration: validatedData.listingDuration,
-      benefits: validatedData.benefits,
-      jobDescription: validatedData.jobDescription,
-      status: "ACTIVE",
-      skillsRequired: validatedData.skillsRequired,
-      positionRequirement: validatedData.positionRequirement,
-      requiredExperience: validatedData.requiredExperience,
-      jobCategory: validatedData.jobCategory,
-      interviewStages: validatedData.interviewStages,
-      visaSponsorship: validatedData.visaSponsorship,
-      compensationDetails: validatedData.compensationDetails,
-    },
-  });
+  // Create the job post record in the database
+  let jobPost;
+  try {
+    jobPost = await prisma.jobPost.create({
+      data: {
+        companyId: company.id,
+        jobTitle: validatedData.jobTitle,
+        employmentType: validatedData.employmentType,
+        location: validatedData.location,
+        salaryFrom: validatedData.salaryFrom,
+        salaryTo: validatedData.salaryTo,
+        listingDuration: validatedData.listingDuration,
+        benefits: validatedData.benefits,
+        jobDescription: validatedData.jobDescription,
+        status: "ACTIVE",
+        skillsRequired: validatedData.skillsRequired,
+        positionRequirement: validatedData.positionRequirement,
+        requiredExperience: validatedData.requiredExperience,
+        jobCategory: validatedData.jobCategory,
+        interviewStages: validatedData.interviewStages,
+        visaSponsorship: validatedData.visaSponsorship,
+        compensationDetails: validatedData.compensationDetails,
+      },
+    });
+    console.log("[createJob] Created job post:", jobPost);
+  } catch (error) {
+    console.error("[createJob] Failed to create job post:", error);
+    throw new Error("Job post creation failed");
+  }
 
   // Determine pricing based on the job listing duration
   const pricingTier = jobListingDurationPricing.find(
     (tier) => tier.days === validatedData.listingDuration
   );
+  console.log("[createJob] Pricing tier selected:", pricingTier);
 
   if (!pricingTier) {
+    console.error("[createJob] Invalid listing duration:", validatedData.listingDuration);
     throw new Error("Invalid listing duration selected");
   }
 
   // Create a Stripe checkout session for payment
-  const session = await stripe.checkout.sessions.create({
-    customer: stripeCustomerId,
-    line_items: [
-      {
-        price_data: {
-          product_data: {
-            name: `Job Posting - ${pricingTier.days} Days`,
-            description: pricingTier.description,
-            images: [
-              "https://pve1u6tfz1.ufs.sh/f/Ae8VfpRqE7c0gFltIEOxhiBIFftvV4DTM8a13LU5EyzGb2SQ",
-            ],
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          price_data: {
+            product_data: {
+              name: `Job Posting - ${pricingTier.days} Days`,
+              description: pricingTier.description,
+              images: [
+                "https://pve1u6tfz1.ufs.sh/f/Ae8VfpRqE7c0gFltIEOxhiBIFftvV4DTM8a13LU5EyzGb2SQ",
+              ],
+            },
+            currency: "USD",
+            unit_amount: pricingTier.price * 100,
           },
-          currency: "USD",
-          unit_amount: pricingTier.price * 100,
+          quantity: 1,
         },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    metadata: {
-      jobId: jobPost.id,
-    },
-    success_url: `${BASE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${BASE_URL}/payment/cancel`,
-  });
-
-  if (!session.url) {
+      ],
+      mode: "payment",
+      metadata: { jobId: jobPost.id },
+      success_url: `${BASE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${BASE_URL}/payment/cancel`,
+    });
+    console.log("[createJob] Stripe checkout session created:", session);
+  } catch (error) {
+    console.error("[createJob] Stripe checkout session creation failed:", error);
     throw new Error("Failed to create Stripe checkout session");
   }
 
-  return redirect(session.url);
+  if (!session.url) {
+    console.error("[createJob] Stripe session URL missing:", session);
+    throw new Error("Failed to create Stripe checkout session");
+  }
+
+  console.log("[createJob] Returning redirect URL:", session.url);
+  // Instead of redirect(session.url), return the URL so the client can handle the redirect
+  return { redirectUrl: session.url };
 }
 
 export async function updateJobPost(

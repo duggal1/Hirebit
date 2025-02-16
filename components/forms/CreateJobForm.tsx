@@ -132,17 +132,24 @@ export function CreateJobForm({
     }
   }
 
-  // Final form submission handler.
   async function onSubmit(values: z.infer<typeof jobSchema>) {
     try {
       setPending(true);
-      await createJob(values);
-    } catch {
+      const res = await createJob(values);
+      if (res.redirectUrl) {
+        window.location.href = res.redirectUrl; // Navigates to Stripe
+      } else {
+        toast.error("No redirect URL returned");
+      }
+    } catch (error: any) {
+      console.error(error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setPending(false);
     }
   }
+  
+  
 
   return (
     <Form {...form}>

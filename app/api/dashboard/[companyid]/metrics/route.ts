@@ -6,22 +6,21 @@ export async function GET(
   { params }: { params: { companyid: string } }
 ) {
   try {
-    const companyId = params.companyid;
+    // Await the params to satisfy Next.js requirements
+    const { companyid } = await Promise.resolve(params);
 
     // Forcefully fetch all JobMetrics records for job posts that belong to this company.
-    // We include the full jobPost and its related Company data for context.
+    // Here we assume that the job posts reference the company by its ID.
     const jobMetrics = await prisma.jobMetrics.findMany({
       where: {
         jobPost: {
-          company: {
-            companyID: companyId, // using companyID if that's what is provided
-          },
+          companyId: companyid, // Ensure your client passes the correct company id here.
         },
       },
       include: {
         jobPost: {
           include: {
-            company: true, // include all company fields
+            company: true, // Include all company fields for context
             codingQuestions: true,
             JobApplication: true,
             SavedJobPost: true,

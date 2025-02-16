@@ -6,24 +6,23 @@ export async function GET(
   { params }: { params: { companyid: string } }
 ) {
   try {
-    const companyId = params.companyid;
+    // Await the params before using its properties.
+    const { companyid } = await Promise.resolve(params);
 
     // Forcefully fetch all job seekers who have applied to jobs for the given company.
-    // We include full related data from the User record and all applications.
+    // This query returns job seekers that have at least one application for a job from this company.
     const jobSeekers = await prisma.jobSeeker.findMany({
       where: {
         applications: {
           some: {
             job: {
-              company: {
-                companyID: companyId, // filtering based on the company's unique identifier
-              },
+              companyId: companyid,
             },
           },
         },
       },
       include: {
-        user: true,       // includes the user's details (name, email, etc.)
+        user: true, // Include full user details (name, email, etc.)
         applications: {
           include: {
             job: {
@@ -39,7 +38,7 @@ export async function GET(
 
     return NextResponse.json(jobSeekers);
   } catch (error) {
-    console.error('Error fetching all job seekers:', error);
+    console.error('Error fetching job seekers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch job seekers' },
       { status: 500 }
