@@ -26,7 +26,7 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -119,6 +119,7 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
     }
   };
 
+
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
@@ -176,6 +177,8 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
       setAnalyzing(false);
     }
   };
+  const pathname = usePathname();
+const isCodingTestPage = pathname.includes("/coding-test/");
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black overflow-hidden">
@@ -346,10 +349,11 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
                           </p>
                         </div>
                         <Progress
-                          value={66}
-                          className="h-1 bg-blue-950"
-                          indicatorClassName="bg-blue-500"
-                        />
+                         value={66}
+                        className="h-1 bg-gray-800"
+                        indicatorClassName="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500"
+                          />
+
                       </div>
                     </motion.div>
                   )}
@@ -655,35 +659,43 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
 
               {/* Submit Button */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sticky bottom-8 mt-8"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-white/5 backdrop-blur-2xl rounded-2xl border border-white/10 p-6"
-                >
-                  <Button
-                    type="submit"
-                    disabled={!isFormValid}
-                    className={cn(
-                      "w-full h-14 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium text-lg transition-all duration-300",
-                      !isFormValid && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <motion.div
-                      className="flex items-center justify-center gap-2"
-                      whileHover={{ gap: "0.75rem" }}
-                    >
-                      <Rocket className="w-5 h-5" />
-                      <span>
-                        {isFormValid ? "Submit Resume" : "Complete All Fields"}
-                      </span>
-                    </motion.div>
-                  </Button>
-                </motion.div>
-              </motion.div>
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="sticky bottom-8 mt-8"
+  >
+    <motion.div
+      // Continuous pulsing if NOT on the coding test page.
+      animate={
+        !isCodingTestPage ? { scale: [1, 1.05, 1] } : {}
+      }
+      transition={
+        !isCodingTestPage
+          ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+          : {}
+      }
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="bg-white/5 backdrop-blur-2xl rounded-2xl border border-white/10 p-6"
+    >
+      <Button
+        type="submit"
+        disabled={!isFormValid}
+        className={cn(
+          "w-full h-14 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white rounded-xl font-medium text-lg transition-all duration-300",
+          !isFormValid && "opacity-50 cursor-not-allowed"
+        )}
+      >
+        <motion.div
+          className="flex items-center justify-center gap-2"
+          whileHover={{ gap: "0.75rem" }}
+        >
+          <Rocket className="w-5 h-5" />
+          <span>{isFormValid ? "Submit Resume" : "Complete All Fields"}</span>
+        </motion.div>
+      </Button>
+    </motion.div>
+  </motion.div>
+                  
             </form>
           </Form>
         </motion.div>
