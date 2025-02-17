@@ -6,5 +6,9 @@ interface ResumePageProps {
 
 export default async function ResumePage({ params }: ResumePageProps) {
   const { jobseekerid } = await params;
-  return <JobSeekerResume jobSeekerId={jobseekerid} />;
+  return <JobSeekerResume jobSeekerId={jobseekerid} />
+  
+
+  ;
+ 
 }

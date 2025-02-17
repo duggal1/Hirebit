@@ -129,6 +129,7 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
       toast.error(state.message);
     }
   }, [state, router, jobSeekerId]);
+
   
   // Handle resume file upload using UploadThing.
   const handleResumeUpload = async (url: string) => {
@@ -189,6 +190,25 @@ const isCodingTestPage = pathname.includes("/coding-test/");
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
       </div>
+      <div className=" flex-auto justify-start items-start">
+                    <div className="  rounded-sm bg-gradient-to-r from-green-400 to-emerald-300  ">
+                      <div className=" text-lg font-bold ">
+                        Want to build resume?
+                      
+        
+                      
+                      </div>
+                    
+                   
+                      <a href={`/resume/${jobSeekerId}/resume-builder`}>
+<button type="submit">
+  Go to Resume Builder
+</button>
+</a>
+                    </div>
+
+                  </div>
+
 
       <div className="relative mx-auto px-6 py-12 max-w-7xl">
         <motion.div
@@ -295,7 +315,7 @@ const isCodingTestPage = pathname.includes("/coding-test/");
                       Upload Resume
                     </h2>
                   </div>
-
+                  
                   <FormField
                     control={form.control}
                     name="pdfUrlId"

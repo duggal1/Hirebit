@@ -19,19 +19,15 @@ export function AutoSaveHeader({
   lastSaved,
 }: AutoSaveHeaderProps) {
   return (
-    <div className="border-b">
-      <div className="container mx-auto py-4 px-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Resume Builder</h1>
+    <div className="">
+      <div className="">
+        <div className="">
+          <h1 className="text-3xl font-bold"></h1>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Switch
-                id="auto-save"
-                checked={isAutoSaveEnabled}
-                onCheckedChange={onAutoSaveChange}
-              />
+            
               <Label htmlFor="auto-save" className="text-sm">
-                Auto-save
+               
               </Label>
             </div>
             {isSaving ? (

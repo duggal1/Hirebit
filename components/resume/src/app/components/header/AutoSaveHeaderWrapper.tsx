@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useAutoSaveContext } from "@/components/resume/src/context/AutoSaveContext";
 import { AutoSaveHeader } from "./AutoSaveHeader";
 
+
+
 export function AutoSaveHeaderWrapper() {
   const { isAutoSaveEnabled, setAutoSaveEnabled } = useAutoSaveContext();
   const [isSaving] = useState(false);
@@ -20,11 +22,13 @@ export function AutoSaveHeaderWrapper() {
   }, []);
 
   return (
+
     <AutoSaveHeader
       isAutoSaveEnabled={isAutoSaveEnabled}
       onAutoSaveChange={setAutoSaveEnabled}
       isSaving={isSaving}
       lastSaved={lastSaved}
     />
+
   );
 }
