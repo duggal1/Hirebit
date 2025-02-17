@@ -1,10 +1,10 @@
 import { JobSeekerResume } from "@/components/resume/jobseeker/resume";
 
-
 interface ResumePageProps {
-  params: { jobseekerid: string };
+  params: Promise<{ jobseekerid: string }>;
 }
 
-export default function ResumePage({ params }: ResumePageProps) {
-  return <JobSeekerResume jobSeekerId={params.jobseekerid} />;
+export default async function ResumePage({ params }: ResumePageProps) {
+  const { jobseekerid } = await params;
+  return <JobSeekerResume jobSeekerId={jobseekerid} />;
 }
