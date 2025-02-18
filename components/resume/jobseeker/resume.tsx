@@ -25,6 +25,7 @@ import {
   XCircle,
   Zap,
   AlertTriangle,
+  ArrowUpRight,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -190,24 +191,7 @@ const isCodingTestPage = pathname.includes("/coding-test/");
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
       </div>
-      <div className=" flex-auto justify-start items-start">
-                    <div className="  rounded-sm bg-gradient-to-r from-green-400 to-emerald-300  ">
-                      <div className=" text-lg font-bold ">
-                        Want to build resume?
-                      
-        
-                      
-                      </div>
-                    
-                   
-                      <a href={`/resume/${jobSeekerId}/resume-builder`}>
-<button type="submit">
-  Go to Resume Builder
-</button>
-</a>
-                    </div>
-
-                  </div>
+   
 
 
       <div className="relative mx-auto px-6 py-12 max-w-7xl">
@@ -301,6 +285,66 @@ const isCodingTestPage = pathname.includes("/coding-test/");
                     )}
                   />
                 </div>
+    
+      {/* Main container with clean layout */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 to-black p-1">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-transparent to-cyan-600/20 animate-gradient-slow"></div>
+        
+        <div className="relative bg-zinc-900/80 backdrop-blur-xl rounded-[1.4rem] p-8 border border-white/5">
+          {/* Clean, organized content layout */}
+          <div className="space-y-8">
+            {/* Modern header section */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
+                <span className="text-xs font-medium text-violet-300"> Dont have a Resume?</span>
+              </div>
+              
+              <h2 className="text-3xl font-semibold tracking-tight text-white">
+           dont worrry we got you!!
+              </h2>
+              
+              <p className="text-zinc-400 text-sm leading-relaxed max-w-md">
+                Design a professional resume that captures attention and showcases your potential.
+              </p>
+            </div>
+
+            {/* Feature highlights with clean spacing */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="text-sm font-medium text-white">AI-Powered</div>
+                <div className="text-xs text-zinc-400 mt-1">Smart formatting & suggestions</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="text-sm font-medium text-white">ATS-Friendly</div>
+                <div className="text-xs text-zinc-400 mt-1">Optimized for job systems</div>
+              </div>
+            </div>
+
+            {/* Modern call-to-action button */}
+            <a
+              href={`/resume/${jobSeekerId}/resume-builder`}
+              className="group relative flex items-center justify-between w-full"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center justify-between w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                <div className="flex items-center gap-3">
+                  <Rocket className="w-5 h-5 text-violet-400" />
+                  <span className="font-medium text-white">Start Building</span>
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-white/70 group-hover:text-white transition-colors duration-300" />
+              </div>
+            </a>
+          </div>
+
+          {/* Clean status indicator */}
+          <div className="absolute bottom-8 right-8 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span className="text-xs text-zinc-500 font-medium">System Online</span>
+          </div>
+        </div>
+      </div>
+  
+
 
                 {/* Upload Card */}
                 <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-2xl">

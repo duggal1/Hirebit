@@ -54,17 +54,9 @@ export default function Sidebar() {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const { data: session, status } = useSession();
 
-  // While session is loading, show a loading state
-  if (status === "loading") {
-    return <div className="p-4 text-white">Loading...</div>;
-  }
-
-  // Safely get the user id from the session.
+  // Always call useQuery, but disable it if there's no userId yet
   const user = session?.user as SessionUser | undefined;
   const userId = user?.id;
-
-  // Use React Query to fetch company data from an API endpoint.
-  // Ensure your API endpoint (/api/company) returns the company record for the current user.
   const {
     data: company,
     isLoading: isCompanyLoading,
@@ -79,12 +71,12 @@ export default function Sidebar() {
     enabled: !!userId, // Only run if userId is available
   });
 
-  // Show a loading indicator while fetching company info.
-  if (isCompanyLoading) {
-    return <div className="p-4 text-white">Loading company info...</div>;
+  // Consolidate loading state checks after all hooks are called
+  if (status === "loading" || isCompanyLoading) {
+    return <div className="p-4 text-white">Loading...</div>;
   }
 
-  // If there was an error or no company is returned, show a fallback message.
+  // Check if company data is available and there was no error
   if (!company || companyError) {
     return (
       <div className="p-4 text-white">
@@ -94,9 +86,8 @@ export default function Sidebar() {
   }
 
   const companyID = company.companyID;
-
-  // Get menu items with dynamic dashboard link
   const menuItems = getMenuItems(userId, companyID);
+
 
   return (
     <motion.div

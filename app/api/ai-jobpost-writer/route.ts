@@ -34,32 +34,31 @@ export async function POST(req: NextRequest) {
    const prompt = `Generate a highly detailed job post description in a fresh, calm, formal yet friendly tone.
 The job post must follow this exact structure and formatting and MUST begin with the Job Title in a prominent manner, immediately followed by an "Overview" section that introduces the role. Do not start the output with the company name.
 
--------------------------------
+
 Overview
 
 Provide a compelling introduction that explains the role, highlights the company's mission and culture (for example, include statements like "Microsoft’s mission is to empower every person and every organization..."), and outlines why this opportunity is exciting. Ensure that the job title is featured prominently at the very beginning of this section.
 
--------------------------------
+
 Qualifications
 
 List the required qualifications with realistic experience ranges (e.g., "4+ years of experience" or "7+ years of experience") along with required education and technical skills, such as proficiency with C, C++, C#, Java, JavaScript, Python, Docker, and advanced Kubernetes.
 
--------------------------------
+
 Preferred Qualifications
 
 Include additional desirable skills and experiences, along with any extra certifications or advanced technical proficiencies. Also mention specific tools and platforms (e.g., Azure Data Lake, Cosmos DB, Power BI) where relevant.
 
--------------------------------
+
 Compensation & Benefits
 
 Provide a realistic base salary range along with additional perks and benefits. If applicable, include details like bonus amounts, medical benefits, and any other compensation specifics.
 
--------------------------------
+
 Responsibilities
 
 Clearly outline the key responsibilities of the role. Detail the day-to-day tasks and include explicit references to cloud services, databases, frameworks, and other technical tools (for example, Azure Data Lake, Cosmos DB, Power BI, etc.).
 
--------------------------------
 Below are the details provided:
 
 --- Job Details ---
