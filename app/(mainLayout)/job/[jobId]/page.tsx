@@ -375,22 +375,73 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               </div>
 
               {/* Tech Stack */}
-              {jobData.company.techStack?.length ? (
-                <div className="pt-4 border-t border-white/5">
-                  <h4 className="text-sm font-medium text-white/80 mb-3">Technology</h4>
-                  <div className="flex flex-wrap gap-2">
-                  {jobData.company.techStack.map((tech: string) => (
+             {/* Tech Stack */}
+{jobData.company.techStack?.length ? (
+  <div className="pt-6 border-t border-white/5 animate-fadeIn">
+    <div className="flex items-center gap-2 mb-4">
+      <Sparkles className="w-4 h-4 text-green-600" />
+      <h4 className="text-sm font-bold text-white/90">
+        Tech Stack
+      </h4>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {jobData.company.techStack.map((tech: string) => (
         <Badge
-                        key={tech}
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs bg-white/5 text-white/70 hover:bg-white/10 border-0"
-                      >
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+          key={tech}
+          variant="secondary"
+          className="
+            group
+            relative
+            rounded-full 
+            px-4 
+            py-1.5 
+            text-xs 
+            font-bold 
+            bg-gradient-to-br 
+            from-indigo-800
+            to-blue-600
+            hover:scale-105
+            hover:from-blue-400
+            hover:to-indigo-600
+            border-0
+            transition-all
+            duration-300
+            ease-in-out
+            backdrop-blur-sm
+            shadow-[0_0_0.5px_0.25px_rgba(255,255,255,0.1)]
+          "
+        >
+          <span className="
+            relative 
+            z-10 
+            bg-gradient-to-r 
+            from-white/90 
+            to-white/70 
+            bg-clip-text 
+            text-transparent 
+            group-hover:from-white 
+            group-hover:to-white/90
+            transition-all
+            duration-300
+          ">
+            {tech}
+          </span>
+          <div className="
+            absolute 
+            inset-0 
+            rounded-full 
+            opacity-0 
+            group-hover:opacity-100 
+            group-hover:bg-primary/5 
+            group-hover:blur-[6px] 
+            transition-all 
+            duration-300
+          " />
+        </Badge>
+      ))}
+    </div>
+  </div>
+) : null}
             </div>
           </div>
         </div>
