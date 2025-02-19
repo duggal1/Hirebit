@@ -67,7 +67,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("Submit Application - Request body:", body);
 
-    const { jobSeekerId, companySlug, verificationId, coverLetter, includeLinks } = body;
+    // Extract new fields along with existing ones
+    const { 
+      jobSeekerId, 
+      companySlug, 
+      verificationId, 
+      coverLetter, 
+      includeLinks, 
+      portfolio,       // New: Portfolio URL from the UI
+      projects         // New: Array of projects (each with URL and description)
+    } = body;
 
     // 1. Find the verification record
     const verification = await prisma.verification.findFirst({
@@ -93,9 +102,7 @@ export async function POST(request: Request) {
       },
     });
 
-
     const resumeData = verification?.jobSeeker?.JobSeekerResume?.[0];
-
 
     if (!verification) {
       console.log("Verification not found");
@@ -137,10 +144,13 @@ export async function POST(request: Request) {
       }
     }
    
-   
-    // 5. Prepare application data
+    // 5. Prepare application data, now including portfolio and projects
     const baseApplicationData = {
       coverLetter: coverLetter || "",
+      portfolio: portfolio || "", // Save the portfolio URL
+      projects: projects && projects.length > 0 
+        ? { set: projects }   // Save the projects array as JSON
+        : Prisma.JsonNull,
       status: ApplicationStatus.PENDING,
       includeLinks,
       resume: verification.jobSeeker?.resume || "",
@@ -151,11 +161,13 @@ export async function POST(request: Request) {
       answers: includeLinks ? {
         set: {
           linkedin: urls?.linkedin || "",
-          resumeData: resumeData ? {
-            resumeName: resumeData.resumeName,
-            resumeBio: resumeData.resumeBio,
-            pdfUrlId: resumeData.pdfUrlId
-          } : null,
+          resumeData: resumeData
+            ? {
+                resumeName: resumeData.resumeName,
+                resumeBio: resumeData.resumeBio,
+                pdfUrlId: resumeData.pdfUrlId
+              }
+            : null,
           github: urls?.github || "",
           portfolio: urls?.portfolio || "",
           currentJobTitle: verification.jobSeeker?.currentJobTitle || "",
@@ -225,15 +237,11 @@ export async function POST(request: Request) {
         job: {
           connect: { id: jobPost.id }
         },
-        ...(jobPost.companyId ? {
-          company: {
-            connect: { id: jobPost.companyId }
-          }
-        } : {})
+        ...(jobPost.companyId
+          ? { company: { connect: { id: jobPost.companyId } } }
+          : {})
       }
     });
-
-
 
     // 7. Update job metrics
     await prisma.jobMetrics.upsert({
@@ -263,7 +271,7 @@ export async function POST(request: Request) {
       success: true, 
       applicationId: application.id,
       status: application.status,
-      submittedAt: application.lastActivity // Changed from lastActivityDate
+      submittedAt: application.lastActivity
     });
   } catch (error) {
     console.error("Error submitting application:", error);

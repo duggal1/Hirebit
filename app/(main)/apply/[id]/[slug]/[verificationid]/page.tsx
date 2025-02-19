@@ -137,6 +137,25 @@ export default function ApplyNowPage() {
   const [useLinks, setUseLinks] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // New state for portfolio and projects
+  const [portfolio, setPortfolio] = useState("");
+  const [projects, setProjects] = useState<{ url: string; about: string }[]>([]);
+
+  // Functions to manage projects array
+  const addProject = () => {
+    setProjects([...projects, { url: "", about: "" }]);
+  };
+
+  const removeProject = (index: number) => {
+    setProjects(projects.filter((_, i) => i !== index));
+  };
+
+  const handleProjectChange = (index: number, field: "url" | "about", value: string) => {
+    const updatedProjects = [...projects];
+    updatedProjects[index] = { ...updatedProjects[index], [field]: value };
+    setProjects(updatedProjects);
+  };
+
   useEffect(() => {
     console.log("Apply Page - Route params:", params);
     if (params?.verificationid) {
@@ -258,6 +277,9 @@ export default function ApplyNowPage() {
         companySlug,
         verificationId,
         includeLinks: useLinks,
+        portfolio,
+        projects,
+        coverLetter,
       });
 
       const response = await fetch("/api/submit-application", {
@@ -269,6 +291,8 @@ export default function ApplyNowPage() {
           verificationId,
           coverLetter,
           includeLinks: useLinks,
+          portfolio,
+          projects,
         }),
       });
 
@@ -558,6 +582,81 @@ export default function ApplyNowPage() {
                   </Card>
                 </motion.div>
               )}
+
+              {/* Portfolio & Projects Section */}
+              <motion.div variants={itemVariants} className="space-y-6">
+                <h3 className="text-lg font-medium">Portfolio & Projects</h3>
+                <Card className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+                  <div className="p-8 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300">
+                        Portfolio URL
+                      </label>
+                      <input
+                        type="url"
+                        value={portfolio}
+                        onChange={(e) => setPortfolio(e.target.value)}
+                        placeholder="https://yourportfolio.com"
+                        className="mt-1 block w-full bg-black/30 border border-white/10 rounded-xl text-gray-200 p-2"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      {projects.length === 0 && (
+                        <div className="text-sm text-gray-400">
+                          No projects added yet.
+                        </div>
+                      )}
+                      {projects.map((project, index) => (
+                        <div
+                          key={index}
+                          className="space-y-2 border border-white/10 p-4 rounded-xl"
+                        >
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300">
+                              Project URL
+                            </label>
+                            <input
+                              type="url"
+                              value={project.url}
+                              onChange={(e) =>
+                                handleProjectChange(index, "url", e.target.value)
+                              }
+                              placeholder="https://projectlink.com"
+                              className="mt-1 block w-full bg-black/30 border border-white/10 rounded-xl text-gray-200 p-2"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300">
+                              Project Description
+                            </label>
+                            <Textarea
+                              value={project.about}
+                              onChange={(e) =>
+                                handleProjectChange(index, "about", e.target.value)
+                              }
+                              placeholder="Describe your project..."
+                              className="min-h-[100px] bg-black/30 border-white/10 focus:border-purple-500/50 rounded-xl text-gray-200"
+                            />
+                          </div>
+                          <Button
+                            onClick={() => removeProject(index)}
+                            variant="destructive"
+                            className="mt-2 bg-red-600 hover:bg-red-700 text-white rounded-xl"
+                          >
+                            Remove Project
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        onClick={addProject}
+                        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl h-12 text-lg font-medium"
+                      >
+                        + Add Project
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
 
               {/* Submit Button */}
               <motion.div variants={itemVariants}>

@@ -100,7 +100,9 @@ export async function GET(
           }
         },
         applications: {
-          where: { jobId: { in: jobPosts.map(post => post.id) } },
+          where: {
+            jobId: { in: jobPosts.map(post => post.id) }
+          },
           include: {
             job: {
               include: {
@@ -129,9 +131,7 @@ export async function GET(
       }
     });
 
-    // Transform the data:
-    // For each job seeker, output all properties along with a new "jobApplications" property
-    // which is derived from the original "applications" field.
+    // Transform the data: include additional fields from jobApplication (portfolio and projects)
     const transformedData = jobSeekers.map(seeker => {
       console.log(`\n🔄 Processing job seeker: ${seeker.name}`);
       return {
@@ -140,7 +140,7 @@ export async function GET(
         email: seeker.email,
         phoneNumber: seeker.phoneNumber,
         location: seeker.location,
-        // Replace the original 'applications' with the new 'jobApplications' field.
+        // New jobApplications field including portfolio and projects:
         jobApplications: seeker.applications.map(app => ({
           id: app.id,
           status: app.status,
@@ -153,6 +153,8 @@ export async function GET(
           lastActivity: app.lastActivity,
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
+          portfolio: app.portfolio,  // <-- New field
+          projects: app.projects,    // <-- New field
           job: {
             id: app.job.id,
             title: app.job.jobTitle,
@@ -242,7 +244,7 @@ export async function GET(
     console.log(`Returning ${transformedData.length} job seekers with application logs`);
 
     return NextResponse.json(transformedData);
-    
+
   } catch (error: any) {
     console.error('\n❌ Error fetching dashboard logs:', error);
     return NextResponse.json(

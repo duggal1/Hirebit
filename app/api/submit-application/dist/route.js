@@ -54,7 +54,8 @@ var server_1 = require("next/server");
 function POST(request) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6;
     return __awaiter(this, void 0, void 0, function () {
-        var body, jobSeekerId, companySlug, verificationId, coverLetter, includeLinks, verification, resumeData, urls, jobPost, existingApplication, applicationCount, baseApplicationData, application, error_1;
+        var body, jobSeekerId, companySlug, verificationId, coverLetter, includeLinks, portfolio, projects // New: Array of projects (each with URL and description)
+        , verification, resumeData, urls, jobPost, existingApplication, applicationCount, baseApplicationData, application, error_1;
         var _7, _8;
         return __generator(this, function (_9) {
             switch (_9.label) {
@@ -64,7 +65,7 @@ function POST(request) {
                 case 1:
                     body = _9.sent();
                     console.log("Submit Application - Request body:", body);
-                    jobSeekerId = body.jobSeekerId, companySlug = body.companySlug, verificationId = body.verificationId, coverLetter = body.coverLetter, includeLinks = body.includeLinks;
+                    jobSeekerId = body.jobSeekerId, companySlug = body.companySlug, verificationId = body.verificationId, coverLetter = body.coverLetter, includeLinks = body.includeLinks, portfolio = body.portfolio, projects = body.projects;
                     return [4 /*yield*/, db_1.prisma.verification.findFirst({
                             where: {
                                 OR: [{ id: verificationId }, { jobSeekerId: jobSeekerId }]
@@ -124,6 +125,10 @@ function POST(request) {
                 case 6:
                     baseApplicationData = {
                         coverLetter: coverLetter || "",
+                        portfolio: portfolio || "",
+                        projects: projects && projects.length > 0
+                            ? { set: projects } // Save the projects array as JSON
+                            : client_1.Prisma.JsonNull,
                         status: client_1.ApplicationStatus.PENDING,
                         includeLinks: includeLinks,
                         resume: ((_c = verification.jobSeeker) === null || _c === void 0 ? void 0 : _c.resume) || "",
@@ -133,11 +138,13 @@ function POST(request) {
                         answers: includeLinks ? {
                             set: {
                                 linkedin: (urls === null || urls === void 0 ? void 0 : urls.linkedin) || "",
-                                resumeData: resumeData ? {
-                                    resumeName: resumeData.resumeName,
-                                    resumeBio: resumeData.resumeBio,
-                                    pdfUrlId: resumeData.pdfUrlId
-                                } : null,
+                                resumeData: resumeData
+                                    ? {
+                                        resumeName: resumeData.resumeName,
+                                        resumeBio: resumeData.resumeBio,
+                                        pdfUrlId: resumeData.pdfUrlId
+                                    }
+                                    : null,
                                 github: (urls === null || urls === void 0 ? void 0 : urls.github) || "",
                                 portfolio: (urls === null || urls === void 0 ? void 0 : urls.portfolio) || "",
                                 currentJobTitle: ((_d = verification.jobSeeker) === null || _d === void 0 ? void 0 : _d.currentJobTitle) || "",
@@ -197,11 +204,9 @@ function POST(request) {
                                     connect: { id: jobSeekerId }
                                 }, job: {
                                     connect: { id: jobPost.id }
-                                } }), (jobPost.companyId ? {
-                                company: {
-                                    connect: { id: jobPost.companyId }
-                                }
-                            } : {}))
+                                } }), (jobPost.companyId
+                                ? { company: { connect: { id: jobPost.companyId } } }
+                                : {}))
                         })];
                 case 7:
                     application = _9.sent();
@@ -233,7 +238,7 @@ function POST(request) {
                             success: true,
                             applicationId: application.id,
                             status: application.status,
-                            submittedAt: application.lastActivity // Changed from lastActivityDate
+                            submittedAt: application.lastActivity
                         })];
                 case 9:
                     error_1 = _9.sent();

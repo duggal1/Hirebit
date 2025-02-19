@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -74,7 +74,6 @@ interface JobSeeker {
   currentJobTitle?: string;
   industry?: string;
   bio: string;
-  // "yearsOfExperience" holds the candidate’s years of experience (e.g., 16)
   yearsOfExperience: number;
   about: string;
   createdAt: string;
@@ -82,7 +81,6 @@ interface JobSeeker {
   education?: any;
   skills?: string[];
   jobSearchStatus?: string;
-  // Additional fields from your schema:
   experience: number;
   previousJobExperience: string;
   certifications?: any[];
@@ -523,13 +521,12 @@ export default function RecruiterDashboard() {
               <p>
                 <strong>Certifications:</strong>{" "}
                 {selectedJobSeeker.certifications?.length
-  ? selectedJobSeeker.certifications.map((cert, i) => (
-      <span key={i}>
-        {cert.name || JSON.stringify(cert)} {cert.year ? `(${cert.year})` : ""}{i < selectedJobSeeker.certifications.length - 1 ? ", " : ""}
-      </span>
-    ))
-  : "N/A"}
-
+                  ? selectedJobSeeker.certifications.map((cert, i) => (
+                      <span key={i}>
+                        {cert.name || JSON.stringify(cert)} {cert.year ? `(${cert.year})` : ""}{i < selectedJobSeeker.certifications.length - 1 ? ", " : ""}
+                      </span>
+                    ))
+                  : "N/A"}
               </p>
               <p>
                 <strong>Expected Salary:</strong>{" "}
@@ -585,8 +582,19 @@ export default function RecruiterDashboard() {
                   ? JSON.stringify(selectedJobSeeker.education)
                   : "N/A"}
               </p>
-              <p className="mt-2 text-gray-400">
-                [View Applications functionality coming soon]
+              {/* --- New Navigation for Viewing Applications --- */}
+              <p className="mt-2">
+                <Button
+                  variant="link"
+                  className="underline text-blue-400"
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/${recruiterId}/${companyid}/logs?jobSeekerId=${selectedJobSeeker.id}`
+                    )
+                  }
+                >
+                  View Applications
+                </Button>
               </p>
             </div>
             <div className="mt-6 flex justify-end">

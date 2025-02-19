@@ -440,6 +440,8 @@ model JobApplication {
   // Job Post relation
   job   JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId String
+   portfolio   String?   // optional field for portfolio URL
+  projects    Json?  
 
   // Direct Company relation (denormalized for efficiency)
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
