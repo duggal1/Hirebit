@@ -69,8 +69,8 @@ var pricingTiers_1 = require("./utils/pricingTiers");
 var cache_1 = require("next/cache");
 var arcjet_1 = require("./utils/arcjet");
 var next_1 = require("@arcjet/next");
-var client_1 = require("./utils/inngest/client");
-var client_2 = require("@prisma/client");
+var jobMetrics_1 = require("./utils/jobMetrics");
+var client_1 = require("@prisma/client");
 var auth_1 = require("./utils/auth");
 var zodSchemas_1 = require("./utils/zodSchemas");
 var uuid_1 = require("uuid"); // Import UUID generator
@@ -171,7 +171,7 @@ function createJobSeeker(data) {
                                 desiredEmployment: validatedData.desiredEmployment,
                                 certifications: validatedData.certifications
                                     ? validatedData.certifications
-                                    : client_2.Prisma.JsonNull,
+                                    : client_1.Prisma.JsonNull,
                                 phoneNumber: validatedData.phoneNumber,
                                 linkedin: validatedData.linkedin || null,
                                 github: validatedData.github || null,
@@ -181,7 +181,12 @@ function createJobSeeker(data) {
                                 },
                                 availableFrom: validatedData.availableFrom,
                                 previousJobExperience: validatedData.previousJobExperience,
-                                willingToRelocate: validatedData.willingToRelocate
+                                willingToRelocate: validatedData.willingToRelocate,
+                                // Required fields
+                                email: validatedData.email,
+                                industry: validatedData.industry,
+                                currentJobTitle: validatedData.currentJobTitle,
+                                jobSearchStatus: validatedData.jobSearchStatus
                             }
                         })];
                 case 3:
@@ -213,74 +218,99 @@ function createJobSeeker(data) {
 exports.createJobSeeker = createJobSeeker;
 function createJob(data) {
     return __awaiter(this, void 0, void 0, function () {
-        var user, validatedData, company, stripeCustomerId, customer, jobPost, pricingTier, session;
+        var user, validatedData, company, stripeCustomerId, customer, error_2, jobPost, error_3, pricingTier, session, error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, hooks_1.requireUser()];
+                case 0:
+                    console.log("[createJob] Received data:", data);
+                    return [4 /*yield*/, hooks_1.requireUser()];
                 case 1:
                     user = _a.sent();
+                    console.log("[createJob] Current user:", user);
                     validatedData = zodSchemas_1.jobSchema.parse(data);
+                    console.log("[createJob] Validated data:", validatedData);
                     return [4 /*yield*/, db_1.prisma.company.findUnique({
-                            where: {
-                                userId: user.id
-                            },
+                            where: { userId: user.id },
                             select: {
                                 id: true,
-                                user: {
-                                    select: {
-                                        stripeCustomerId: true
-                                    }
-                                }
+                                user: { select: { stripeCustomerId: true } }
                             }
                         })];
                 case 2:
                     company = _a.sent();
+                    console.log("[createJob] Company record:", company);
                     if (!(company === null || company === void 0 ? void 0 : company.id)) {
-                        return [2 /*return*/, navigation_1.redirect("/")];
+                        console.error("[createJob] No company associated with user");
+                        throw new Error("No company associated with user");
                     }
                     stripeCustomerId = company.user.stripeCustomerId;
-                    if (!!stripeCustomerId) return [3 /*break*/, 5];
+                    console.log("[createJob] Initial stripeCustomerId:", stripeCustomerId);
+                    if (!!stripeCustomerId) return [3 /*break*/, 7];
+                    console.log("[createJob] Creating new Stripe customer for:", user.email);
+                    _a.label = 3;
+                case 3:
+                    _a.trys.push([3, 6, , 7]);
                     return [4 /*yield*/, stripe_1.stripe.customers.create({
                             email: user.email,
                             name: user.name || undefined
                         })];
-                case 3:
+                case 4:
                     customer = _a.sent();
                     stripeCustomerId = customer.id;
+                    console.log("[createJob] New Stripe customer created:", stripeCustomerId);
                     return [4 /*yield*/, db_1.prisma.user.update({
                             where: { id: user.id },
                             data: { stripeCustomerId: customer.id }
                         })];
-                case 4:
+                case 5:
                     _a.sent();
-                    _a.label = 5;
-                case 5: return [4 /*yield*/, db_1.prisma.jobPost.create({
-                        data: {
-                            companyId: company.id,
-                            jobTitle: validatedData.jobTitle,
-                            employmentType: validatedData.employmentType,
-                            location: validatedData.location,
-                            salaryFrom: validatedData.salaryFrom,
-                            salaryTo: validatedData.salaryTo,
-                            listingDuration: validatedData.listingDuration,
-                            benefits: validatedData.benefits,
-                            jobDescription: validatedData.jobDescription,
-                            status: "ACTIVE",
-                            skillsRequired: validatedData.skillsRequired,
-                            positionRequirement: validatedData.positionRequirement,
-                            requiredExperience: validatedData.requiredExperience,
-                            jobCategory: validatedData.jobCategory,
-                            interviewStages: validatedData.interviewStages,
-                            visaSponsorship: validatedData.visaSponsorship,
-                            compensationDetails: validatedData.compensationDetails
-                        }
-                    })];
+                    console.log("[createJob] Updated user with new stripeCustomerId");
+                    return [3 /*break*/, 7];
                 case 6:
+                    error_2 = _a.sent();
+                    console.error("[createJob] Stripe customer creation failed:", error_2);
+                    throw new Error("Failed to create Stripe customer");
+                case 7:
+                    _a.trys.push([7, 9, , 10]);
+                    return [4 /*yield*/, db_1.prisma.jobPost.create({
+                            data: {
+                                companyId: company.id,
+                                jobTitle: validatedData.jobTitle,
+                                employmentType: validatedData.employmentType,
+                                location: validatedData.location,
+                                salaryFrom: validatedData.salaryFrom,
+                                salaryTo: validatedData.salaryTo,
+                                listingDuration: validatedData.listingDuration,
+                                benefits: validatedData.benefits,
+                                jobDescription: validatedData.jobDescription,
+                                status: "ACTIVE",
+                                skillsRequired: validatedData.skillsRequired,
+                                positionRequirement: validatedData.positionRequirement,
+                                requiredExperience: validatedData.requiredExperience,
+                                jobCategory: validatedData.jobCategory,
+                                interviewStages: validatedData.interviewStages,
+                                visaSponsorship: validatedData.visaSponsorship,
+                                compensationDetails: validatedData.compensationDetails
+                            }
+                        })];
+                case 8:
                     jobPost = _a.sent();
+                    console.log("[createJob] Created job post:", jobPost);
+                    return [3 /*break*/, 10];
+                case 9:
+                    error_3 = _a.sent();
+                    console.error("[createJob] Failed to create job post:", error_3);
+                    throw new Error("Job post creation failed");
+                case 10:
                     pricingTier = pricingTiers_1.jobListingDurationPricing.find(function (tier) { return tier.days === validatedData.listingDuration; });
+                    console.log("[createJob] Pricing tier selected:", pricingTier);
                     if (!pricingTier) {
+                        console.error("[createJob] Invalid listing duration:", validatedData.listingDuration);
                         throw new Error("Invalid listing duration selected");
                     }
+                    _a.label = 11;
+                case 11:
+                    _a.trys.push([11, 13, , 14]);
                     return [4 /*yield*/, stripe_1.stripe.checkout.sessions.create({
                             customer: stripeCustomerId,
                             line_items: [
@@ -300,18 +330,26 @@ function createJob(data) {
                                 },
                             ],
                             mode: "payment",
-                            metadata: {
-                                jobId: jobPost.id
-                            },
+                            metadata: { jobId: jobPost.id },
                             success_url: BASE_URL + "/payment/success?session_id={CHECKOUT_SESSION_ID}",
                             cancel_url: BASE_URL + "/payment/cancel"
                         })];
-                case 7:
+                case 12:
                     session = _a.sent();
+                    console.log("[createJob] Stripe checkout session created:", session);
+                    return [3 /*break*/, 14];
+                case 13:
+                    error_4 = _a.sent();
+                    console.error("[createJob] Stripe checkout session creation failed:", error_4);
+                    throw new Error("Failed to create Stripe checkout session");
+                case 14:
                     if (!session.url) {
+                        console.error("[createJob] Stripe session URL missing:", session);
                         throw new Error("Failed to create Stripe checkout session");
                     }
-                    return [2 /*return*/, navigation_1.redirect(session.url)];
+                    console.log("[createJob] Returning redirect URL:", session.url);
+                    // Instead of redirect(session.url), return the URL so the client can handle the redirect
+                    return [2 /*return*/, { redirectUrl: session.url }];
             }
         });
     });
@@ -496,13 +534,10 @@ function submitJobApplication(jobId, formData) {
                         })];
                 case 3:
                     application = _a.sent();
-                    // Trigger AI evaluation
-                    return [4 /*yield*/, client_1.inngest.send({
-                            name: "application/submitted",
-                            data: { applicationId: application.id }
-                        })];
+                    // Also update job metrics to trigger Gemini analysis and store metrics data
+                    return [4 /*yield*/, jobMetrics_1.calculateAndUpdateJobMetrics(jobId)];
                 case 4:
-                    // Trigger AI evaluation
+                    // Also update job metrics to trigger Gemini analysis and store metrics data
                     _a.sent();
                     cache_1.revalidatePath("/job/" + jobId);
                     return [2 /*return*/, { success: true }];
@@ -511,11 +546,9 @@ function submitJobApplication(jobId, formData) {
     });
 }
 exports.submitJobApplication = submitJobApplication;
-// Remove the first duplicate submitTest function and evaluateCode function
-// Keep only the more complete version
 function evaluateCode(code, question) {
     return __awaiter(this, void 0, Promise, function () {
-        var evaluationRes, error_2;
+        var evaluationRes, error_5;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -534,8 +567,8 @@ function evaluateCode(code, question) {
                         throw new Error('Evaluation failed');
                     return [2 /*return*/, evaluationRes.json()];
                 case 2:
-                    error_2 = _a.sent();
-                    console.error('Code evaluation error:', error_2);
+                    error_5 = _a.sent();
+                    console.error('Code evaluation error:', error_5);
                     return [2 /*return*/, {
                             score: 0,
                             feedback: 'Evaluation service unavailable',
@@ -640,127 +673,64 @@ function isInCooldown(lastAttemptAt) {
     return new Date() < cooldownEnds;
 }
 function trackJobView(jobId) {
+    "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var today, _a, jobPost, metrics, viewsByDate, error_3;
-        var _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var error_6;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    _c.trys.push([0, 6, , 7]);
-                    today = new Date().toISOString().split('T')[0];
-                    return [4 /*yield*/, Promise.all([
-                            db_1.prisma.jobPost.update({
-                                where: { id: jobId },
-                                data: { views: { increment: 1 } }
-                            }),
-                            db_1.prisma.jobMetrics.findUnique({
-                                where: { jobPostId: jobId }
-                            })
-                        ])];
+                    _a.trys.push([0, 3, , 4]);
+                    // Update job post views
+                    return [4 /*yield*/, db_1.prisma.jobPost.update({
+                            where: { id: jobId },
+                            data: { views: { increment: 1 } }
+                        })];
                 case 1:
-                    _a = _c.sent(), jobPost = _a[0], metrics = _a[1];
-                    if (!!metrics) return [3 /*break*/, 3];
-                    // Create initial metrics if they don't exist
-                    return [4 /*yield*/, db_1.prisma.jobMetrics.create({
-                            data: {
-                                jobPostId: jobId,
-                                totalViews: 1,
-                                viewsByDate: (_b = {}, _b[today] = 1, _b),
-                                clicksByDate: {},
-                                locationData: {}
-                            }
-                        })];
+                    // Update job post views
+                    _a.sent();
+                    // Update metrics with location data
+                    return [4 /*yield*/, jobMetrics_1.updateMetricsWithLocation(jobId, 'view')];
                 case 2:
-                    // Create initial metrics if they don't exist
-                    _c.sent();
-                    return [3 /*break*/, 5];
+                    // Update metrics with location data
+                    _a.sent();
+                    return [3 /*break*/, 4];
                 case 3:
-                    viewsByDate = __assign({}, metrics.viewsByDate);
-                    viewsByDate[today] = (viewsByDate[today] || 0) + 1;
-                    return [4 /*yield*/, db_1.prisma.jobMetrics.update({
-                            where: { jobPostId: jobId },
-                            data: {
-                                totalViews: { increment: 1 },
-                                viewsByDate: viewsByDate
-                            }
-                        })];
-                case 4:
-                    _c.sent();
-                    _c.label = 5;
-                case 5:
-                    cache_1.revalidatePath("/job/" + jobId);
-                    return [3 /*break*/, 7];
-                case 6:
-                    error_3 = _c.sent();
-                    console.error('Failed to track job view:', error_3);
-                    return [3 /*break*/, 7];
-                case 7: return [2 /*return*/];
+                    error_6 = _a.sent();
+                    console.error('Failed to track job view:', error_6);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
 }
 exports.trackJobView = trackJobView;
-function trackJobClick(jobId, location) {
+function trackJobClick(jobId) {
+    "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var today, _a, jobPost, metrics, clicksByDate, locationData, error_4;
-        var _b, _c;
-        return __generator(this, function (_d) {
-            switch (_d.label) {
+        var error_7;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    _d.trys.push([0, 6, , 7]);
-                    today = new Date().toISOString().split('T')[0];
-                    return [4 /*yield*/, Promise.all([
-                            db_1.prisma.jobPost.update({
-                                where: { id: jobId },
-                                data: { clicks: { increment: 1 } }
-                            }),
-                            db_1.prisma.jobMetrics.findUnique({
-                                where: { jobPostId: jobId }
-                            })
-                        ])];
+                    _a.trys.push([0, 3, , 4]);
+                    // Update job post clicks
+                    return [4 /*yield*/, db_1.prisma.jobPost.update({
+                            where: { id: jobId },
+                            data: { clicks: { increment: 1 } }
+                        })];
                 case 1:
-                    _a = _d.sent(), jobPost = _a[0], metrics = _a[1];
-                    if (!!metrics) return [3 /*break*/, 3];
-                    // Create initial metrics
-                    return [4 /*yield*/, db_1.prisma.jobMetrics.create({
-                            data: {
-                                jobPostId: jobId,
-                                totalClicks: 1,
-                                clicksByDate: (_b = {}, _b[today] = 1, _b),
-                                viewsByDate: {},
-                                locationData: location ? (_c = {}, _c[location] = 1, _c) : {}
-                            }
-                        })];
+                    // Update job post clicks
+                    _a.sent();
+                    // Update metrics with location data
+                    return [4 /*yield*/, jobMetrics_1.updateMetricsWithLocation(jobId, 'click')];
                 case 2:
-                    // Create initial metrics
-                    _d.sent();
-                    return [3 /*break*/, 5];
+                    // Update metrics with location data
+                    _a.sent();
+                    return [3 /*break*/, 4];
                 case 3:
-                    clicksByDate = __assign({}, metrics.clicksByDate);
-                    clicksByDate[today] = (clicksByDate[today] || 0) + 1;
-                    locationData = __assign({}, metrics.locationData);
-                    if (location) {
-                        locationData[location] = (locationData[location] || 0) + 1;
-                    }
-                    return [4 /*yield*/, db_1.prisma.jobMetrics.update({
-                            where: { jobPostId: jobId },
-                            data: {
-                                totalClicks: { increment: 1 },
-                                clicksByDate: clicksByDate,
-                                locationData: locationData
-                            }
-                        })];
-                case 4:
-                    _d.sent();
-                    _d.label = 5;
-                case 5:
-                    cache_1.revalidatePath("/job/" + jobId);
-                    return [3 /*break*/, 7];
-                case 6:
-                    error_4 = _d.sent();
-                    console.error('Failed to track job click:', error_4);
-                    return [3 /*break*/, 7];
-                case 7: return [2 /*return*/];
+                    error_7 = _a.sent();
+                    console.error('Failed to track job click:', error_7);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
@@ -768,69 +738,14 @@ function trackJobClick(jobId, location) {
 exports.trackJobClick = trackJobClick;
 function getJobMetrics(jobId) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, metrics, applications, ctr, conversionRate;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0: return [4 /*yield*/, Promise.all([
-                        db_1.prisma.jobMetrics.findUnique({
-                            where: { jobPostId: jobId },
-                            include: {
-                                jobPost: {
-                                    select: {
-                                        applications: true,
-                                        views: true,
-                                        clicks: true
-                                    }
-                                }
-                            }
-                        }),
-                        // Get actual submitted applications count
-                        db_1.prisma.jobApplication.count({
-                            where: {
-                                jobId: jobId,
-                                status: {
-                                    "in": ['PENDING', 'REVIEWED', 'SHORTLISTED', 'ACCEPTED']
-                                }
-                            }
-                        })
-                    ])];
-                case 1:
-                    _a = _b.sent(), metrics = _a[0], applications = _a[1];
-                    if (!metrics) {
-                        return [2 /*return*/, {
-                                totalViews: 0,
-                                totalClicks: 0,
-                                applications: 0,
-                                ctr: 0,
-                                conversionRate: 0,
-                                viewsByDate: {},
-                                clicksByDate: {},
-                                locationData: {}
-                            }];
-                    }
-                    ctr = metrics.totalViews > 0
-                        ? (metrics.totalClicks / metrics.totalViews) * 100
-                        : 0;
-                    conversionRate = metrics.totalClicks > 0
-                        ? (applications / metrics.totalClicks) * 100
-                        : 0;
-                    return [2 /*return*/, {
-                            totalViews: metrics.totalViews,
-                            totalClicks: metrics.totalClicks,
-                            applications: applications,
-                            ctr: Number(ctr.toFixed(2)),
-                            conversionRate: Number(conversionRate.toFixed(2)),
-                            viewsByDate: metrics.viewsByDate,
-                            clicksByDate: metrics.clicksByDate,
-                            locationData: metrics.locationData
-                        }];
-            }
+        return __generator(this, function (_a) {
+            return [2 /*return*/, jobMetrics_1.calculateAndUpdateJobMetrics(jobId)];
         });
     });
 }
 exports.getJobMetrics = getJobMetrics;
 exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void 0, void 0, void 0, function () {
-    var session, rawData, validatedData, jobSeeker, error_5;
+    var session, rawData, validatedData, jobSeeker, error_8;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -877,37 +792,27 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     linkedin: formData.get('linkedin') || null,
                     github: formData.get('github') || null,
                     portfolio: formData.get('portfolio') || null,
-                    availableFrom: formData.get("availableFrom") && formData.get("availableFrom").trim() !== ""
+                    availableFrom: formData.get("availableFrom")
                         ? new Date(formData.get("availableFrom")).toISOString()
                         : null,
                     previousJobExperience: formData.get("previousJobExperience") || null,
-                    willingToRelocate: formData.get("willingToRelocate")
-                        ? formData.get("willingToRelocate") === "true"
-                        : null,
-                    // ✅ New Fields Added:
-                    jobSearchStatus: formData.get("jobSearchStatus"),
-                    visaStatus: formData.get("visaStatus") || null,
-                    noticePeriod: Number(formData.get("noticePeriod")) || 0,
-                    expectedHourlyRate: formData.get("expectedHourlyRate")
-                        ? Number(formData.get("expectedHourlyRate"))
-                        : null
+                    willingToRelocate: formData.get("willingToRelocate") === "true",
+                    // New fields
+                    email: formData.get('email'),
+                    currentJobTitle: formData.get('currentJobTitle') || null,
+                    industry: formData.get('industry'),
+                    jobSearchStatus: formData.get('jobSearchStatus')
                 };
                 validatedData = zodSchemas_1.jobSeekerSchema.parse(rawData);
-                return [4 /*yield*/, db_1.prisma.jobSeeker.upsert({
-                        where: {
-                            userId: session.user.id
-                        },
-                        update: {
-                            education: validatedData.education,
-                            educationDetails: validatedData.education,
+                return [4 /*yield*/, db_1.prisma.jobSeeker.create({
+                        data: {
                             name: validatedData.name,
                             about: validatedData.about,
-                            phoneNumber: validatedData.phoneNumber,
                             resume: validatedData.resume,
                             location: validatedData.location,
                             skills: validatedData.skills,
                             experience: validatedData.experience,
-                            expectedSalaryMin: validatedData.expectedSalaryMin,
+                            education: validatedData.education,
                             expectedSalaryMax: validatedData.expectedSalaryMax,
                             preferredLocation: validatedData.preferredLocation,
                             remotePreference: validatedData.remotePreference,
@@ -916,51 +821,22 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                             desiredEmployment: validatedData.desiredEmployment,
                             certifications: validatedData.certifications
                                 ? validatedData.certifications
-                                : client_2.Prisma.JsonNull,
-                            linkedin: validatedData.linkedin,
-                            github: validatedData.github,
-                            portfolio: validatedData.portfolio,
-                            availableFrom: validatedData.availableFrom,
-                            previousJobExperience: validatedData.previousJobExperience,
-                            willingToRelocate: validatedData.willingToRelocate,
-                            // ✅ New Fields Added:
-                            jobSearchStatus: validatedData.jobSearchStatus,
-                            visaStatus: validatedData.visaStatus,
-                            noticePeriod: validatedData.noticePeriod,
-                            expectedHourlyRate: validatedData.expectedHourlyRate
-                        },
-                        create: {
-                            userId: session.user.id,
-                            education: validatedData.education,
-                            educationDetails: validatedData.education,
-                            name: validatedData.name,
-                            about: validatedData.about,
+                                : client_1.Prisma.JsonNull,
                             phoneNumber: validatedData.phoneNumber,
-                            resume: validatedData.resume,
-                            location: validatedData.location,
-                            skills: validatedData.skills,
-                            experience: validatedData.experience,
-                            expectedSalaryMin: validatedData.expectedSalaryMin,
-                            expectedSalaryMax: validatedData.expectedSalaryMax,
-                            preferredLocation: validatedData.preferredLocation,
-                            remotePreference: validatedData.remotePreference,
-                            yearsOfExperience: validatedData.yearsOfExperience,
-                            availabilityPeriod: validatedData.availabilityPeriod,
-                            desiredEmployment: validatedData.desiredEmployment,
-                            certifications: validatedData.certifications
-                                ? validatedData.certifications
-                                : client_2.Prisma.JsonNull,
-                            linkedin: validatedData.linkedin,
-                            github: validatedData.github,
-                            portfolio: validatedData.portfolio,
+                            linkedin: validatedData.linkedin || null,
+                            github: validatedData.github || null,
+                            portfolio: validatedData.portfolio || null,
                             availableFrom: validatedData.availableFrom,
                             previousJobExperience: validatedData.previousJobExperience,
                             willingToRelocate: validatedData.willingToRelocate,
-                            // ✅ New Fields Added:
+                            // New fields
+                            email: validatedData.email,
+                            currentJobTitle: validatedData.currentJobTitle,
+                            industry: validatedData.industry,
                             jobSearchStatus: validatedData.jobSearchStatus,
-                            visaStatus: validatedData.visaStatus,
-                            noticePeriod: validatedData.noticePeriod,
-                            expectedHourlyRate: validatedData.expectedHourlyRate
+                            user: {
+                                connect: { id: session.user.id }
+                            }
                         }
                     })];
             case 2:
@@ -977,18 +853,16 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
             case 3:
                 _b.sent();
                 _b.label = 4;
-            case 4: 
-            // Return success response instead of redirecting
-            return [2 /*return*/, {
+            case 4: return [2 /*return*/, {
                     message: "Profile updated successfully!",
                     success: true,
-                    redirect: '/' // Add this to handle redirect on client side
+                    redirect: '/'
                 }];
             case 5:
-                error_5 = _b.sent();
-                console.error('Server error:', error_5);
+                error_8 = _b.sent();
+                console.error('Server error:', error_8);
                 return [2 /*return*/, {
-                        message: error_5 instanceof Error ? error_5.message : 'Failed to update profile',
+                        message: error_8 instanceof Error ? error_8.message : 'Failed to update profile',
                         success: false
                     }];
             case 6: return [2 /*return*/];
@@ -997,49 +871,52 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
 }); };
 exports.submitJobSeekerResume = function (prevState, // new first parameter (can be ignored if not needed)
 formData) { return __awaiter(void 0, void 0, Promise, function () {
-    var user, jobId, resumeDataRaw, parsedResult, validResumeData, error_6;
-    var _a, _b, _c, _d, _e;
-    return __generator(this, function (_f) {
-        switch (_f.label) {
+    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_9;
+    var _a, _b, _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
             case 0: return [4 /*yield*/, hooks_1.requireUser()];
             case 1:
-                user = _f.sent();
+                user = _e.sent();
                 if (!(user === null || user === void 0 ? void 0 : user.id)) {
                     throw new Error("You must be logged in to submit your resume.");
                 }
-                jobId = (_a = formData.get("jobId")) === null || _a === void 0 ? void 0 : _a.toString();
-                if (!jobId) {
-                    throw new Error("Missing jobId in the submitted form data.");
+                return [4 /*yield*/, db_1.prisma.jobSeeker.findUnique({
+                        where: { userId: user.id }
+                    })];
+            case 2:
+                jobSeeker = _e.sent();
+                if (!jobSeeker || !jobSeeker.id) {
+                    throw new Error("JobSeeker record not found.");
                 }
                 resumeDataRaw = {
-                    // Optionally provided from the client, otherwise the prisma default uuid will be used.
-                    resumeId: ((_b = formData.get("resumeId")) === null || _b === void 0 ? void 0 : _b.toString()) || undefined,
-                    resumeName: ((_c = formData.get("resumeName")) === null || _c === void 0 ? void 0 : _c.toString()) || "",
-                    resumeBio: ((_d = formData.get("resumeBio")) === null || _d === void 0 ? void 0 : _d.toString()) || "",
-                    pdfUrlId: ((_e = formData.get("pdfUrlId")) === null || _e === void 0 ? void 0 : _e.toString()) || ""
+                    // Optionally provided from the client; otherwise, Prisma will generate one.
+                    resumeId: ((_a = formData.get("resumeId")) === null || _a === void 0 ? void 0 : _a.toString()) || undefined,
+                    resumeName: ((_b = formData.get("resumeName")) === null || _b === void 0 ? void 0 : _b.toString()) || "",
+                    resumeBio: ((_c = formData.get("resumeBio")) === null || _c === void 0 ? void 0 : _c.toString()) || "",
+                    pdfUrlId: ((_d = formData.get("pdfUrlId")) === null || _d === void 0 ? void 0 : _d.toString()) || ""
                 };
                 parsedResult = zodSchemas_1.resumeSchema.safeParse(resumeDataRaw);
                 if (!parsedResult.success) {
-                    // You can customize this error handling as needed.
                     throw new Error(parsedResult.error.message);
                 }
                 validResumeData = parsedResult.data;
-                _f.label = 2;
-            case 2:
-                _f.trys.push([2, 4, , 5]);
+                _e.label = 3;
+            case 3:
+                _e.trys.push([3, 5, , 6]);
                 return [4 /*yield*/, db_1.prisma.jobSeekerResume.create({
                         data: __assign(__assign({}, (validResumeData.resumeId ? { resumeId: validResumeData.resumeId } : {})), { resumeName: validResumeData.resumeName, resumeBio: validResumeData.resumeBio, pdfUrlId: validResumeData.pdfUrlId })
                     })];
-            case 3:
-                _f.sent();
-                return [3 /*break*/, 5];
             case 4:
-                error_6 = _f.sent();
-                console.error("Error creating JobSeekerResume:", error_6);
+                _e.sent();
+                return [3 /*break*/, 6];
+            case 5:
+                error_9 = _e.sent();
+                console.error("Error creating JobSeekerResume:", error_9);
                 throw new Error("Failed to create resume record.");
-            case 5: 
-            // After successful storage, redirect the user to the coding test page.
-            return [2 /*return*/, navigation_1.redirect("/coding-test/" + jobId)];
+            case 6: 
+            // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.
+            return [2 /*return*/, navigation_1.redirect("/coding-test/" + jobSeeker.id)];
         }
     });
 }); };

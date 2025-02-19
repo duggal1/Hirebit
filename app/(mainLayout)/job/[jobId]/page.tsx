@@ -21,7 +21,7 @@ import { saveJobPost, unsaveJobPost, trackJobView } from "@/app/actions";
 import { JobClickTracker } from "@/components/job/JobClickTracker";
 import arcjet, { detectBot } from "@/app/utils/arcjet";
 import { request } from "@arcjet/next";
-import { motion } from "framer-motion";
+
 
 const aj = arcjet.withRule(
   detectBot({
@@ -31,7 +31,7 @@ const aj = arcjet.withRule(
 );
 
 async function getJob(jobId: string, userId?: string) {
-  const [jobData, savedJob] = await Promise.all([
+  const [jobData, savedJob, jobSeeker] = await Promise.all([
     prisma.jobPost.findUnique({
       where: {
         id: jobId,
@@ -78,6 +78,16 @@ async function getJob(jobId: string, userId?: string) {
           },
         })
       : null,
+    userId
+      ? prisma.jobSeeker.findUnique({
+          where: {
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        })
+      : null,
   ]);
 
   if (!jobData) {
@@ -87,17 +97,12 @@ async function getJob(jobId: string, userId?: string) {
   return {
     jobData,
     savedJob,
+    jobSeekerId: jobSeeker?.id || null,
   };
 }
 
-type Params = Promise<{ jobId: string }>;
+const JobIdPage = async ({ params }: { params: { jobId: string } }) => {
 
-const trackJobViewAction = async (jobId: string) => {
-  "use server";
-  await trackJobView(jobId);
-};
-
-const JobIdPage = async ({ params }: { params: Params }) => {
   const { jobId } = await params;
   const req = await request();
 
@@ -108,10 +113,11 @@ const JobIdPage = async ({ params }: { params: Params }) => {
   }
 
   const session = await auth();
-  const { jobData, savedJob } = await getJob(jobId, session?.user?.id);
+  const { jobData, savedJob, jobSeekerId } = await getJob(jobId, session?.user?.id);
 
+  await trackJobView(jobId);
   // Track view after getting job data
-  await trackJobViewAction(jobId);
+
   const locationFlag = getFlagEmoji(jobData.location);
 
   return (
@@ -154,7 +160,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               ) : null}
               <JobClickTracker jobId={jobId}>
                 <Button asChild size="sm" className="rounded-full">
-                  <Link href={`/job/${jobId}/apply`}>Quick Apply</Link>
+              <Link  href={`/resume/${jobSeekerId}`}>Quick Applyyyy</Link>
                 </Button>
               </JobClickTracker>
             </div>
@@ -302,7 +308,7 @@ const JobIdPage = async ({ params }: { params: Params }) => {
               asChild 
               className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl group relative overflow-hidden"
             >
-              <Link href={`/job/${jobId}/apply`}>
+                 <Link  href={`/resume/${jobSeekerId}`}>
                 <span className="relative z-10 flex items-center justify-center gap-2 font-medium">
                   Quick Apply
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

@@ -215,11 +215,11 @@ function JobSeekerResume(_a) {
     }); };
     var pathname = navigation_1.usePathname();
     var isCodingTestPage = pathname.includes("/coding-test/");
-    return (React.createElement("div", { className: "min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black overflow-hidden" },
-        React.createElement("div", { className: "fixed inset-0 overflow-hidden pointer-events-none" },
-            React.createElement("div", { className: "absolute -inset-[10px] opacity-50" },
-                React.createElement("div", { className: "absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" }),
-                React.createElement("div", { className: "absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" }))),
+    return (React.createElement("div", { className: "bg-gradient-to-r from-black to-blue-900/10 " },
+        React.createElement("div", { className: "" },
+            React.createElement("div", { className: "" },
+                React.createElement("div", { className: "" }),
+                React.createElement("div", { className: "" }))),
         React.createElement("div", { className: "relative mx-auto px-6 py-12 max-w-7xl" },
             React.createElement(framer_motion_1.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "space-y-10" },
                 React.createElement(framer_motion_1.motion.header, { initial: { y: -50, opacity: 0 }, animate: { y: 0, opacity: 1 }, className: "relative mb-16" },

@@ -183,12 +183,12 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
 const isCodingTestPage = pathname.includes("/coding-test/");
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black overflow-hidden">
+    <div className="bg-gradient-to-r from-black to-blue-900/10 ">
       {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -inset-[10px] opacity-50">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="">
+        <div className="">
+          <div className="" />
+          <div className="" />
         </div>
       </div>
    

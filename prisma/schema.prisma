@@ -247,10 +247,11 @@ model JobSeeker {
   willingToRelocate Boolean? // Candidate’s Availability to Relocate
   lastAttemptAt     DateTime?
 
-  applications JobApplication[]
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  Verification Verification[]
+  applications    JobApplication[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  Verification    Verification[]
+  JobSeekerResume JobSeekerResume[]
 
   @@map("job_seekers")
 }
@@ -277,6 +278,7 @@ model Company {
   name          String
   location      String
   logo          String
+  jobMetrics    JobMetrics[]
   website       String
   xAccount      String?
   verifications Verification[]
@@ -293,20 +295,24 @@ model Company {
   glassdoorRating Float? // Average Glassdoor rating (e.g., 4.2)
   techStack       String[] // List of technologies the company primarily uses
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  JobPost   JobPost[]
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  JobPost        JobPost[]
+  JobApplication JobApplication[]
 
   @@map("companies")
 }
 
 model JobSeekerResume {
-  resumeId   String   @id @default(uuid())
+  resumeId    String    @id @default(uuid())
+  jobSeekerId String
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+
   resumeName String   @db.VarChar(255)
   resumeBio  String
-  pdfUrlId   String   @db.VarChar(1024) // To store a URL for the uploaded PDF
+  pdfUrlId   String   @db.VarChar(1024) // URL for the uploaded PDF
   version    Int      @default(1) // Track resume versions
   isActive   Boolean  @default(true) // Current active version
   keywords   String[] // Extracted keywords for search
@@ -314,11 +320,13 @@ model JobSeekerResume {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // Recruiter specific fields
+  // Recruiter-specific fields
   recruiterViews Int       @default(0) // Number of recruiter views
   lastViewedAt   DateTime? // Last time viewed by recruiter
   rating         Int? // Recruiter rating (1-5)
   tags           String[] // Custom tags added by recruiters
+
+  @@map("job_seeker_resumes")
 }
 
 model JobPost {
@@ -356,43 +364,45 @@ model JobPost {
 }
 
 model JobMetrics {
-  id             String  @id @default(uuid())
-  jobPost        JobPost @relation(fields: [jobPostId], references: [id])
-  jobPostId      String  @unique
-  totalViews     Int     @default(0)
-  totalClicks    Int     @default(0)
-  applications   Int     @default(0)
-  ctr            Float   @default(0) // Click-through rate as percentage
-  conversionRate Float   @default(0) // Conversion rate as percentage
-  viewsByDate    Json    @default("{}")
-  clicksByDate   Json    @default("{}")
-  locationData   Json    @default("{}")
+  id        String  @id @default(uuid())
+  jobPost   JobPost @relation(fields: [jobPostId], references: [id])
+  jobPostId String  @unique
 
-  // Candidate Match Analysis
-  topCandidateMatch    Json? @default("{}") // Stores detailed match scores for top candidates
-  candidateMatchScores Json? @default("{}") // Stores all candidate match scores and criteria
-  skillsMatchData      Json? @default("{}") // Detailed skills matching analysis
-  experienceMatchData  Json? @default("{}") // Experience level matching analysis
-  locationMatchData    Json? @default("{}") // Location preference matching
-  salaryMatchData      Json? @default("{}") // Salary expectations matching
+  // New: Direct Company relation for easier filtering by company
+  company   Company? @relation(fields: [companyId], references: [id])
+  companyId String?
 
-  // Application Quality Analysis
-  applicationQuality  Json? @default("{}") // Overall application quality metrics
-  applicationScores   Json? @default("{}") // Individual application scores
-  applicationFeedback Json? @default("{}") // Detailed feedback for each application
-  skillGaps           Json? @default("{}") // Identified skill gaps in applications
+  totalViews     Int   @default(0)
+  totalClicks    Int   @default(0)
+  applications   Int   @default(0)
+  ctr            Float @default(0) // Click-through rate as percentage
+  conversionRate Float @default(0) // Conversion rate as percentage
+  viewsByDate    Json  @default("{}")
+  clicksByDate   Json  @default("{}")
+  locationData   Json  @default("{}")
 
-  // Competitor Analysis
-  competitorBenchmark Json? @default("{}") // Overall competitor comparison
-  marketSalaryData    Json? @default("{}") // Salary benchmarking
-  marketSkillsData    Json? @default("{}") // Required skills in similar jobs
-  industryTrends      Json? @default("{}") // Relevant industry trends
+  // Additional metrics fields...
+  topCandidateMatch    Json? @default("{}")
+  candidateMatchScores Json? @default("{}")
+  skillsMatchData      Json? @default("{}")
+  experienceMatchData  Json? @default("{}")
+  locationMatchData    Json? @default("{}")
+  salaryMatchData      Json? @default("{}")
 
-  // Time and Progress Analysis
-  timeToFillEstimate  Int? // Estimated days to fill position
-  dropOffAnalysis     Json? @default("{}") // Application funnel analysis
-  applicationTimeline Json? @default("{}") // Timeline of application process
-  hiringVelocity      Json? @default("{}") // Speed of hiring process metrics
+  applicationQuality  Json? @default("{}")
+  applicationScores   Json? @default("{}")
+  applicationFeedback Json? @default("{}")
+  skillGaps           Json? @default("{}")
+
+  competitorBenchmark Json? @default("{}")
+  marketSalaryData    Json? @default("{}")
+  marketSkillsData    Json? @default("{}")
+  industryTrends      Json? @default("{}")
+
+  timeToFillEstimate  Int?
+  dropOffAnalysis     Json? @default("{}")
+  applicationTimeline Json? @default("{}")
+  hiringVelocity      Json? @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -420,21 +430,31 @@ model SavedJobPost {
 }
 
 model JobApplication {
-  id                String            @id @default(uuid())
-  jobSeeker         JobSeeker         @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
-  jobSeekerId       String
-  job               JobPost           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId             String
-  status            ApplicationStatus @default(PENDING)
-  coverLetter       String?
-  resume            String
-  includeLinks      Boolean           @default(false)
-  answers           Json?
-  aiScore           Int?
-  isActive          Boolean           @default(true)
-  lastActivity      DateTime          @default(now())
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id String @id @default(uuid())
+
+  // Job Seeker relation
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  jobSeekerId String
+
+  // Job Post relation
+  job   JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String
+
+  // Direct Company relation (denormalized for efficiency)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+
+  status       ApplicationStatus @default(PENDING)
+  coverLetter  String?
+  resume       String
+  includeLinks Boolean           @default(false)
+  answers      Json?
+  aiScore      Int?
+  isActive     Boolean           @default(true)
+  lastActivity DateTime          @default(now())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
   expectedSalaryMin Int?
   expectedSalaryMax Int?
   certifications    Json?
@@ -444,15 +464,15 @@ model JobApplication {
   desiredEmployment String?
 
   // Additional fields for recruiter dashboard
-  recruiterNotes            String? // Notes added by recruiter
-  interviewFeedback         Json? // Structured feedback from interviews
-  applicationStage          String? // Current stage in recruitment process
-  lastReviewedAt            DateTime? // When recruiter last reviewed
-  reviewedBy                String? // Recruiter who last reviewed
-  codingTestResults         Json? // Results from coding assessments
-  technicalSkillsAssessment Json? // Detailed technical evaluation
-  cultureFitScore           Int? // Score for culture fit (1-10)
-  communicationScore        Int? // Score for communication (1-10)
+  recruiterNotes            String?
+  interviewFeedback         Json?
+  applicationStage          String?
+  lastReviewedAt            DateTime?
+  reviewedBy                String?
+  codingTestResults         Json?
+  technicalSkillsAssessment Json?
+  cultureFitScore           Int?
+  communicationScore        Int?
 
   @@unique([jobSeekerId, jobId])
   @@map("job_applications")
