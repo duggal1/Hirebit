@@ -10,7 +10,7 @@ export async function GET(
     const { companyid } = await Promise.resolve(params);
     console.log('Company ID from URL:', companyid);
 
-    // Verify company exists by searching using companyID field (adjust if necessary)
+    // Verify company exists by searching using companyID field
     const company = await prisma.company.findUnique({
       where: { companyID: companyid }
     });
@@ -20,7 +20,7 @@ export async function GET(
     }
     console.log('✅ Found Company:', company.name, '| Internal ID:', company.id);
 
-    // Retrieve all job posts for this company (using the internal company.id)
+    // Retrieve all job posts for this company
     const jobPosts = await prisma.jobPost.findMany({
       where: { companyId: company.id },
       include: {
@@ -40,9 +40,7 @@ export async function GET(
         jobSeeker: {
           include: {
             JobSeekerResume: {
-              where: {
-                isActive: true
-              },
+              where: { isActive: true },
               select: {
                 resumeId: true,
                 resumeName: true,
@@ -77,7 +75,7 @@ export async function GET(
     const jobSeekerIds = [...new Set(jobApplications.map(app => app.jobSeekerId))];
     console.log(`👤 Extracted ${jobSeekerIds.length} unique job seeker IDs`);
 
-    // Retrieve full details of these job seekers, including their resumes and their applications for these posts
+    // Retrieve full details of these job seekers, including their resumes and applications
     const jobSeekers = await prisma.jobSeeker.findMany({
       where: {
         id: { in: jobSeekerIds }
@@ -102,9 +100,7 @@ export async function GET(
           }
         },
         applications: {
-          where: {
-            jobId: { in: jobPosts.map(post => post.id) }
-          },
+          where: { jobId: { in: jobPosts.map(post => post.id) } },
           include: {
             job: {
               include: {
@@ -133,7 +129,9 @@ export async function GET(
       }
     });
 
-    // Transform the data to structure the job application logs per job seeker
+    // Transform the data:
+    // For each job seeker, output all properties along with a new "jobApplications" property
+    // which is derived from the original "applications" field.
     const transformedData = jobSeekers.map(seeker => {
       console.log(`\n🔄 Processing job seeker: ${seeker.name}`);
       return {
@@ -142,10 +140,10 @@ export async function GET(
         email: seeker.email,
         phoneNumber: seeker.phoneNumber,
         location: seeker.location,
-        // List of job applications submitted by this job seeker (only for this company's job posts)
+        // Replace the original 'applications' with the new 'jobApplications' field.
         jobApplications: seeker.applications.map(app => ({
           id: app.id,
-          status: app.status, // Enum value (e.g., "PENDING", "REVIEWED", etc.)
+          status: app.status,
           coverLetter: app.coverLetter,
           resume: app.resume,
           includeLinks: app.includeLinks,
@@ -155,13 +153,11 @@ export async function GET(
           lastActivity: app.lastActivity,
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
-      
-          // Job details for the application
           job: {
             id: app.job.id,
             title: app.job.jobTitle,
             employmentType: app.job.employmentType,
-            status: app.job.status, // Enum value (e.g., "ACTIVE", "DRAFT", etc.)
+            status: app.job.status,
             location: app.job.location,
             salary: {
               from: app.job.salaryFrom,
@@ -187,7 +183,6 @@ export async function GET(
               phoneNumber: app.phoneNumber,
               desiredEmployment: app.desiredEmployment
             },
-           // status: app.status,
             aiScore: app.aiScore,
             isActive: app.isActive,
             lastActivity: app.lastActivity,
@@ -215,7 +210,6 @@ export async function GET(
             codingTestResults: app.codingTestResults
           }
         })),
-        // Include job seeker resume details
         resumes: seeker.JobSeekerResume.map(resume => ({
           id: resume.resumeId,
           name: resume.resumeName,
@@ -236,7 +230,6 @@ export async function GET(
             updated: resume.updatedAt
           }
         })),
-        // Metadata for the job seeker
         metadata: {
           createdAt: seeker.createdAt,
           updatedAt: seeker.updatedAt,

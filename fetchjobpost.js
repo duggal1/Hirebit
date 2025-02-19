@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Fetch all job seekers from the database
-  const jobSeekers = await prisma.jobPost.findMany();
+  const jobSeekers = await prisma.company.findMany();
   
   // Print the results to the terminal with full depth
   console.dir(jobSeekers, { depth: null });
