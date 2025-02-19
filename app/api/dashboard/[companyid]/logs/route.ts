@@ -37,10 +37,12 @@ export async function GET(
         jobId: { in: jobPosts.map(post => post.id) }
       },
       include: {
-        // Include job seeker details with their resumes and minimal applications data
         jobSeeker: {
           include: {
             JobSeekerResume: {
+              where: {
+                isActive: true
+              },
               select: {
                 resumeId: true,
                 resumeName: true,
@@ -60,7 +62,6 @@ export async function GET(
             }
           }
         },
-        // Include job post details (with metrics and coding questions)
         job: {
           include: {
             metrics: true,
@@ -154,6 +155,7 @@ export async function GET(
           lastActivity: app.lastActivity,
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
+      
           // Job details for the application
           job: {
             id: app.job.id,
@@ -165,6 +167,32 @@ export async function GET(
               from: app.job.salaryFrom,
               to: app.job.salaryTo
             },
+            applicationData: {
+              coverLetter: app.coverLetter,
+              resume: app.resume,
+              includeLinks: app.includeLinks,
+              answers: {
+                ...(app.answers as any)?.set || {},
+                resumeData: seeker.JobSeekerResume?.[0] ? {
+                  resumeName: seeker.JobSeekerResume[0].resumeName,
+                  resumeBio: seeker.JobSeekerResume[0].resumeBio,
+                  pdfUrlId: seeker.JobSeekerResume[0].pdfUrlId
+                } : null
+              },
+              certifications: app.certifications,
+              education: app.education,
+              expectedSalaryMin: app.expectedSalaryMin,
+              expectedSalaryMax: app.expectedSalaryMax,
+              location: app.location,
+              phoneNumber: app.phoneNumber,
+              desiredEmployment: app.desiredEmployment
+            },
+           // status: app.status,
+            aiScore: app.aiScore,
+            isActive: app.isActive,
+            lastActivity: app.lastActivity,
+            createdAt: app.createdAt,
+            updatedAt: app.updatedAt,
             requirements: {
               skills: app.job.skillsRequired,
               experience: app.job.requiredExperience,

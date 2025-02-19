@@ -27,7 +27,7 @@ interface JobSeekerData {
   name: string;
   about: string;
   skills: string[];
-  experience: number; // legacy field, but we will show yearsOfExperience instead
+  experience: number; // legacy field; we show yearsOfExperience instead
   linkedin?: string;
   github?: string;
   portfolio?: string;
@@ -43,7 +43,7 @@ interface JobSeekerData {
     issuer: string;
   }[];
   availabilityPeriod: number; // Notice period in days
-  availableFrom?: Date; // Seeker’s Availability: date available to start
+  availableFrom?: Date; // Seeker’s Availability
   education: {
     year: number;
     degree: string;
@@ -54,9 +54,20 @@ interface JobSeekerData {
   location: string;
   phoneNumber?: string;
   resume: string;
+  // Data from JobSeekerResume table
+  resumeData?: {
+    resumeName: string;
+    resumeBio: string;
+    pdfUrlId: string;
+  };
+  // Data from Verification table (professional links, etc.)
+  verificationData?: {
+    urls: { [key: string]: string };
+    updatedAt: string;
+  };
 }
 
-// Updated function to generate a more detailed basic cover letter.
+// Updated function to generate a basic cover letter.
 function generateBasicCoverLetter(jobSeeker: JobSeekerData, companyName: string): string {
   if (!jobSeeker) return "";
 
@@ -108,7 +119,6 @@ export default function ApplyNowPage() {
   const params = useParams();
   const { data: session, status } = useSession({
     required: true,
-
     onUnauthenticated() {
       toast.error("Please sign in to continue");
       router.push("/login");
@@ -130,11 +140,12 @@ export default function ApplyNowPage() {
   useEffect(() => {
     console.log("Apply Page - Route params:", params);
     if (params?.verificationid) {
-      const verificationId = typeof params.verificationid === 'string'
-        ? params.verificationid
-        : Array.isArray(params.verificationid)
-        ? params.verificationid[0]
-        : '';
+      const verificationId =
+        typeof params.verificationid === "string"
+          ? params.verificationid
+          : Array.isArray(params.verificationid)
+          ? params.verificationid[0]
+          : "";
       fetchJobSeekerData(verificationId);
     }
   }, [params?.verificationid]);
@@ -148,14 +159,14 @@ export default function ApplyNowPage() {
 
       if (response.ok && data && !data.error) {
         setJobSeeker(data);
-        const companySlug = typeof params.slug === 'string'
-          ? params.slug
-          : Array.isArray(params.slug)
-          ? params.slug[0]
-          : '';
+        const companySlug =
+          typeof params.slug === "string"
+            ? params.slug
+            : Array.isArray(params.slug)
+            ? params.slug[0]
+            : "";
         const basicCoverLetter = generateBasicCoverLetter(data, companySlug);
         setCoverLetter(basicCoverLetter);
-
       } else {
         console.error("Failed to fetch job seeker:", data.error);
         toast.error("Failed to load profile data. Please complete your profile first.");
@@ -172,7 +183,6 @@ export default function ApplyNowPage() {
       return;
     }
 
-    // Narrow down params.slug and params.verificationid safely.
     const companySlug =
       typeof params.slug === "string"
         ? params.slug
@@ -208,7 +218,6 @@ export default function ApplyNowPage() {
       console.log("Generated cover letter:", data);
 
       if (response.ok && data.coverLetter) {
-        // Replace the default letter with the AI-generated one.
         setCoverLetter(data.coverLetter);
         toast.success("AI cover letter generated!");
       } else {
@@ -229,7 +238,6 @@ export default function ApplyNowPage() {
       return;
     }
 
-    // Narrow down the parameters.
     const companySlug =
       typeof params.slug === "string"
         ? params.slug
@@ -322,24 +330,24 @@ export default function ApplyNowPage() {
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(17,24,39,1),rgba(0,0,0,1))] opacity-70" />
-      
+
       {/* Floating orbs */}
       <div
         className="absolute top-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full filter blur-3xl animate-pulse"
-        style={{ animation: 'float 20s ease-in-out infinite' }}
+        style={{ animation: "float 20s ease-in-out infinite" }}
       />
       <div
         className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl animate-pulse"
-        style={{ animation: 'float 25s ease-in-out infinite reverse' }}
+        style={{ animation: "float 25s ease-in-out infinite reverse" }}
       />
 
       <ScrollArea className="h-screen">
         <div className="max-w-4xl mx-auto p-8 space-y-12 relative z-10">
           <AnimatePresence>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial="hidden"
+              animate="show"
+              variants={containerVariants}
               className="space-y-6"
             >
               {/* Header */}
@@ -352,14 +360,9 @@ export default function ApplyNowPage() {
                 </p>
               </div>
 
-              {/* Main application form */}
+              {/* Main Application Form */}
               <Card className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="p-8 space-y-8"
-                >
+                <motion.div variants={itemVariants} className="p-8 space-y-8">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
                       Cover Letter
@@ -401,13 +404,8 @@ export default function ApplyNowPage() {
                 </motion.div>
               </Card>
 
-              {/* Preview section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="space-y-6"
-              >
+              {/* Application Preview */}
+              <motion.div variants={itemVariants} className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">Application Preview</h3>
                   <Badge className="bg-white/5 text-white border-white/10">
@@ -419,7 +417,7 @@ export default function ApplyNowPage() {
                   <AlertCircle className="h-4 w-4 text-purple-400" />
                   <AlertTitle className="text-white">Profile Overview</AlertTitle>
                   <AlertDescription className="mt-4 space-y-4 text-gray-300">
-                    {/* Profile details */}
+                    {/* General Details */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="text-sm text-gray-400">Years of Experience</div>
@@ -430,7 +428,68 @@ export default function ApplyNowPage() {
                         <div className="font-medium">{jobSeeker?.location}</div>
                       </div>
                     </div>
-
+                    <div>
+                      <div className="text-sm text-gray-400">About</div>
+                      <div className="font-medium">{jobSeeker?.about}</div>
+                    </div>
+                    { (jobSeeker.expectedSalaryMin || jobSeeker.expectedSalaryMax) && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-400">Expected Salary</div>
+                          <div className="font-medium">
+                            {jobSeeker.expectedSalaryMin && `$${jobSeeker.expectedSalaryMin}`} {jobSeeker.expectedSalaryMax && `- $${jobSeeker.expectedSalaryMax}`}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-400">Remote Preference</div>
+                          <div className="font-medium">{jobSeeker?.remotePreference}</div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-400">Preferred Location</div>
+                        <div className="font-medium">{jobSeeker?.preferredLocation}</div>
+                      </div>
+                      {jobSeeker?.phoneNumber && (
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-400">Phone Number</div>
+                          <div className="font-medium">{jobSeeker.phoneNumber}</div>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400">Education</div>
+                      <div className="font-medium">
+                        {jobSeeker?.education && jobSeeker.education.length > 0 ? (
+                          <ul className="list-disc pl-5">
+                            {jobSeeker.education.map((edu, idx) => (
+                              <li key={idx}>
+                                {edu.degree} in {edu.fieldOfStudy} from {edu.institution} ({edu.year})
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          "No education details provided."
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400">Certifications</div>
+                      <div className="font-medium">
+                        {jobSeeker?.certifications && jobSeeker.certifications.length > 0 ? (
+                          <ul className="list-disc pl-5">
+                            {jobSeeker.certifications.map((cert, idx) => (
+                              <li key={idx}>
+                                {cert.name} from {cert.issuer} ({cert.year})
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          "No certifications available."
+                        )}
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <div className="text-sm text-gray-400">Skills</div>
                       <div className="flex flex-wrap gap-2">
@@ -448,12 +507,60 @@ export default function ApplyNowPage() {
                 </Alert>
               </motion.div>
 
-              {/* Submit button */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-              >
+              {/* Resume & Verification Details */}
+              {jobSeeker?.resumeData && (
+                <motion.div variants={itemVariants} className="space-y-6">
+                  <h3 className="text-lg font-medium">Resume & Verification Details</h3>
+                  <Card className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+                    <div className="p-8 space-y-4">
+                      {/* Resume Data */}
+                      <div>
+                        <h4 className="text-xl font-semibold">Resume Information</h4>
+                        <p className="text-sm text-gray-400">Name: {jobSeeker.resumeData.resumeName}</p>
+                        <p className="text-sm text-gray-400">Bio: {jobSeeker.resumeData.resumeBio}</p>
+                        <p className="text-sm text-gray-400">
+                          PDF URL:{" "}
+                          <a
+                            href={jobSeeker.resumeData.pdfUrlId}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline text-blue-400"
+                          >
+                            View Resume
+                          </a>
+                        </p>
+                      </div>
+                      {/* Verification Data */}
+                      {jobSeeker.verificationData && jobSeeker.verificationData.urls && (
+                        <div>
+                          <h4 className="text-xl font-semibold">Professional Links</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(jobSeeker.verificationData.urls).map(
+                              ([key, url]) => (
+                                <Badge
+                                  key={key}
+                                  className="bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                >
+                                  <a href={url} target="_blank" rel="noopener noreferrer">
+                                    {key}
+                                  </a>
+                                </Badge>
+                              )
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400 mt-2">
+                            Last Updated:{" "}
+                            {new Date(jobSeeker.verificationData.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Submit Button */}
+              <motion.div variants={itemVariants}>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
@@ -479,8 +586,13 @@ export default function ApplyNowPage() {
 
       <style jsx global>{`
         @keyframes float {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(-20px, -20px); }
+          0%,
+          100% {
+            transform: translate(0, 0);
+          }
+          50% {
+            transform: translate(-20px, -20px);
+          }
         }
       `}</style>
     </div>

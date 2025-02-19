@@ -774,8 +774,9 @@ export const submitJobSeekerResume = async (
         resumeName: validResumeData.resumeName,
         resumeBio: validResumeData.resumeBio,
         pdfUrlId: validResumeData.pdfUrlId,
-        // Note: The JobSeekerResume model does not have a jobSeekerId field.
-        // We omit linking here because the schema does not allow it.
+        jobSeeker: {
+          connect: { id: jobSeeker.id },
+        },
       },
     });
   } catch (error) {

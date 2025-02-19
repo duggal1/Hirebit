@@ -1,23 +1,20 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
 
-// UI components from your design system
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Shadcn/ui components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Chart components and ChartJS registration
 import { Line, Bar, Pie } from "react-chartjs-2";
@@ -46,38 +43,26 @@ ChartJS.register(
   Legend
 );
 
-// ----- TypeScript Interfaces -----
+/* -------------------------------------------------------------------------- */
+/*                              Type Declarations                             */
+/* -------------------------------------------------------------------------- */
 
-interface JobMetric {
-  id: string;
-  totalViews: number;
-  totalClicks: number;
-  applications: number;
-  ctr: number;
-  conversionRate: number;
-  viewsByDate: Record<string, number>;
-  clicksByDate: Record<string, number>;
-  locationData: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-  jobPost: {
-    id: string;
-    jobTitle: string;
-    employmentType: string;
-    location: string;
-    salaryFrom: number;
-    salaryTo: number;
-    jobDescription: string;
-    status: string;
-    applications: number;
+interface DashboardMetric {
+  jobId: string;
+  jobTitle: string;
+  jobStatus: string;
+  metrics: {
     views: number;
     clicks: number;
-    company: {
-      id: string;
-      name: string;
-      industry: string;
-    };
+    applications: number;
+    ctr: number;
+    conversionRate: number;
+    viewsTrend: Record<string, number>;
+    clicksTrend: Record<string, number>;
+    locationData: Record<string, any>;
+    applicationDetails: any[];
   };
+  createdAt: string;
 }
 
 interface JobSeeker {
@@ -85,88 +70,115 @@ interface JobSeeker {
   name: string;
   email: string;
   phoneNumber?: string;
+  location: string;
+  currentJobTitle?: string;
+  industry?: string;
+  bio: string;
+  // "yearsOfExperience" holds the candidate’s years of experience (e.g., 16)
   yearsOfExperience: number;
-  education: any;
-  resume: string;
-  skills: string[];
   about: string;
   createdAt: string;
   updatedAt: string;
+  education?: any;
+  skills?: string[];
   jobSearchStatus?: string;
+  // Additional fields from your schema:
+  experience: number;
+  previousJobExperience: string;
+  certifications?: any[];
+  expectedSalaryMin: number | null;
+  expectedSalaryMax: number | null;
+  preferredLocation?: string;
+  remotePreference?: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  JobSeekerResume: any[];
+  applications: any[];
 }
 
-// ----- Main RecruiterDashboard Component -----
+/* Chart data interfaces */
+interface LineChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    fill: boolean;
+    borderColor: string;
+    backgroundColor: string;
+    tension: number;
+  }[];
+}
+
+interface BarChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    backgroundColor: string;
+  }[];
+}
+
+interface PieChartData {
+  labels: string[];
+  datasets: {
+    data: number[];
+    backgroundColor: string[];
+  }[];
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Recruiter Dashboard Component                       */
+/* -------------------------------------------------------------------------- */
 
 export default function RecruiterDashboard() {
   const params = useParams();
   const companyid = params.companyid as string;
+  const recruiterId = params.id as string;
+  const router = useRouter();
 
   useEffect(() => {
     console.log("Dashboard params:", params);
     console.log("Company ID:", companyid);
-  }, [params, companyid]);
+    console.log("Recruiter ID:", recruiterId);
+  }, [params, companyid, recruiterId]);
 
-  const [activeTab, setActiveTab] = useState<"metrics" | "jobseekers">(
-    "metrics"
-  );
-
-  // --- Fetch Job Metrics ---
-  const {
-    data: metrics,
-    isLoading: loadingMetrics,
-    error: metricsError,
-  } = useQuery<JobMetric[]>({
+  // --- Fetch Metrics from API ---
+  const { data: metrics, isLoading: loadingMetrics, error: metricsError } = useQuery<DashboardMetric[]>({
     queryKey: ["jobMetrics", companyid],
     queryFn: async () => {
-      console.log("Fetching job metrics for company:", companyid);
-      const response = await fetch(`/api/dashboard/${companyid}/metrics`);
-      if (!response.ok) {
-        console.error("Error fetching metrics:", response.statusText);
-        throw new Error("Error fetching metrics");
-      }
-      const data = await response.json();
-      console.log("Fetched job metrics:", data);
-      return data;
+      const res = await fetch(`/api/dashboard/${companyid}/metrics`);
+      if (!res.ok) throw new Error("Error fetching metrics");
+      return res.json();
     },
-    refetchInterval: 5000, // live update every 5 seconds
+    refetchInterval: 5000,
   });
 
-  // --- Fetch Job Seekers ---
-  const {
-    data: jobSeekers,
-    isLoading: loadingJobSeekers,
-    error: jobSeekersError,
-  } = useQuery<JobSeeker[]>({
+  // --- Fetch Job Seekers from API ---
+  const { data: jobSeekers, isLoading: loadingJobSeekers, error: jobSeekersError } = useQuery<JobSeeker[]>({
     queryKey: ["jobSeekers", companyid],
     queryFn: async () => {
-      console.log("Fetching job seekers for company:", companyid);
-      const response = await fetch(`/api/dashboard/${companyid}/jobseekers`);
-      if (!response.ok) {
-        console.error("Error fetching job seekers:", response.statusText);
-        throw new Error("Error fetching job seekers");
-      }
-      const data = await response.json();
-      console.log("Fetched job seekers:", data);
-      return data;
+      const res = await fetch(`/api/dashboard/${companyid}/jobseekers`);
+      if (!res.ok) throw new Error("Error fetching job seekers");
+      return res.json();
     },
-    refetchInterval: 5000, // live update every 5 seconds
+    refetchInterval: 5000,
   });
 
-  // --- Aggregate Metrics Across All Job Posts ---
+  // --- Aggregate Metrics (e.g., total views, clicks, applications) ---
   const aggregatedMetrics = useMemo(() => {
     if (!metrics || metrics.length === 0) return null;
     const totals = metrics.reduce(
       (acc, metric) => {
-        acc.totalViews += metric.totalViews;
-        acc.totalClicks += metric.totalClicks;
-        acc.applications += metric.applications;
-        acc.ctr += metric.ctr;
-        acc.conversionRate += metric.conversionRate;
-        // Aggregate viewsByDate and clicksByDate across job posts
-        Object.entries(metric.viewsByDate).forEach(([date, count]) => {
+        acc.totalViews += metric.metrics.views;
+        acc.totalClicks += metric.metrics.clicks;
+        acc.totalApplications += metric.metrics.applications;
+        acc.ctr += metric.metrics.ctr;
+        acc.conversionRate += metric.metrics.conversionRate;
+        Object.entries(metric.metrics.viewsTrend).forEach(([date, count]) => {
           acc.viewsByDate[date] = (acc.viewsByDate[date] || 0) + count;
         });
-        Object.entries(metric.clicksByDate).forEach(([date, count]) => {
+        Object.entries(metric.metrics.clicksTrend).forEach(([date, count]) => {
           acc.clicksByDate[date] = (acc.clicksByDate[date] || 0) + count;
         });
         return acc;
@@ -174,28 +186,23 @@ export default function RecruiterDashboard() {
       {
         totalViews: 0,
         totalClicks: 0,
-        applications: 0,
+        totalApplications: 0,
         ctr: 0,
         conversionRate: 0,
         viewsByDate: {} as Record<string, number>,
         clicksByDate: {} as Record<string, number>,
       }
     );
-    // Average CTR and conversion rate across job posts
     totals.ctr = totals.ctr / metrics.length;
     totals.conversionRate = totals.conversionRate / metrics.length;
     return totals;
   }, [metrics]);
 
   // --- Prepare Chart Data ---
-
-  // Line Chart (Views Over Time)
-  const lineChartData = useMemo(() => {
+  const lineChartData: LineChartData | null = useMemo(() => {
     if (!aggregatedMetrics) return null;
     const labels = Object.keys(aggregatedMetrics.viewsByDate).sort();
-    const dataPoints = labels.map(
-      (label) => aggregatedMetrics.viewsByDate[label]
-    );
+    const dataPoints = labels.map((label) => aggregatedMetrics.viewsByDate[label]);
     return {
       labels,
       datasets: [
@@ -203,33 +210,31 @@ export default function RecruiterDashboard() {
           label: "Views Over Time",
           data: dataPoints,
           fill: false,
-          borderColor: "rgba(75,192,192,1)",
-          backgroundColor: "rgba(75,192,192,0.4)",
+          borderColor: "#4fd1c5",
+          backgroundColor: "#4fd1c5",
           tension: 0.1,
         },
       ],
     };
   }, [aggregatedMetrics]);
 
-  // Bar Chart (Views per Job Post)
-  const barChartData = useMemo(() => {
+  const barChartData: BarChartData | null = useMemo(() => {
     if (!metrics) return null;
-    const labels = metrics.map((metric) => metric.jobPost.jobTitle);
-    const dataPoints = metrics.map((metric) => metric.totalViews);
+    const labels = metrics.map((m) => m.jobTitle);
+    const dataPoints = metrics.map((m) => m.metrics.views);
     return {
       labels,
       datasets: [
         {
           label: "Views per Job Post",
           data: dataPoints,
-          backgroundColor: "rgba(153, 102, 255, 0.6)",
+          backgroundColor: "#9f7aea",
         },
       ],
     };
   }, [metrics]);
 
-  // Pie Chart (Clicks vs. Remaining Views)
-  const pieChartData = useMemo(() => {
+  const pieChartData: PieChartData | null = useMemo(() => {
     if (!aggregatedMetrics) return null;
     return {
       labels: ["Total Clicks", "Remaining Views"],
@@ -239,31 +244,38 @@ export default function RecruiterDashboard() {
             aggregatedMetrics.totalClicks,
             aggregatedMetrics.totalViews - aggregatedMetrics.totalClicks,
           ],
-          backgroundColor: ["#36A2EB", "#FF6384"],
+          backgroundColor: ["#63b3ed", "#f56565"],
         },
       ],
     };
   }, [aggregatedMetrics]);
 
+  // --- Quick View Modal State for Job Seeker Details ---
+  const [selectedJobSeeker, setSelectedJobSeeker] = useState<JobSeeker | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openQuickView = (seeker: JobSeeker) => {
+    setSelectedJobSeeker(seeker);
+    setIsModalOpen(true);
+  };
+
+  const closeQuickView = () => {
+    setSelectedJobSeeker(null);
+    setIsModalOpen(false);
+  };
+
   // --- Sorting for Job Seekers Table ---
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof JobSeeker;
-    direction: "ascending" | "descending";
-  } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof JobSeeker; direction: "ascending" | "descending" } | null>(null);
 
   const sortedJobSeekers = useMemo(() => {
     if (!jobSeekers) return [];
-    let sortable = [...jobSeekers];
+    const sortable = [...jobSeekers];
     if (sortConfig !== null) {
       sortable.sort((a, b) => {
         const aVal = a[sortConfig.key];
         const bVal = b[sortConfig.key];
-        if (aVal < bVal) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
-        }
-        if (aVal > bVal) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
+        if (aVal < bVal) return sortConfig.direction === "ascending" ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === "ascending" ? 1 : -1;
         return 0;
       });
     }
@@ -278,264 +290,311 @@ export default function RecruiterDashboard() {
     setSortConfig({ key, direction });
   };
 
-  // ----- Render Component -----
   return (
-    <div className="container mx-auto p-6 dark:bg-gray-900 dark:text-gray-100">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold mb-4 sm:mb-0">Recruiter Dashboard</h1>
+    <div className="min-h-screen bg-black text-white p-6">
+      {/* Page Header */}
+      <header className="flex flex-col sm:flex-row items-center justify-between mb-10">
+        <h1 className="text-4xl font-extrabold tracking-tight">Recruiter Dashboard</h1>
         <Button variant="outline" onClick={() => window.location.reload()}>
           Refresh Data
         </Button>
-      </div>
+      </header>
 
-      {(metricsError || jobSeekersError) && (
-        <div className="mb-4">
-          {metricsError && (
-            <p className="text-red-500">
-              Error loading job metrics: {metricsError.message}
-            </p>
-          )}
-          {jobSeekersError && (
-            <p className="text-red-500">
-              Error loading job seekers: {jobSeekersError.message}
-            </p>
-          )}
-        </div>
+      {/* --- Dashboard Metrics Section --- */}
+      <section className="mb-16">
+        <h2 className="text-3xl font-semibold mb-6">Dashboard Metrics</h2>
+        {loadingMetrics ? (
+          <div className="text-center py-10">Loading metrics...</div>
+        ) : aggregatedMetrics ? (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">Total Views</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{aggregatedMetrics.totalViews}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">Total Clicks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{aggregatedMetrics.totalClicks}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">Applications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{aggregatedMetrics.totalApplications}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">CTR</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{aggregatedMetrics.ctr.toFixed(2)}%</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">Conversion Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{aggregatedMetrics.conversionRate.toFixed(2)}%</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg">Job Seekers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{jobSeekers ? jobSeekers.length : 0}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle>Views Over Time</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {lineChartData ? (
+                    <Line
+                      data={lineChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: { position: "top" },
+                          title: { display: true, text: "Views Trend" },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <p className="text-center">No data available.</p>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl">
+                <CardHeader>
+                  <CardTitle>Views per Job Post</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {barChartData ? (
+                    <Bar
+                      data={barChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: { position: "top" },
+                          title: { display: true, text: "Job Post Views" },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <p className="text-center">No data available.</p>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-xl col-span-1 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Clicks vs. Views</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {pieChartData ? (
+                    <Pie
+                      data={pieChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: { position: "top" },
+                          title: { display: true, text: "Click Distribution" },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <p className="text-center">No data available.</p>
+                  )}
+                </CardContent>
+              </Card>
+              {/* Map / Additional Tools Placeholder */}
+              <Card className="bg-gray-800 border-gray-700 shadow-xl col-span-1 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Geographical Distribution</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <p className="text-center text-gray-400">
+                    [Map Placeholder - integrate your mapping tool here]
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        ) : (
+          <p className="text-center py-10">No metrics data available.</p>
+        )}
+      </section>
+
+      {/* --- Job Seekers Section --- */}
+      <section>
+        <h2 className="text-3xl font-semibold mb-6">Job Seekers</h2>
+        {loadingJobSeekers ? (
+          <div className="text-center py-10">Loading job seekers...</div>
+        ) : jobSeekers && jobSeekers.length > 0 ? (
+          <ScrollArea className="rounded-md border border-gray-700">
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort("name")}>
+                    Name
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort("email")}>
+                    Email
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort("location")}>
+                    Location
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort("yearsOfExperience")}>
+                    Experience (Years)
+                  </TableHead>
+                  <TableHead>Applications</TableHead>
+                  <TableHead>Quick View</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedJobSeekers.map((seeker) => (
+                  <TableRow
+                    key={seeker.id}
+                    className="hover:bg-gray-700 transition-colors duration-150"
+                  >
+                    <TableCell>{seeker.name}</TableCell>
+                    <TableCell>{seeker.email}</TableCell>
+                    <TableCell>{seeker.location}</TableCell>
+                    <TableCell>{seeker.yearsOfExperience != null ? seeker.yearsOfExperience : "N/A"}</TableCell>
+                    <TableCell>{seeker.applications?.length || 0}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => openQuickView(seeker)}>
+                        Quick View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        ) : (
+          <p className="text-center py-10">No job seekers found.</p>
+        )}
+      </section>
+
+      {/* --- Quick View Modal for Job Seeker Details --- */}
+      {selectedJobSeeker && (
+        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeQuickView(); }}>
+          <DialogContent className="bg-gray-900 border border-gray-700 shadow-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">{selectedJobSeeker.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4 text-sm">
+              <p><strong>Email:</strong> {selectedJobSeeker.email}</p>
+              <p><strong>Phone:</strong> {selectedJobSeeker.phoneNumber || "N/A"}</p>
+              <p><strong>Location:</strong> {selectedJobSeeker.location}</p>
+              <p><strong>Current Job Title:</strong> {selectedJobSeeker.currentJobTitle || "N/A"}</p>
+              <p><strong>Industry:</strong> {selectedJobSeeker.industry || "N/A"}</p>
+              <p>
+                <strong>Job Search Status:</strong> {selectedJobSeeker.jobSearchStatus || "N/A"}
+              </p>
+              <p>
+                <strong>Years of Experience:</strong> {selectedJobSeeker.yearsOfExperience != null ? selectedJobSeeker.yearsOfExperience : "N/A"}
+              </p>
+              <p><strong>Bio:</strong> {selectedJobSeeker.bio?.trim() || "N/A"}</p>
+              <p>
+                <strong>About:</strong> {selectedJobSeeker.about?.trim() || "N/A"}
+              </p>
+              <p>
+                <strong>Previous Job Experience:</strong> {selectedJobSeeker.previousJobExperience?.trim() || "N/A"}
+              </p>
+              <p>
+                <strong>Certifications:</strong>{" "}
+                {selectedJobSeeker.certifications?.length
+  ? selectedJobSeeker.certifications.map((cert, i) => (
+      <span key={i}>
+        {cert.name || JSON.stringify(cert)} {cert.year ? `(${cert.year})` : ""}{i < selectedJobSeeker.certifications.length - 1 ? ", " : ""}
+      </span>
+    ))
+  : "N/A"}
+
+              </p>
+              <p>
+                <strong>Expected Salary:</strong>{" "}
+                {selectedJobSeeker.expectedSalaryMax != null
+                  ? `$${selectedJobSeeker.expectedSalaryMax.toLocaleString()}`
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Preferred Location:</strong> {selectedJobSeeker.preferredLocation || "N/A"}
+              </p>
+              <p>
+                <strong>Remote Preference:</strong> {selectedJobSeeker.remotePreference || "N/A"}
+              </p>
+              <p>
+                <strong>LinkedIn:</strong>{" "}
+                {selectedJobSeeker.linkedin ? (
+                  <a href={selectedJobSeeker.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                    View Profile
+                  </a>
+                ) : (
+                  "N/A"
+                )}
+              </p>
+              <p>
+                <strong>GitHub:</strong>{" "}
+                {selectedJobSeeker.github ? (
+                  <a href={selectedJobSeeker.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                    View Profile
+                  </a>
+                ) : (
+                  "N/A"
+                )}
+              </p>
+              <p>
+                <strong>Portfolio:</strong>{" "}
+                {selectedJobSeeker.portfolio ? (
+                  <a href={selectedJobSeeker.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                    View Portfolio
+                  </a>
+                ) : (
+                  "N/A"
+                )}
+              </p>
+              <p>
+                <strong>Skills:</strong>{" "}
+                {selectedJobSeeker.skills && selectedJobSeeker.skills.length > 0
+                  ? selectedJobSeeker.skills.join(", ")
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Education:</strong>{" "}
+                {selectedJobSeeker.education
+                  ? JSON.stringify(selectedJobSeeker.education)
+                  : "N/A"}
+              </p>
+              <p className="mt-2 text-gray-400">
+                [View Applications functionality coming soon]
+              </p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={closeQuickView}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
-
-      <Tabs
-        defaultValue="metrics"
-        value={activeTab}
-        onValueChange={(val) => setActiveTab(val as "metrics" | "jobseekers")}
-      >
-        <TabsList className="mb-4 border-b dark:border-gray-700">
-          <TabsTrigger value="metrics" className="px-4 py-2">
-            Job Metrics
-          </TabsTrigger>
-          <TabsTrigger value="jobseekers" className="px-4 py-2">
-            Job Seekers
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ----- Job Metrics Tab ----- */}
-        <TabsContent value="metrics">
-          {loadingMetrics ? (
-            <div className="text-center p-6">Loading job metrics...</div>
-          ) : (
-            <ScrollArea className="h-auto max-h-[800px]">
-              {/* KPI Cards */}
-              {aggregatedMetrics && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  <Card className="shadow-md border dark:border-gray-700">
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold">Total Views</h3>
-                      <p className="text-2xl">{aggregatedMetrics.totalViews}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-md border dark:border-gray-700">
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold">Total Clicks</h3>
-                      <p className="text-2xl">{aggregatedMetrics.totalClicks}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-md border dark:border-gray-700">
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold">Applications</h3>
-                      <p className="text-2xl">{aggregatedMetrics.applications}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-md border dark:border-gray-700">
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold">CTR</h3>
-                      <p className="text-2xl">
-                        {aggregatedMetrics.ctr.toFixed(2)}%
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-md border dark:border-gray-700">
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold">Conversion Rate</h3>
-                      <p className="text-2xl">
-                        {aggregatedMetrics.conversionRate.toFixed(2)}%
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Line Chart: Views Over Time */}
-                <Card className="shadow-md border dark:border-gray-700">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold mb-2">
-                      Views Over Time
-                    </h3>
-                    {lineChartData ? (
-                      <Line
-                        data={lineChartData}
-                        options={{
-                          responsive: true,
-                          plugins: {
-                            legend: { position: "top" },
-                            title: { display: true, text: "Views Trend" },
-                          },
-                        }}
-                      />
-                    ) : (
-                      <p>No data available for line chart.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Bar Chart: Views per Job Post */}
-                <Card className="shadow-md border dark:border-gray-700">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold mb-2">
-                      Views per Job Post
-                    </h3>
-                    {barChartData ? (
-                      <Bar
-                        data={barChartData}
-                        options={{
-                          responsive: true,
-                          plugins: {
-                            legend: { position: "top" },
-                            title: { display: true, text: "Job Post Views" },
-                          },
-                        }}
-                      />
-                    ) : (
-                      <p>No data available for bar chart.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Pie Chart: Clicks vs. Remaining Views */}
-              <div className="mt-6">
-                <Card className="shadow-md border dark:border-gray-700">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold mb-2">
-                      Clicks vs. Views
-                    </h3>
-                    {pieChartData ? (
-                      <Pie
-                        data={pieChartData}
-                        options={{
-                          responsive: true,
-                          plugins: {
-                            legend: { position: "top" },
-                            title: {
-                              display: true,
-                              text: "Click Distribution",
-                            },
-                          },
-                        }}
-                      />
-                    ) : (
-                      <p>No data available for pie chart.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </ScrollArea>
-          )}
-        </TabsContent>
-
-        {/* ----- Job Seekers Tab ----- */}
-        <TabsContent value="jobseekers">
-          {loadingJobSeekers ? (
-            <div className="text-center p-6">Loading job seekers...</div>
-          ) : (
-            <ScrollArea className="h-auto max-h-[800px]">
-              {jobSeekers && jobSeekers.length > 0 ? (
-                <Table className="min-w-full border dark:border-gray-700">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => requestSort("name")}
-                      >
-                        Name
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => requestSort("email")}
-                      >
-                        Email
-                      </TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => requestSort("yearsOfExperience")}
-                      >
-                        Experience (Years)
-                      </TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>About</TableHead>
-                      <TableHead>Education</TableHead>
-                      <TableHead>Skills</TableHead>
-                      <TableHead>Resume</TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => requestSort("createdAt")}
-                      >
-                        Created At
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedJobSeekers.map((seeker) => (
-                      <TableRow
-                        key={seeker.id}
-                        className="hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150"
-                      >
-                        <TableCell>{seeker.name}</TableCell>
-                        <TableCell>{seeker.email}</TableCell>
-                        <TableCell>{seeker.phoneNumber || "N/A"}</TableCell>
-                        <TableCell>{seeker.yearsOfExperience}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {seeker.jobSearchStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className="max-w-xs truncate"
-                          title={seeker.about}
-                        >
-                          {seeker.about}
-                        </TableCell>
-                        <TableCell>
-                          {typeof seeker.education === "object"
-                            ? JSON.stringify(seeker.education)
-                            : seeker.education}
-                        </TableCell>
-                        <TableCell>{seeker.skills.join(", ")}</TableCell>
-                        <TableCell>
-                          <a
-                            href={seeker.resume}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 underline"
-                          >
-                            View Resume
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(seeker.createdAt).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center p-6">No job seekers found.</div>
-              )}
-            </ScrollArea>
-          )}
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

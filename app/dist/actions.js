@@ -905,7 +905,9 @@ formData) { return __awaiter(void 0, void 0, Promise, function () {
             case 3:
                 _e.trys.push([3, 5, , 6]);
                 return [4 /*yield*/, db_1.prisma.jobSeekerResume.create({
-                        data: __assign(__assign({}, (validResumeData.resumeId ? { resumeId: validResumeData.resumeId } : {})), { resumeName: validResumeData.resumeName, resumeBio: validResumeData.resumeBio, pdfUrlId: validResumeData.pdfUrlId })
+                        data: __assign(__assign({}, (validResumeData.resumeId ? { resumeId: validResumeData.resumeId } : {})), { resumeName: validResumeData.resumeName, resumeBio: validResumeData.resumeBio, pdfUrlId: validResumeData.pdfUrlId, jobSeeker: {
+                                connect: { id: jobSeeker.id }
+                            } })
                     })];
             case 4:
                 _e.sent();

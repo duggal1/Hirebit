@@ -11,6 +11,7 @@ import { Providers as GlobalProviders } from "@/components/Providers";
 // Resume-specific providers (from your resume builder)
 import { Providers as ResumeProviders } from "@/components/resume/src/app/components/Providers";
 import { AutoSaveHeaderWrapper } from "@/components/resume/src/app/components/header/AutoSaveHeaderWrapper";
+import Sidebar from "@/components/sidebar/sidebar";
 
 
 
@@ -39,6 +40,7 @@ export default function RootLayout({
         <GlobalProviders>
         <ResumeProviders>
             <AutoSaveHeaderWrapper />
+           
             {children}
             </ResumeProviders>
         </GlobalProviders>

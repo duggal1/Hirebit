@@ -33,7 +33,7 @@ export default async function Home({ searchParams }: SearchParamsProps) {
             jobTypes={jobTypes}
             location={location}
           />
-          <Sidebar/>
+   <Sidebar/>
         </Suspense>
       </div>
     </div>

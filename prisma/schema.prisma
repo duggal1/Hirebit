@@ -111,12 +111,13 @@ model Education {
 }
 
 model Verification {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  urls      Json? // Store GitHub, LinkedIn, Portfolio URLs
-  analysis  Json? // Store analysis results
-  status    String   @default("pending")
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  aianalysis Json?
+  updatedAt  DateTime @updatedAt
+  urls       Json? // Store GitHub, LinkedIn, Portfolio URLs
+  analysis   Json? // Store analysis results
+  status     String   @default("pending")
 
   // Make jobSeekerId required and unique
   jobSeekerId String    @unique

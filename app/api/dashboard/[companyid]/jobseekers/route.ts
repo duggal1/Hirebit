@@ -6,8 +6,8 @@ export async function GET(
   { params }: { params: { companyid: string } }
 ) {
   try {
-    const { companyid } = await Promise.resolve(params);
     console.log('\n🔍 Starting API request...');
+    const { companyid } = await Promise.resolve(params);
     console.log('Company ID:', companyid);
 
     // First verify company exists
@@ -83,12 +83,10 @@ export async function GET(
     const jobSeekerIds = [...new Set(jobApplications.map(app => app.jobSeekerId))];
     console.log(`👤 Found ${jobSeekerIds.length} unique job seekers`);
 
-    // Fetch complete job seeker details including their resumes
+    // Fetch complete job seeker details including their resumes and filtered applications
     const jobSeekers = await prisma.jobSeeker.findMany({
       where: {
-        id: {
-          in: jobSeekerIds
-        }
+        id: { in: jobSeekerIds }
       },
       include: {
         JobSeekerResume: {
@@ -111,9 +109,7 @@ export async function GET(
         },
         applications: {
           where: {
-            jobId: {
-              in: jobPosts.map(post => post.id)
-            }
+            jobId: { in: jobPosts.map(post => post.id) }
           },
           include: {
             job: {
@@ -130,22 +126,27 @@ export async function GET(
     console.log('Job Seekers Data:', jobSeekers);
 
     // Extra log for JobSeekerResume data for each job seeker
-jobSeekers.forEach(seeker => {
-  if (seeker.JobSeekerResume.length === 0) {
-    console.log(`📝 Resumes for Job Seeker ${seeker.name} (ID: ${seeker.id}): No resume data found.`);
-  } else {
-    seeker.JobSeekerResume.forEach((resume, idx) => {
-      console.log(`📝 Resume ${idx + 1} for Job Seeker ${seeker.name} (ID: ${seeker.id}):`);
-      console.log(`   - Resume Name: ${resume.resumeName}`);
-      console.log(`   - Resume Bio: ${resume.resumeBio}`);
-      console.log(`   - PDF URL: ${resume.pdfUrlId}`);
+    jobSeekers.forEach(seeker => {
+      if (seeker.JobSeekerResume.length === 0) {
+        console.log(`📝 Resumes for Job Seeker ${seeker.name} (ID: ${seeker.id}): No resume data found.`);
+      } else {
+        seeker.JobSeekerResume.forEach((resume, idx) => {
+          console.log(`📝 Resume ${idx + 1} for Job Seeker ${seeker.name} (ID: ${seeker.id}):`);
+          console.log(`   - Resume Name: ${resume.resumeName}`);
+          console.log(`   - Resume Bio: ${resume.resumeBio}`);
+          console.log(`   - PDF URL: ${resume.pdfUrlId}`);
+        });
+      }
     });
-  }
-});
 
-  
+    // Filter out job seekers who have no applications at all
+    const jobSeekersWithApplications = jobSeekers.filter(seeker => {
+      return seeker.applications && seeker.applications.length > 0;
+    });
+    console.log(`\n🔍 After filtering, ${jobSeekersWithApplications.length} job seekers have at least one application.`);
+
     // Transform the data with all details
-    const transformedData = jobSeekers.map(seeker => {
+    const transformedData = jobSeekersWithApplications.map(seeker => {
       console.log(`\n🔄 Processing job seeker: ${seeker.name}`);
       return {
         // Basic Info
@@ -154,11 +155,15 @@ jobSeekers.forEach(seeker => {
         email: seeker.email,
         phoneNumber: seeker.phoneNumber,
         location: seeker.location,
+        bio: seeker.about    ,     
 
         // Professional Details
         currentJobTitle: seeker.currentJobTitle,
         industry: seeker.industry,
         experience: seeker.experience,
+        yearsOfExperience: seeker.yearsOfExperience, 
+         
+        about: seeker.about,      
         skills: seeker.skills,
         jobSearchStatus: seeker.jobSearchStatus,
         previousJobExperience: seeker.previousJobExperience,
@@ -222,7 +227,6 @@ jobSeekers.forEach(seeker => {
           answers: app.answers,
           aiScore: app.aiScore,
           isActive: app.isActive,
-          
           job: {
             id: app.job.id,
             title: app.job.jobTitle,
@@ -240,7 +244,6 @@ jobSeekers.forEach(seeker => {
             metrics: app.job.metrics,
             codingQuestions: app.job.codingQuestions
           },
-
           assessment: {
             aiScore: app.aiScore,
             cultureFitScore: app.cultureFitScore,
@@ -248,7 +251,6 @@ jobSeekers.forEach(seeker => {
             technical: app.technicalSkillsAssessment,
             codingResults: app.codingTestResults
           },
-
           recruiterData: {
             notes: app.recruiterNotes,
             feedback: app.interviewFeedback,
@@ -256,7 +258,6 @@ jobSeekers.forEach(seeker => {
             lastReviewed: app.lastReviewedAt,
             reviewedBy: app.reviewedBy
           },
-
           timeline: {
             created: app.createdAt,
             updated: app.updatedAt,

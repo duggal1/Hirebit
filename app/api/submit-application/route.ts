@@ -1,11 +1,65 @@
 import { prisma } from "@/app/utils/db";
+import { ApplicationStatus, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-// Define interface for the verification URLs structure
+// Define interfaces for better type safety
 interface VerificationUrls {
   linkedin?: string;
   github?: string;
   portfolio?: string;
+}
+
+interface ApplicationAnswers {
+  // Professional Links
+  linkedin: string;
+  github: string;
+  portfolio: string;
+  
+  // Core Professional Info
+  currentJobTitle?: string;
+  industry?: string;
+  jobSearchStatus?: string;
+  skills: string[];
+  experience: number;
+  yearsOfExperience: number;
+  
+  // Location & Availability
+  location: string;
+  preferredLocation?: string;
+  remotePreference?: string;
+  willingToRelocate?: boolean;
+  availabilityPeriod?: number;
+  availableFrom?: Date;
+  
+  // Contact & Personal Info
+  phoneNumber: string;
+  desiredEmployment: string;
+  
+  // Compensation
+  expectedSalaryMin: number | null;
+  expectedSalaryMax: number | null;
+  
+  // Qualifications
+  certifications: {
+    url: string;
+    name: string;
+    year: number;
+    issuer: string;
+  }[] | null;
+  education: {
+    year: number;
+    degree: string;
+    institution: string;
+    fieldOfStudy: string;
+  }[] | null;
+  
+  // Work History
+  previousJobExperience?: {
+    company: string;
+    position: string;
+    duration: string;
+    highlights: string[];
+  }[] | null;
 }
 
 export async function POST(request: Request) {
@@ -15,28 +69,42 @@ export async function POST(request: Request) {
 
     const { jobSeekerId, companySlug, verificationId, coverLetter, includeLinks } = body;
 
-    // 1. Find the verification record (match either by verification id or by jobSeekerId)
+    // 1. Find the verification record
     const verification = await prisma.verification.findFirst({
       where: {
         OR: [{ id: verificationId }, { jobSeekerId: jobSeekerId }],
       },
       include: {
-        jobSeeker: true,
+        jobSeeker: {
+          include: {
+            JobSeekerResume: {
+              where: {
+                isActive: true
+              },
+              select: {
+                resumeName: true,
+                resumeBio: true,
+                pdfUrlId: true
+              }
+            }
+          }
+        },
         company: true,
       },
     });
 
-    console.log("Verification data:", verification);
+
+    const resumeData = verification?.jobSeeker?.JobSeekerResume?.[0];
+
 
     if (!verification) {
       console.log("Verification not found");
       return NextResponse.json({ error: "Verification not found" }, { status: 404 });
     }
 
-    // Type assert the urls object
     const urls = verification.urls as VerificationUrls | null;
 
-    // 2. Find an active job post for the given company
+    // 2. Find active job post
     const jobPost = await prisma.jobPost.findFirst({
       where: {
         company: { name: companySlug },
@@ -51,78 +119,123 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Check if an application already exists for this job post (update scenario)
+    // 3. Check existing application
     const existingApplication = await prisma.jobApplication.findUnique({
       where: { jobSeekerId_jobId: { jobSeekerId, jobId: jobPost.id } },
     });
 
-    // 4. If no existing application, count how many applications this user has submitted
+    // 4. Check application limit for non-premium users
     if (!existingApplication) {
       const applicationCount = await prisma.jobApplication.count({
         where: { jobSeekerId: jobSeekerId },
       });
       if (applicationCount >= 3) {
         return NextResponse.json(
-          { error: "Buy Hirebit Premium to unlock unlimited applications to get your dream job" },
+          { error: "Buy Hirebit Premium to unlock unlimited applications" },
           { status: 400 }
         );
       }
     }
+   
+   
+    // 5. Prepare application data
+    const baseApplicationData = {
+      coverLetter: coverLetter || "",
+      status: ApplicationStatus.PENDING,
+      includeLinks,
+      resume: verification.jobSeeker?.resume || "",
+      lastActivity: new Date(),
+      isActive: true,
 
-    // 5. Upsert the job application (update if exists, or create a new one)
+      // Handle JSON fields properly for Prisma
+      answers: includeLinks ? {
+        set: {
+          linkedin: urls?.linkedin || "",
+          resumeData: resumeData ? {
+            resumeName: resumeData.resumeName,
+            resumeBio: resumeData.resumeBio,
+            pdfUrlId: resumeData.pdfUrlId
+          } : null,
+          github: urls?.github || "",
+          portfolio: urls?.portfolio || "",
+          currentJobTitle: verification.jobSeeker?.currentJobTitle || "",
+          industry: verification.jobSeeker?.industry || "",
+          jobSearchStatus: verification.jobSeeker?.jobSearchStatus || "OPEN_TO_OFFERS",
+          skills: verification.jobSeeker?.skills || [],
+          experience: verification.jobSeeker?.experience || 0,
+          yearsOfExperience: verification.jobSeeker?.yearsOfExperience || 0,
+          location: verification.jobSeeker?.location || "",
+          preferredLocation: verification.jobSeeker?.preferredLocation || "",
+          remotePreference: verification.jobSeeker?.remotePreference || "",
+          willingToRelocate: verification.jobSeeker?.willingToRelocate || false,
+          availabilityPeriod: verification.jobSeeker?.availabilityPeriod || 0,
+          availableFrom: verification.jobSeeker?.availableFrom || null,
+          phoneNumber: verification.jobSeeker?.phoneNumber || "",
+          desiredEmployment: verification.jobSeeker?.desiredEmployment || "",
+          expectedSalaryMin: verification.jobSeeker?.expectedSalaryMin || null,
+          expectedSalaryMax: verification.jobSeeker?.expectedSalaryMax || null,
+          certifications: verification.jobSeeker?.certifications || null,
+          education: verification.jobSeeker?.education || null,
+          previousJobExperience: verification.jobSeeker?.previousJobExperience || null,
+        }
+      } : undefined,
+
+      // Handle other JSON fields
+      certifications: verification.jobSeeker?.certifications ? {
+        set: verification.jobSeeker.certifications
+      } : Prisma.JsonNull,
+
+      education: verification.jobSeeker?.education ? {
+        set: verification.jobSeeker.education
+      } : Prisma.JsonNull,
+
+      // Scalar fields
+      expectedSalaryMin: verification.jobSeeker?.expectedSalaryMin || null,
+      expectedSalaryMax: verification.jobSeeker?.expectedSalaryMax || null,
+      location: verification.jobSeeker?.location || null,
+      phoneNumber: verification.jobSeeker?.phoneNumber || null,
+      desiredEmployment: verification.jobSeeker?.desiredEmployment || null,
+
+      // Application tracking fields
+      applicationStage: "INITIAL_REVIEW",
+      interviewFeedback: Prisma.JsonNull,
+      recruiterNotes: null,
+      lastReviewedAt: null,
+      reviewedBy: null,
+      codingTestResults: Prisma.JsonNull,
+      technicalSkillsAssessment: Prisma.JsonNull,
+      cultureFitScore: null,
+      communicationScore: null,
+    };
+
+    // 6. Upsert application
     const application = await prisma.jobApplication.upsert({
-      where: { jobSeekerId_jobId: { jobSeekerId, jobId: jobPost.id } },
-      update: {
-        coverLetter: coverLetter || "",
-        status: "PENDING",
-        includeLinks,
-        resume: verification.jobSeeker?.resume || "",
-        answers: includeLinks
-          ? {
-              linkedin: urls?.linkedin || "",
-              github: urls?.github || "",
-              portfolio: urls?.portfolio || "",
-              skills: verification.jobSeeker?.skills || [],
-              experience: verification.jobSeeker?.experience || 0,
-              yearsOfExperience: verification.jobSeeker?.yearsOfExperience || 0,
-              expectedSalaryMin: verification.jobSeeker?.expectedSalaryMin || null,
-              expectedSalaryMax: verification.jobSeeker?.expectedSalaryMax || null,
-              certifications: verification.jobSeeker?.certifications || null,
-              education: verification.jobSeeker?.education || null,
-              location: verification.jobSeeker?.location || "",
-              phoneNumber: verification.jobSeeker?.phoneNumber || "",
-              desiredEmployment: verification.jobSeeker?.desiredEmployment || "",
-            }
-          : undefined,
+      where: {
+        jobSeekerId_jobId: {
+          jobSeekerId,
+          jobId: jobPost.id
+        }
       },
+      update: baseApplicationData,
       create: {
-        jobSeeker: { connect: { id: jobSeekerId } },
-        job: { connect: { id: jobPost.id } },
-        coverLetter: coverLetter || "",
-        status: "PENDING",
-        includeLinks,
-        resume: verification.jobSeeker?.resume || "",
-        answers: includeLinks
-          ? {
-              linkedin: urls?.linkedin || "",
-              github: urls?.github || "",
-              portfolio: urls?.portfolio || "",
-              skills: verification.jobSeeker?.skills || [],
-              experience: verification.jobSeeker?.experience || 0,
-              yearsOfExperience: verification.jobSeeker?.yearsOfExperience || 0,
-              expectedSalaryMin: verification.jobSeeker?.expectedSalaryMin || null,
-              expectedSalaryMax: verification.jobSeeker?.expectedSalaryMax || null,
-              certifications: verification.jobSeeker?.certifications || null,
-              education: verification.jobSeeker?.education || null,
-              location: verification.jobSeeker?.location || "",
-              phoneNumber: verification.jobSeeker?.phoneNumber || "",
-              desiredEmployment: verification.jobSeeker?.desiredEmployment || "",
-            }
-          : undefined,
-      },
+        ...baseApplicationData,
+        jobSeeker: {
+          connect: { id: jobSeekerId }
+        },
+        job: {
+          connect: { id: jobPost.id }
+        },
+        ...(jobPost.companyId ? {
+          company: {
+            connect: { id: jobPost.companyId }
+          }
+        } : {})
+      }
     });
 
-    // 6. Update job metrics (upsert so we create metrics if they don't exist)
+
+
+    // 7. Update job metrics
     await prisma.jobMetrics.upsert({
       where: { jobPostId: jobPost.id },
       create: {
@@ -133,15 +246,25 @@ export async function POST(request: Request) {
         viewsByDate: {},
         clicksByDate: {},
         locationData: verification.jobSeeker?.location
-          ? { [verification.jobSeeker.location]: 1 }
-          : {},
+          ? JSON.stringify({ [verification.jobSeeker.location]: 1 })
+          : "{}",
       },
       update: {
         applications: { increment: 1 },
+        locationData: verification.jobSeeker?.location
+          ? JSON.stringify({
+              [verification.jobSeeker.location]: 1,
+            })
+          : undefined,
       },
     });
 
-    return NextResponse.json({ success: true, applicationId: application.id });
+    return NextResponse.json({ 
+      success: true, 
+      applicationId: application.id,
+      status: application.status,
+      submittedAt: application.lastActivity // Changed from lastActivityDate
+    });
   } catch (error) {
     console.error("Error submitting application:", error);
     return NextResponse.json({ error: "Failed to submit application" }, { status: 500 });
