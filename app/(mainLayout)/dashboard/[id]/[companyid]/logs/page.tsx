@@ -715,17 +715,6 @@ export default function LogsPage() {
                     value={new Date(metadata.createdAt).toLocaleDateString()}
                   />
                 </div>
-                {/* New Info Items added under Profile Information */}
-              
-                {/* About Section */}
-                <div className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 p-10 rounded-3xl backdrop-blur-lg border border-gray-700/50 shadow-xl">
-                  <h3 className="text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                    About
-                  </h3>
-                  <p className="text-gray-300 text-lg leading-relaxed">
-                    {about}
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -937,9 +926,9 @@ export default function LogsPage() {
                               )}
                               {app.answers && (
                                 <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-2xl p-8 border border-gray-700/30 backdrop-blur-sm">
-                                  <h4 className="text-xl font-semibold mb-4 flex items-center gap-3 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-                                    <MessageSquare size={20} className="text-purple-400" />
-                                    Application Answers
+                                  <h4 className="text-xl font-semibold mb-4 flex items-center gap-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
+                                    <MessageSquare size={20} className="text-white " />
+                                 Client overview ✨
                                   </h4>
                                   <ApplicationAnswersDisplay answers={app.answers} />
                                 </div>

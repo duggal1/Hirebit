@@ -1,14 +1,11 @@
 import Link from "next/link";
-
-import { Button, buttonVariants } from "../ui/button";
+import { Button } from "../ui/button";
 import Image from "next/image";
 import Logo from "@/public/logo.png";
-
 import { Menu } from "lucide-react";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -20,87 +17,87 @@ import { UserDropdown } from "./UserDropdown";
 export async function Navbar() {
   const session = await auth();
 
-  return (
+     return (
+      <>
     <nav className="flex justify-between items-center py-5">
       <Link href="/" className="flex items-center gap-2">
-        <Image src={Logo} alt="Job Marshal Logo" width={40} height={40} />
-        <h1 className="text-2xl font-bold">
-          Job<span className="text-primary">Marshal</span>
-        </h1>
-      </Link>
+        <Image src={Logo} alt="hirebit" width={100} height={80} />
+        <h1 className="text-3xl font-extrabold  text-white">
+                HIRE<span className="text-blue-500">BIT</span>
+              </h1>
+            </Link>
+    
 
-      {/* Desktop Navigation */}
-      <div className="hidden md:flex items-center gap-5">
-        <ThemeToggle />
-        <Link href="/post-job" className={buttonVariants({ size: "lg" })}>
-          Post Job
-        </Link>
-        {session?.user ? (
-          <UserDropdown
-            email={session.user.email as string}
-            name={session.user.name as string}
-            image={session.user.image as string}
-          />
-        ) : (
-          <Link
-            href="/login"
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            Login
-          </Link>
-        )}
-      </div>
-
-      {/* Mobile Navigation */}
-      <div className="md:hidden flex items-center gap-4">
-        <ThemeToggle />
-        {session?.user ? (
-          <UserDropdown
-            email={session.user.email as string}
-            name={session.user.name as string}
-            image={session.user.image as string}
-          />
-        ) : (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader className="text-left">
-                <SheetTitle>
-                  Job<span className="text-primary">Marshal</span>
-                </SheetTitle>
-                <SheetDescription>
-                  Find or post your next job opportunity
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="flex flex-col gap-4 mt-6">
-                <Link
-                  href="/"
-                  className="text-lg px-4 py-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors duration-200"
-                >
-                  Find New Job
-                </Link>
-                <Link
-                  href="/post-job"
-                  className="text-lg px-4 py-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors duration-200"
-                >
-                  Post a Job
-                </Link>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <ThemeToggle />
+              <Link
+                href="/post-job"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white transition"
+              >
+                Post Job
+              </Link>
+              {session?.user ? (
+                <UserDropdown
+                  email={session.user.email as string}
+                  name={session.user.name as string}
+                  image={session.user.image as string}
+                />
+              ) : (
                 <Link
                   href="/login"
-                  className="text-lg px-4 py-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors duration-200"
+                  className="px-4 py-2 border border-gray-700 hover:border-gray-600 rounded-md text-gray-300 hover:text-white transition"
                 >
                   Login
                 </Link>
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-      </div>
-    </nav>
-  );
-}
+              )}
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="md:hidden flex items-center">
+              <ThemeToggle />
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="ml-2 border-gray-700 hover:border-gray-600"
+                  >
+                    <Menu className="h-6 w-6 text-gray-300" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="bg-black text-white">
+                  <SheetHeader>
+                    <SheetTitle className="text-2xl font-bold">
+                      HIREBIT
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 flex flex-col space-y-4">
+                    <Link
+                      href="/"
+                      className="px-4 py-2 hover:bg-gray-800 rounded transition"
+                    >
+                      Find New Job
+                    </Link>
+                    <Link
+                      href="/post-job"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded transition"
+                    >
+                      Post a Job
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 border border-gray-700 hover:border-gray-600 rounded transition"
+                    >
+                      Login
+                    </Link>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+        
+           </nav>
+           </>
+     )}
+ 
+export default Navbar;

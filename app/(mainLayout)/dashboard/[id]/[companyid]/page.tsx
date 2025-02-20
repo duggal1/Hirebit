@@ -422,167 +422,176 @@ export default function RecruiterDashboard() {
     </section>
       {/* --- Quick View Modal for Job Seeker Details --- */}
       <AnimatePresence>
-        {selectedJobSeeker && (
-          <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeQuickView(); }}>
-            <DialogContent className="bg-black border-blue-900 shadow-2xl rounded-3xl max-w-4xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader className="space-y-4">
-                <DialogTitle className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white/90  to-neutral-200/80 ">
+      {selectedJobSeeker && (
+        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeQuickView(); }}>
+          <DialogContent className="bg-[#030712] border border-indigo-500/20 shadow-[0_0_50px_-12px_rgba(79,70,229,0.3)] rounded-3xl max-w-4xl max-h-[85vh] overflow-y-auto backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/10 via-indigo-900/10 to-purple-900/10 rounded-3xl pointer-events-none" />
+            <div className="absolute inset-0 bg-[url('/api/placeholder/10/10')] opacity-[0.02] mix-blend-overlay pointer-events-none" />
+            
+            <DialogHeader className="space-y-4 relative">
+              <DialogTitle className="text-3xl font-black">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
                   {selectedJobSeeker.name}
-                </DialogTitle>
-                <div className="flex gap-4 flex-wrap">
-                  {selectedJobSeeker.jobSearchStatus && (
-                    <span className="px-4 py-1.5 rounded-full bg-blue-950/10 text-neutral-200 text-sm font-bold">
-                      {selectedJobSeeker.jobSearchStatus}
-                    </span>
-                  )}
-                  {selectedJobSeeker.remotePreference && (
-                    <span className="px-4 py-1.5 rounded-full bg-blue-500 text-blue-400 text-sm font-medium">
-                      {selectedJobSeeker.remotePreference}
-                    </span>
-                  )}
-                </div>
-              </DialogHeader>
+                </span>
+              </DialogTitle>
+              <div className="flex gap-4 flex-wrap">
+                {selectedJobSeeker.jobSearchStatus && (
+                  <span className="px-4 py-1.5 rounded-full bg-indigo-950/30 text-indigo-200 text-sm font-medium border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+                    {selectedJobSeeker.jobSearchStatus}
+                  </span>
+                )}
+                {selectedJobSeeker.remotePreference && (
+                  <span className="px-4 py-1.5 rounded-full bg-blue-950/30 text-blue-200 text-sm font-medium border border-blue-500/20 shadow-lg shadow-blue-500/10">
+                    {selectedJobSeeker.remotePreference}
+                  </span>
+                )}
+              </div>
+            </DialogHeader>
 
-              <div className="space-y-6 mt-6 ">
-                {/* Contact & Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { label: "Email", value: selectedJobSeeker.email, icon: "📧" },
-                    { label: "Phone", value: selectedJobSeeker.phoneNumber || "N/A", icon: "📱" },
-                    { label: "Location", value: selectedJobSeeker.location, icon: "📍" },
-                    { label: "Current Job Title", value: selectedJobSeeker.currentJobTitle || "N/A", icon: "💼" },
-                    { label: "Industry", value: selectedJobSeeker.industry || "N/A", icon: "🏢" },
-                    { label: "Years of Experience", value: selectedJobSeeker.yearsOfExperience != null ? selectedJobSeeker.yearsOfExperience : "N/A", icon: "⏳" },
-                    { label: "Expected Salary", value: selectedJobSeeker.expectedSalaryMax != null ? `$${selectedJobSeeker.expectedSalaryMax.toLocaleString()}` : "N/A", icon: "💰" },
-                    { label: "Preferred Location", value: selectedJobSeeker.preferredLocation || "N/A", icon: "🌎" }
-                  ].map((field, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="p-4 rounded-2xl bg-black border-blue-800/30 backdrop-blur-sm hover:bg-blue-950 transition-all duration-300"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{field.icon}</span>
-                        <div>
-                          <p className="text-neutral-100 text-base font-bold  mb-1">{field.label}</p>
-                          <p className="text-neutral-100 font-bold ">{field.value}</p>
-                        </div>
+            <div className="space-y-6 mt-6 relative">
+              {/* Contact & Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "Email", value: selectedJobSeeker.email, icon: "📧" },
+                  { label: "Phone", value: selectedJobSeeker.phoneNumber || "N/A", icon: "📱" },
+                  { label: "Location", value: selectedJobSeeker.location, icon: "📍" },
+                  { label: "Current Job Title", value: selectedJobSeeker.currentJobTitle || "N/A", icon: "💼" },
+                  { label: "Industry", value: selectedJobSeeker.industry || "N/A", icon: "🏢" },
+                  { label: "Years of Experience", value: selectedJobSeeker.yearsOfExperience != null ? selectedJobSeeker.yearsOfExperience : "N/A", icon: "⏳" },
+                  { label: "Expected Salary", value: selectedJobSeeker.expectedSalaryMax != null ? `$${selectedJobSeeker.expectedSalaryMax.toLocaleString()}` : "N/A", icon: "💰" },
+                  { label: "Preferred Location", value: selectedJobSeeker.preferredLocation || "N/A", icon: "🌎" }
+                ].map((field, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-4 rounded-2xl bg-[#0A0F1A]/40 border border-indigo-500/10 backdrop-blur-sm hover:bg-indigo-950/20 transition-all duration-300 group shadow-lg shadow-indigo-500/5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl group-hover:scale-110 transition-transform duration-300">{field.icon}</span>
+                      <div>
+                        <p className="text-indigo-200/80 text-base font-medium mb-1">{field.label}</p>
+                        <p className="text-white/90 font-semibold">{field.value}</p>
                       </div>
-                    </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Detailed Information */}
+              <div className="space-y-6">
+                {/* Bio Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-2xl bg-[#0A0F1A]/40 border border-blue-500/10 backdrop-blur-sm hover:bg-blue-950/20 transition-all duration-300 shadow-lg shadow-blue-500/5"
+                >
+                  <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 mb-4">
+                    Professional Summary
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-blue-200/80 text-sm mb-2">Bio</p>
+                      <p className="text-white/80">{selectedJobSeeker.bio?.trim() || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-200/80 text-sm mb-2">About</p>
+                      <p className="text-white/80">{selectedJobSeeker.about?.trim() || "N/A"}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Experience Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-2xl bg-[#0A0F1A]/40 border border-purple-500/10 backdrop-blur-sm hover:bg-purple-950/20 transition-all duration-300 shadow-lg shadow-purple-500/5"
+                >
+                  <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400 mb-4">
+                    Work Experience
+                  </h3>
+                  <p className="text-white/80">{selectedJobSeeker.previousJobExperience?.trim() || "N/A"}</p>
+                </motion.div>
+
+                {/* Skills Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-2xl bg-[#0A0F1A]/40 border border-indigo-500/10 backdrop-blur-sm hover:bg-indigo-950/20 transition-all duration-300 shadow-lg shadow-indigo-500/5"
+                >
+                  <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-400 mb-4">
+                    Skills & Expertise
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedJobSeeker.skills && selectedJobSeeker.skills.length > 0 ? (
+                      selectedJobSeeker.skills.map((skill, index) => (
+                        <motion.span
+                          key={index}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="px-4 py-2 rounded-full bg-[#0A0F1A]/60 border border-indigo-500/20 text-indigo-200 font-medium hover:bg-indigo-950/30 hover:border-indigo-500/40 transition-all duration-300 shadow-lg shadow-indigo-500/5"
+                        >
+                          {skill}
+                        </motion.span>
+                      ))
+                    ) : (
+                      "N/A"
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* Professional Links */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { type: "LinkedIn", url: selectedJobSeeker.linkedin, icon: "🔗" },
+                    { type: "GitHub", url: selectedJobSeeker.github, icon: "💻" },
+                    { type: "Portfolio", url: selectedJobSeeker.portfolio, icon: "🎨" }
+                  ].map((link, index) => (
+                    link.url && (
+                      <motion.a
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-4 rounded-2xl bg-[#0A0F1A]/40 border border-blue-500/10 backdrop-blur-sm hover:bg-blue-950/20 transition-all duration-300 flex items-center justify-center gap-2 text-blue-200 font-medium group shadow-lg shadow-blue-500/5"
+                      >
+                        <span className="group-hover:scale-110 transition-transform duration-300">{link.icon}</span>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
+                          View {link.type}
+                        </span>
+                      </motion.a>
+                    )
                   ))}
                 </div>
-
-                {/* Detailed Information */}
-                <div className="space-y-6">
-                  {/* Bio Section */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-6 rounded-2xl bg-black  backdrop-blur-sm hover:bg-blue-800/80 transition-all duration-300"
-                  >
-                    <h3 className="text-xl font-bold text-neutral-100 mb-4">Professional Summary</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-neutral-100  text-sm mb-2">Bio</p>
-                        <p className="text-neutral-100/90 ">{selectedJobSeeker.bio?.trim() || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-neutral-100  text-sm mb-2">About</p>
-                        <p className="text-neutral-100/90 ">{selectedJobSeeker.about?.trim() || "N/A"}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Experience Section */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-6 rounded-2xl bg-black backdrop-blur-sm hover:bg-blue-800/90 transition-all duration-300"
-                  >
-                    <h3 className="text-xl font-bold text-neutral-100/90  mb-4">Work Experience</h3>
-                    <p className="text-neutral-100/90 ">{selectedJobSeeker.previousJobExperience?.trim() || "N/A"}</p>
-                  </motion.div>
-
-                  {/* Skills Section */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-6 rounded-2xl bg-black  backdrop-blur-sm hover:bg-blue-800/70 transition-all duration-300"
-                  >
-                    <h3 className="text-xl font-bold text-neutral-100/90  mb-4">Skills & Expertise</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedJobSeeker.skills && selectedJobSeeker.skills.length > 0 ? (
-                        selectedJobSeeker.skills.map((skill, index) => (
-                          <motion.span
-                            key={index}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="px-4 py-2 rounded-full bg-black text-neutral-100/90 font-bold  hover:bg-blue-600/80 transition-all duration-300"
-                          >
-                            {skill}
-                          </motion.span>
-                        ))
-                      ) : (
-                        "N/A"
-                      )}
-                    </div>
-                  </motion.div>
-
-                  {/* Professional Links */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[
-                      { type: "LinkedIn", url: selectedJobSeeker.linkedin, icon: "🔗" },
-                      { type: "GitHub", url: selectedJobSeeker.github, icon: "💻" },
-                      { type: "Portfolio", url: selectedJobSeeker.portfolio, icon: "🎨" }
-                    ].map((link, index) => (
-                      link.url && (
-                        <motion.a
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 rounded-2xl bg-black backdrop-blur-sm hover:bg-blue-800/80 transition-all duration-300 flex items-center justify-center gap-2 text-neutral-100/90  font-medium"
-                        >
-                          <span>{link.icon}</span>
-                          View {link.type}
-                        </motion.a>
-                      )
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-between items-center pt-6 border-t border-blue-600">
-                  <Button
-                    variant="outline"
-                    className="bg-black border-purple-600 hover:bg-purple-500/20 text-neutral-100/90 px-6"
-                    onClick={() =>
-                      router.push(
-                        `/dashboard/${recruiterId}/${companyid}/logs?jobSeekerId=${selectedJobSeeker.id}`
-                      )
-                    }
-                  >
-                    View Applications
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-gray-800 border-gray-700 hover:bg-gray-700 px-6"
-                    onClick={closeQuickView}
-                  >
-                    Close
-                  </Button>
-                </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </AnimatePresence>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-6 border-t border-indigo-500/20">
+                <Button
+                  variant="outline"
+                  className="bg-[#0A0F1A]/60 border-indigo-500/30 hover:bg-indigo-950/30 text-indigo-200 px-6 shadow-lg shadow-indigo-500/10 transition-all duration-300"
+                  onClick={() => router.push(`/dashboard/${recruiterId}/${companyid}/logs?jobSeekerId=${selectedJobSeeker.id}`)}
+                >
+                  View Applications
+                </Button>
+                <Button
+                  variant="outline"
+                  className="bg-[#0A0F1A]/60 border-purple-500/30 hover:bg-purple-950/30 text-purple-200 px-6 shadow-lg shadow-purple-500/10 transition-all duration-300"
+                  onClick={closeQuickView}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </AnimatePresence>
     </div>
   );
 }
