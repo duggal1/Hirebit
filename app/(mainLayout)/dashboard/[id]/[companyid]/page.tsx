@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Shadcn/ui components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +17,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Chart components and ChartJS registration
-import { Line, Bar, Pie } from "react-chartjs-2";
+// Import our modern chart component
+import UltraModernVisualizations from "@/components/charts/dashboard/recuiter/charts";
+
+// ChartJS registration
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -95,36 +98,6 @@ interface JobSeeker {
   applications: any[];
 }
 
-/* Chart data interfaces */
-interface LineChartData {
-  labels: string[];
-  datasets: {
-    label: string;
-    data: number[];
-    fill: boolean;
-    borderColor: string;
-    backgroundColor: string;
-    tension: number;
-  }[];
-}
-
-interface BarChartData {
-  labels: string[];
-  datasets: {
-    label: string;
-    data: number[];
-    backgroundColor: string;
-  }[];
-}
-
-interface PieChartData {
-  labels: string[];
-  datasets: {
-    data: number[];
-    backgroundColor: string[];
-  }[];
-}
-
 /* -------------------------------------------------------------------------- */
 /*                        Recruiter Dashboard Component                       */
 /* -------------------------------------------------------------------------- */
@@ -196,57 +169,40 @@ export default function RecruiterDashboard() {
     return totals;
   }, [metrics]);
 
-  // --- Prepare Chart Data ---
-  const lineChartData: LineChartData | null = useMemo(() => {
-    if (!aggregatedMetrics) return null;
-    const labels = Object.keys(aggregatedMetrics.viewsByDate).sort();
-    const dataPoints = labels.map((label) => aggregatedMetrics.viewsByDate[label]);
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Views Over Time",
-          data: dataPoints,
-          fill: false,
-          borderColor: "#4fd1c5",
-          backgroundColor: "#4fd1c5",
-          tension: 0.1,
-        },
-      ],
-    };
-  }, [aggregatedMetrics]);
+  // --- Prepare Chart Data for UltraModernVisualizations ---
+  const chartData = useMemo(() => {
+    if (!aggregatedMetrics || !metrics) return null;
 
-  const barChartData: BarChartData | null = useMemo(() => {
-    if (!metrics) return null;
-    const labels = metrics.map((m) => m.jobTitle);
-    const dataPoints = metrics.map((m) => m.metrics.views);
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Views per Job Post",
-          data: dataPoints,
-          backgroundColor: "#9f7aea",
-        },
-      ],
+    const lineData = {
+      labels: Object.keys(aggregatedMetrics.viewsByDate).sort(),
+      datasets: [{
+        label: "Views Over Time",
+        data: Object.keys(aggregatedMetrics.viewsByDate)
+          .sort()
+          .map(date => aggregatedMetrics.viewsByDate[date])
+      }]
     };
-  }, [metrics]);
 
-  const pieChartData: PieChartData | null = useMemo(() => {
-    if (!aggregatedMetrics) return null;
-    return {
+    const barData = {
+      labels: metrics.map(m => m.jobTitle),
+      datasets: [{
+        label: "Views per Job Post",
+        data: metrics.map(m => m.metrics.views)
+      }]
+    };
+
+    const pieData = {
       labels: ["Total Clicks", "Remaining Views"],
-      datasets: [
-        {
-          data: [
-            aggregatedMetrics.totalClicks,
-            aggregatedMetrics.totalViews - aggregatedMetrics.totalClicks,
-          ],
-          backgroundColor: ["#63b3ed", "#f56565"],
-        },
-      ],
+      datasets: [{
+        data: [
+          aggregatedMetrics.totalClicks,
+          aggregatedMetrics.totalViews - aggregatedMetrics.totalClicks
+        ]
+      }]
     };
-  }, [aggregatedMetrics]);
+
+    return { lineData, barData, pieData };
+  }, [aggregatedMetrics, metrics]);
 
   // --- Quick View Modal State for Job Seeker Details ---
   const [selectedJobSeeker, setSelectedJobSeeker] = useState<JobSeeker | null>(null);
@@ -287,199 +243,166 @@ export default function RecruiterDashboard() {
     }
     setSortConfig({ key, direction });
   };
+  
+  
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-[#030712] text-neutral-100 p-8">
       {/* Page Header */}
-      <header className="flex flex-col sm:flex-row items-center justify-between mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight">Recruiter Dashboard</h1>
-        <Button variant="outline" onClick={() => window.location.reload()}>
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row items-center justify-between mb-12"
+      >
+        <h1 className="text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-fuchsia-500 to-pink-500">
+          Recruiter Dashboard
+        </h1>
+        <Button 
+          variant="outline" 
+          onClick={() => window.location.reload()}
+          className="mt-4 sm:mt-0 bg-black border-blue-600 hover:bg-blue-800/50 transition-all duration-300 text-neutral-200"
+        >
           Refresh Data
         </Button>
-      </header>
+      </motion.header>
 
       {/* --- Dashboard Metrics Section --- */}
       <section className="mb-16">
-        <h2 className="text-3xl font-semibold mb-6">Dashboard Metrics</h2>
+        <motion.h2 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-3xl font-bold mb-8 text-gray-100"
+        >
+          Dashboard Metrics
+        </motion.h2>
         {loadingMetrics ? (
           <div className="text-center py-10">Loading metrics...</div>
         ) : aggregatedMetrics ? (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">Total Views</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{aggregatedMetrics.totalViews}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">Total Clicks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{aggregatedMetrics.totalClicks}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">Applications</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{aggregatedMetrics.totalApplications}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">CTR</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{aggregatedMetrics.ctr.toFixed(2)}%</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">Conversion Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{aggregatedMetrics.conversionRate.toFixed(2)}%</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg">Job Seekers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{jobSeekers ? jobSeekers.length : 0}</p>
-                </CardContent>
-              </Card>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12"
+            >
+              {[
+                { title: "Total Views", value: aggregatedMetrics.totalViews, gradient: "from-blue-400 to-indigo-500" },
+                { title: "Total Clicks", value: aggregatedMetrics.totalClicks, gradient: "from-purple-400 to-fuchsia-500" },
+                { title: "Applications", value: aggregatedMetrics.totalApplications, gradient: "from-pink-400 to-rose-500" },
+                { title: "CTR", value: `${aggregatedMetrics.ctr.toFixed(2)}%`, gradient: "from-amber-400 to-orange-500" },
+                { title: "Conversion Rate", value: `${aggregatedMetrics.conversionRate.toFixed(2)}%`, gradient: "from-emerald-400 to-teal-500" },
+                { title: "Job Seekers", value: jobSeekers ? jobSeekers.length : 0, gradient: "from-cyan-400 to-sky-500" }
+              ].map((metric, index) => (
+                <motion.div
+                  key={metric.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="group"
+                >
+                  <Card className="bg-black backdrop-blur-xl border border-blue-800/50 rounded-3xl overflow-hidden hover:shadow-[0_0_50px_0_rgba(147,51,234,0.1)] transition-all duration-500">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-medium text-white/80">{metric.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className={`text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r ${metric.gradient} transition-all duration-300 group-hover:scale-105`}>
+                        {metric.value}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
 
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle>Views Over Time</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {lineChartData ? (
-                    <Line
-                      data={lineChartData}
-                      options={{
-                        responsive: true,
-                        plugins: {
-                          legend: { position: "top" },
-                          title: { display: true, text: "Views Trend" },
-                        },
-                      }}
-                    />
-                  ) : (
-                    <p className="text-center">No data available.</p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl">
-                <CardHeader>
-                  <CardTitle>Views per Job Post</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {barChartData ? (
-                    <Bar
-                      data={barChartData}
-                      options={{
-                        responsive: true,
-                        plugins: {
-                          legend: { position: "top" },
-                          title: { display: true, text: "Job Post Views" },
-                        },
-                      }}
-                    />
-                  ) : (
-                    <p className="text-center">No data available.</p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-800 border-gray-700 shadow-xl col-span-1 lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Clicks vs. Views</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {pieChartData ? (
-                    <Pie
-                      data={pieChartData}
-                      options={{
-                        responsive: true,
-                        plugins: {
-                          legend: { position: "top" },
-                          title: { display: true, text: "Click Distribution" },
-                        },
-                      }}
-                    />
-                  ) : (
-                    <p className="text-center">No data available.</p>
-                  )}
-                </CardContent>
-              </Card>
-              {/* Map / Additional Tools Placeholder */}
-              <Card className="bg-gray-800 border-gray-700 shadow-xl col-span-1 lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Geographical Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <p className="text-center text-gray-400">
-                    [Map Placeholder - integrate your mapping tool here]
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            {chartData && (
+              <UltraModernVisualizations
+                lineData={chartData.lineData}
+                barData={chartData.barData}
+                pieData={chartData.pieData}
+              />
+            )}
           </>
         ) : (
-          <p className="text-center py-10">No metrics data available.</p>
+          <p className="text-center py-10 text-pink-800 ">No data about your clients found 😥.</p>
         )}
       </section>
+    
 
       {/* --- Job Seekers Section --- */}
-      <section>
-        <h2 className="text-3xl font-semibold mb-6">Job Seekers</h2>
-        {loadingJobSeekers ? (
-          <div className="text-center py-10">Loading job seekers...</div>
-        ) : jobSeekers && jobSeekers.length > 0 ? (
-          <ScrollArea className="rounded-md border border-gray-700">
-            <Table className="min-w-full">
+      <section className="relative min-h-screen bg-[#030712] p-8">
+      {/* Ambient background effects */}
+      <div className="fixed inset-0 bg-[url('/api/placeholder/10/10')] opacity-[0.015] bg-repeat pointer-events-none" />
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob" />
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000" />
+
+      <motion.h2
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="text-3xl font-extrabold mb-8 relative"
+      >
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-violet-400 to-indigo-400">
+          Clients
+        </span>
+        <div className="absolute -bottom-2 left-0 w-20 h-1 bg-gradient-to-r from-blue-500 to-violet-500 rounded-full" />
+      </motion.h2>
+
+      {loadingJobSeekers ? (
+        <div className="flex items-center justify-center h-64 space-x-2">
+          <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" />
+          <div className="w-3 h-3 bg-violet-400 rounded-full animate-bounce delay-100" />
+          <div className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce delay-200" />
+        </div>
+      ) : jobSeekers && jobSeekers.length > 0 ? (
+        <Card className="relative bg-black/40 backdrop-blur-2xl border-[0.5px] border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/10">
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-violet-500/5 to-transparent pointer-events-none" />
+          
+          <ScrollArea className="h-[600px]">
+            <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort("name")}>
-                    Name
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort("email")}>
-                    Email
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort("location")}>
-                    Location
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort("yearsOfExperience")}>
-                    Experience (Years)
-                  </TableHead>
-                  <TableHead>Applications</TableHead>
-                  <TableHead>Quick View</TableHead>
+                <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
+                  {[
+                    { key: "name", label: "Name" },
+                    { key: "email", label: "Email" },
+                    { key: "location", label: "Location" },
+                    { key: "yearsOfExperience", label: "Experience (Years)" },
+                    { key: "applications", label: "Applications" },
+                    { key: "actions", label: "Quick View" }
+                  ].map((column) => (
+                    <TableHead
+                      key={column.key}
+                      className="text-white/70 cursor-pointer hover:text-blue-400 transition-colors font-medium tracking-wide text-sm"
+                      onClick={() => column.key !== "actions" && requestSort(column.key as keyof JobSeeker)}
+                    >
+                      {column.label}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedJobSeekers.map((seeker) => (
                   <TableRow
                     key={seeker.id}
-                    className="hover:bg-gray-700 transition-colors duration-150"
+                    className="border-white/5 hover:bg-white/5 transition-all duration-300 group"
                   >
-                    <TableCell>{seeker.name}</TableCell>
-                    <TableCell>{seeker.email}</TableCell>
-                    <TableCell>{seeker.location}</TableCell>
-                    <TableCell>{seeker.yearsOfExperience != null ? seeker.yearsOfExperience : "N/A"}</TableCell>
-                    <TableCell>{seeker.applications?.length || 0}</TableCell>
+                    <TableCell className="font-medium text-white/90">{seeker.name}</TableCell>
+                    <TableCell className="text-white/70">{seeker.email}</TableCell>
+                    <TableCell className="text-white/70">{seeker.location}</TableCell>
+                    <TableCell className="text-white/70">
+                      {seeker.yearsOfExperience != null ? seeker.yearsOfExperience : "N/A"}
+                    </TableCell>
+                    <TableCell className="text-white/70">{seeker.applications?.length || 0}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => openQuickView(seeker)}>
-                        Quick View
+                      <Button
+                        size="sm"
+                        onClick={() => openQuickView(seeker)}
+                        className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-[0.5px] border-blue-500/20 hover:border-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 rounded-lg"
+                      >
+                        <span className="opacity-70 group-hover:opacity-100 transition-opacity">
+                          Quick View
+                        </span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -487,122 +410,179 @@ export default function RecruiterDashboard() {
               </TableBody>
             </Table>
           </ScrollArea>
-        ) : (
-          <p className="text-center py-10">No job seekers found.</p>
-        )}
-      </section>
-
-      {/* --- Quick View Modal for Job Seeker Details --- */}
-      {selectedJobSeeker && (
-        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeQuickView(); }}>
-          <DialogContent className="bg-gray-900 border border-gray-700 shadow-2xl p-6">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">{selectedJobSeeker.name}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4 text-sm">
-              <p><strong>Email:</strong> {selectedJobSeeker.email}</p>
-              <p><strong>Phone:</strong> {selectedJobSeeker.phoneNumber || "N/A"}</p>
-              <p><strong>Location:</strong> {selectedJobSeeker.location}</p>
-              <p><strong>Current Job Title:</strong> {selectedJobSeeker.currentJobTitle || "N/A"}</p>
-              <p><strong>Industry:</strong> {selectedJobSeeker.industry || "N/A"}</p>
-              <p>
-                <strong>Job Search Status:</strong> {selectedJobSeeker.jobSearchStatus || "N/A"}
-              </p>
-              <p>
-                <strong>Years of Experience:</strong> {selectedJobSeeker.yearsOfExperience != null ? selectedJobSeeker.yearsOfExperience : "N/A"}
-              </p>
-              <p><strong>Bio:</strong> {selectedJobSeeker.bio?.trim() || "N/A"}</p>
-              <p>
-                <strong>About:</strong> {selectedJobSeeker.about?.trim() || "N/A"}
-              </p>
-              <p>
-                <strong>Previous Job Experience:</strong> {selectedJobSeeker.previousJobExperience?.trim() || "N/A"}
-              </p>
-              <p>
-                <strong>Certifications:</strong>{" "}
-                {selectedJobSeeker.certifications?.length
-                  ? selectedJobSeeker.certifications.map((cert, i) => (
-                      <span key={i}>
-                        {cert.name || JSON.stringify(cert)} {cert.year ? `(${cert.year})` : ""}{i < selectedJobSeeker.certifications.length - 1 ? ", " : ""}
-                      </span>
-                    ))
-                  : "N/A"}
-              </p>
-              <p>
-                <strong>Expected Salary:</strong>{" "}
-                {selectedJobSeeker.expectedSalaryMax != null
-                  ? `$${selectedJobSeeker.expectedSalaryMax.toLocaleString()}`
-                  : "N/A"}
-              </p>
-              <p>
-                <strong>Preferred Location:</strong> {selectedJobSeeker.preferredLocation || "N/A"}
-              </p>
-              <p>
-                <strong>Remote Preference:</strong> {selectedJobSeeker.remotePreference || "N/A"}
-              </p>
-              <p>
-                <strong>LinkedIn:</strong>{" "}
-                {selectedJobSeeker.linkedin ? (
-                  <a href={selectedJobSeeker.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                    View Profile
-                  </a>
-                ) : (
-                  "N/A"
-                )}
-              </p>
-              <p>
-                <strong>GitHub:</strong>{" "}
-                {selectedJobSeeker.github ? (
-                  <a href={selectedJobSeeker.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                    View Profile
-                  </a>
-                ) : (
-                  "N/A"
-                )}
-              </p>
-              <p>
-                <strong>Portfolio:</strong>{" "}
-                {selectedJobSeeker.portfolio ? (
-                  <a href={selectedJobSeeker.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                    View Portfolio
-                  </a>
-                ) : (
-                  "N/A"
-                )}
-              </p>
-              <p>
-                <strong>Skills:</strong>{" "}
-                {selectedJobSeeker.skills && selectedJobSeeker.skills.length > 0
-                  ? selectedJobSeeker.skills.join(", ")
-                  : "N/A"}
-              </p>
-              <p>
-                <strong>Education:</strong>{" "}
-                {selectedJobSeeker.education
-                  ? JSON.stringify(selectedJobSeeker.education)
-                  : "N/A"}
-              </p>
-              {/* --- New Navigation for Viewing Applications --- */}
-              <p className="mt-2">
-                <Button
-                  variant="link"
-                  className="underline text-blue-400"
-                  onClick={() =>
-                    router.push(
-                      `/dashboard/${recruiterId}/${companyid}/logs?jobSeekerId=${selectedJobSeeker.id}`
-                    )
-                  }
-                >
-                  View Applications
-                </Button>
-              </p>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <Button onClick={closeQuickView}>Close</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        </Card>
+      ) : (
+        <div className="relative overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-indigo-500/10" />
+          <p className="relative text-center py-10 text-lg font-medium text-white/70">
+            No clients yet. Time to expand your network! ✨
+          </p>
+        </div>
       )}
+    </section>
+      {/* --- Quick View Modal for Job Seeker Details --- */}
+      <AnimatePresence>
+        {selectedJobSeeker && (
+          <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeQuickView(); }}>
+            <DialogContent className="bg-black border-blue-900 shadow-2xl rounded-3xl max-w-4xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader className="space-y-4">
+                <DialogTitle className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white/90  to-neutral-200/80 ">
+                  {selectedJobSeeker.name}
+                </DialogTitle>
+                <div className="flex gap-4 flex-wrap">
+                  {selectedJobSeeker.jobSearchStatus && (
+                    <span className="px-4 py-1.5 rounded-full bg-blue-950/10 text-neutral-200 text-sm font-bold">
+                      {selectedJobSeeker.jobSearchStatus}
+                    </span>
+                  )}
+                  {selectedJobSeeker.remotePreference && (
+                    <span className="px-4 py-1.5 rounded-full bg-blue-500 text-blue-400 text-sm font-medium">
+                      {selectedJobSeeker.remotePreference}
+                    </span>
+                  )}
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-6 ">
+                {/* Contact & Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: "Email", value: selectedJobSeeker.email, icon: "📧" },
+                    { label: "Phone", value: selectedJobSeeker.phoneNumber || "N/A", icon: "📱" },
+                    { label: "Location", value: selectedJobSeeker.location, icon: "📍" },
+                    { label: "Current Job Title", value: selectedJobSeeker.currentJobTitle || "N/A", icon: "💼" },
+                    { label: "Industry", value: selectedJobSeeker.industry || "N/A", icon: "🏢" },
+                    { label: "Years of Experience", value: selectedJobSeeker.yearsOfExperience != null ? selectedJobSeeker.yearsOfExperience : "N/A", icon: "⏳" },
+                    { label: "Expected Salary", value: selectedJobSeeker.expectedSalaryMax != null ? `$${selectedJobSeeker.expectedSalaryMax.toLocaleString()}` : "N/A", icon: "💰" },
+                    { label: "Preferred Location", value: selectedJobSeeker.preferredLocation || "N/A", icon: "🌎" }
+                  ].map((field, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-4 rounded-2xl bg-black border-blue-800/30 backdrop-blur-sm hover:bg-blue-950 transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{field.icon}</span>
+                        <div>
+                          <p className="text-neutral-100 text-base font-bold  mb-1">{field.label}</p>
+                          <p className="text-neutral-100 font-bold ">{field.value}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Detailed Information */}
+                <div className="space-y-6">
+                  {/* Bio Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-2xl bg-black  backdrop-blur-sm hover:bg-blue-800/80 transition-all duration-300"
+                  >
+                    <h3 className="text-xl font-bold text-neutral-100 mb-4">Professional Summary</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-neutral-100  text-sm mb-2">Bio</p>
+                        <p className="text-neutral-100/90 ">{selectedJobSeeker.bio?.trim() || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-neutral-100  text-sm mb-2">About</p>
+                        <p className="text-neutral-100/90 ">{selectedJobSeeker.about?.trim() || "N/A"}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Experience Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-2xl bg-black backdrop-blur-sm hover:bg-blue-800/90 transition-all duration-300"
+                  >
+                    <h3 className="text-xl font-bold text-neutral-100/90  mb-4">Work Experience</h3>
+                    <p className="text-neutral-100/90 ">{selectedJobSeeker.previousJobExperience?.trim() || "N/A"}</p>
+                  </motion.div>
+
+                  {/* Skills Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-2xl bg-black  backdrop-blur-sm hover:bg-blue-800/70 transition-all duration-300"
+                  >
+                    <h3 className="text-xl font-bold text-neutral-100/90  mb-4">Skills & Expertise</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJobSeeker.skills && selectedJobSeeker.skills.length > 0 ? (
+                        selectedJobSeeker.skills.map((skill, index) => (
+                          <motion.span
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="px-4 py-2 rounded-full bg-black text-neutral-100/90 font-bold  hover:bg-blue-600/80 transition-all duration-300"
+                          >
+                            {skill}
+                          </motion.span>
+                        ))
+                      ) : (
+                        "N/A"
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Professional Links */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { type: "LinkedIn", url: selectedJobSeeker.linkedin, icon: "🔗" },
+                      { type: "GitHub", url: selectedJobSeeker.github, icon: "💻" },
+                      { type: "Portfolio", url: selectedJobSeeker.portfolio, icon: "🎨" }
+                    ].map((link, index) => (
+                      link.url && (
+                        <motion.a
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-4 rounded-2xl bg-black backdrop-blur-sm hover:bg-blue-800/80 transition-all duration-300 flex items-center justify-center gap-2 text-neutral-100/90  font-medium"
+                        >
+                          <span>{link.icon}</span>
+                          View {link.type}
+                        </motion.a>
+                      )
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-between items-center pt-6 border-t border-blue-600">
+                  <Button
+                    variant="outline"
+                    className="bg-black border-purple-600 hover:bg-purple-500/20 text-neutral-100/90 px-6"
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/${recruiterId}/${companyid}/logs?jobSeekerId=${selectedJobSeeker.id}`
+                      )
+                    }
+                  >
+                    View Applications
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-gray-800 border-gray-700 hover:bg-gray-700 px-6"
+                    onClick={closeQuickView}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
