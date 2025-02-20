@@ -59,13 +59,12 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 exports.__esModule = true;
-exports.submitJobSeekerResume = exports.submitJobSeeker = exports.getJobMetrics = exports.trackJobClick = exports.trackJobView = exports.submitTest = exports.submitJobApplication = exports.getActiveJobs = exports.unsaveJobPost = exports.saveJobPost = exports.deleteJobPost = exports.updateJobPost = exports.createJob = exports.createJobSeeker = exports.createCompany = void 0;
+exports.submitJobSeekerResume = exports.submitJobSeeker = exports.getJobMetrics = exports.trackJobClick = exports.trackJobView = exports.submitTest = exports.submitJobApplication = exports.getActiveJobs = exports.unsaveJobPost = exports.saveJobPost = exports.deleteJobPost = exports.updateJobPost = exports.handlePaymentSuccess = exports.createPaymentIntent = exports.createJob = exports.createJobSeeker = exports.createCompany = void 0;
 var zod_1 = require("zod");
 var hooks_1 = require("./utils/hooks");
 var db_1 = require("./utils/db");
 var navigation_1 = require("next/navigation");
 var stripe_1 = require("./utils/stripe");
-var pricingTiers_1 = require("./utils/pricingTiers");
 var cache_1 = require("next/cache");
 var arcjet_1 = require("./utils/arcjet");
 var next_1 = require("@arcjet/next");
@@ -218,7 +217,7 @@ function createJobSeeker(data) {
 exports.createJobSeeker = createJobSeeker;
 function createJob(data) {
     return __awaiter(this, void 0, void 0, function () {
-        var user, validatedData, company, stripeCustomerId, customer, error_2, jobPost, error_3, pricingTier, session, error_4;
+        var user, validatedData, company, jobPost;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -226,9 +225,7 @@ function createJob(data) {
                     return [4 /*yield*/, hooks_1.requireUser()];
                 case 1:
                     user = _a.sent();
-                    console.log("[createJob] Current user:", user);
                     validatedData = zodSchemas_1.jobSchema.parse(data);
-                    console.log("[createJob] Validated data:", validatedData);
                     return [4 /*yield*/, db_1.prisma.company.findUnique({
                             where: { userId: user.id },
                             select: {
@@ -238,40 +235,9 @@ function createJob(data) {
                         })];
                 case 2:
                     company = _a.sent();
-                    console.log("[createJob] Company record:", company);
                     if (!(company === null || company === void 0 ? void 0 : company.id)) {
-                        console.error("[createJob] No company associated with user");
                         throw new Error("No company associated with user");
                     }
-                    stripeCustomerId = company.user.stripeCustomerId;
-                    console.log("[createJob] Initial stripeCustomerId:", stripeCustomerId);
-                    if (!!stripeCustomerId) return [3 /*break*/, 7];
-                    console.log("[createJob] Creating new Stripe customer for:", user.email);
-                    _a.label = 3;
-                case 3:
-                    _a.trys.push([3, 6, , 7]);
-                    return [4 /*yield*/, stripe_1.stripe.customers.create({
-                            email: user.email,
-                            name: user.name || undefined
-                        })];
-                case 4:
-                    customer = _a.sent();
-                    stripeCustomerId = customer.id;
-                    console.log("[createJob] New Stripe customer created:", stripeCustomerId);
-                    return [4 /*yield*/, db_1.prisma.user.update({
-                            where: { id: user.id },
-                            data: { stripeCustomerId: customer.id }
-                        })];
-                case 5:
-                    _a.sent();
-                    console.log("[createJob] Updated user with new stripeCustomerId");
-                    return [3 /*break*/, 7];
-                case 6:
-                    error_2 = _a.sent();
-                    console.error("[createJob] Stripe customer creation failed:", error_2);
-                    throw new Error("Failed to create Stripe customer");
-                case 7:
-                    _a.trys.push([7, 9, , 10]);
                     return [4 /*yield*/, db_1.prisma.jobPost.create({
                             data: {
                                 companyId: company.id,
@@ -283,7 +249,7 @@ function createJob(data) {
                                 listingDuration: validatedData.listingDuration,
                                 benefits: validatedData.benefits,
                                 jobDescription: validatedData.jobDescription,
-                                status: "ACTIVE",
+                                status: "DRAFT",
                                 skillsRequired: validatedData.skillsRequired,
                                 positionRequirement: validatedData.positionRequirement,
                                 requiredExperience: validatedData.requiredExperience,
@@ -293,68 +259,112 @@ function createJob(data) {
                                 compensationDetails: validatedData.compensationDetails
                             }
                         })];
-                case 8:
+                case 3:
                     jobPost = _a.sent();
-                    console.log("[createJob] Created job post:", jobPost);
-                    return [3 /*break*/, 10];
-                case 9:
-                    error_3 = _a.sent();
-                    console.error("[createJob] Failed to create job post:", error_3);
-                    throw new Error("Job post creation failed");
-                case 10:
-                    pricingTier = pricingTiers_1.jobListingDurationPricing.find(function (tier) { return tier.days === validatedData.listingDuration; });
-                    console.log("[createJob] Pricing tier selected:", pricingTier);
-                    if (!pricingTier) {
-                        console.error("[createJob] Invalid listing duration:", validatedData.listingDuration);
-                        throw new Error("Invalid listing duration selected");
-                    }
-                    _a.label = 11;
-                case 11:
-                    _a.trys.push([11, 13, , 14]);
-                    return [4 /*yield*/, stripe_1.stripe.checkout.sessions.create({
-                            customer: stripeCustomerId,
-                            line_items: [
-                                {
-                                    price_data: {
-                                        product_data: {
-                                            name: "Job Posting - " + pricingTier.days + " Days",
-                                            description: pricingTier.description,
-                                            images: [
-                                                "https://pve1u6tfz1.ufs.sh/f/Ae8VfpRqE7c0gFltIEOxhiBIFftvV4DTM8a13LU5EyzGb2SQ",
-                                            ]
-                                        },
-                                        currency: "USD",
-                                        unit_amount: pricingTier.price * 100
-                                    },
-                                    quantity: 1
-                                },
-                            ],
-                            mode: "payment",
-                            metadata: { jobId: jobPost.id },
-                            success_url: BASE_URL + "/payment/success?session_id={CHECKOUT_SESSION_ID}",
-                            cancel_url: BASE_URL + "/payment/cancel"
-                        })];
-                case 12:
-                    session = _a.sent();
-                    console.log("[createJob] Stripe checkout session created:", session);
-                    return [3 /*break*/, 14];
-                case 13:
-                    error_4 = _a.sent();
-                    console.error("[createJob] Stripe checkout session creation failed:", error_4);
-                    throw new Error("Failed to create Stripe checkout session");
-                case 14:
-                    if (!session.url) {
-                        console.error("[createJob] Stripe session URL missing:", session);
-                        throw new Error("Failed to create Stripe checkout session");
-                    }
-                    console.log("[createJob] Returning redirect URL:", session.url);
-                    // Instead of redirect(session.url), return the URL so the client can handle the redirect
-                    return [2 /*return*/, { redirectUrl: session.url }];
+                    return [2 /*return*/, { success: true, jobId: jobPost.id }];
             }
         });
     });
 }
 exports.createJob = createJob;
+// Add new action to handle payment intent creation
+function createPaymentIntent(priceId, jobId) {
+    return __awaiter(this, void 0, void 0, function () {
+        var user, company, stripeCustomerId, customer, PRICE_MAPPING, amount, paymentIntent;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, hooks_1.requireUser()];
+                case 1:
+                    user = _a.sent();
+                    return [4 /*yield*/, db_1.prisma.company.findUnique({
+                            where: { userId: user.id },
+                            select: {
+                                id: true,
+                                user: { select: { stripeCustomerId: true } }
+                            }
+                        })];
+                case 2:
+                    company = _a.sent();
+                    if (!company) {
+                        throw new Error("Company not found");
+                    }
+                    stripeCustomerId = company.user.stripeCustomerId;
+                    if (!!stripeCustomerId) return [3 /*break*/, 5];
+                    return [4 /*yield*/, stripe_1.stripe.customers.create({
+                            email: user.email,
+                            name: user.name || undefined
+                        })];
+                case 3:
+                    customer = _a.sent();
+                    stripeCustomerId = customer.id;
+                    return [4 /*yield*/, db_1.prisma.user.update({
+                            where: { id: user.id },
+                            data: { stripeCustomerId: customer.id }
+                        })];
+                case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5:
+                    PRICE_MAPPING = {
+                        'price_1QuYsyRw85cV5wwQ5dPUcH75': 4900,
+                        'price_1QuYqlRw85cV5wwQsiwP2aFK': 12900,
+                        'price_1QuYs7Rw85cV5wwQZfNT5mIg': 24900
+                    };
+                    amount = PRICE_MAPPING[priceId];
+                    if (!amount) {
+                        throw new Error("Invalid price ID");
+                    }
+                    return [4 /*yield*/, stripe_1.stripe.paymentIntents.create({
+                            amount: amount,
+                            currency: 'usd',
+                            customer: stripeCustomerId,
+                            metadata: {
+                                jobId: jobId,
+                                priceId: priceId
+                            }
+                        })];
+                case 6:
+                    paymentIntent = _a.sent();
+                    return [2 /*return*/, {
+                            clientSecret: paymentIntent.client_secret,
+                            amount: amount
+                        }];
+            }
+        });
+    });
+}
+exports.createPaymentIntent = createPaymentIntent;
+// Add new action to handle payment success
+function handlePaymentSuccess(paymentIntentId) {
+    return __awaiter(this, void 0, void 0, function () {
+        var paymentIntent, jobId;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, stripe_1.stripe.paymentIntents.retrieve(paymentIntentId)];
+                case 1:
+                    paymentIntent = _a.sent();
+                    if (paymentIntent.status !== 'succeeded') {
+                        throw new Error('Payment not successful');
+                    }
+                    jobId = paymentIntent.metadata.jobId;
+                    // Activate the job post
+                    return [4 /*yield*/, db_1.prisma.jobPost.update({
+                            where: { id: jobId },
+                            data: {
+                                status: "ACTIVE",
+                                paidAt: new Date(),
+                                paymentId: paymentIntentId
+                            }
+                        })];
+                case 2:
+                    // Activate the job post
+                    _a.sent();
+                    return [2 /*return*/, { success: true }];
+            }
+        });
+    });
+}
+exports.handlePaymentSuccess = handlePaymentSuccess;
 function updateJobPost(data, jobId) {
     return __awaiter(this, void 0, void 0, function () {
         var user, validatedData;
@@ -548,7 +558,7 @@ function submitJobApplication(jobId, formData) {
 exports.submitJobApplication = submitJobApplication;
 function evaluateCode(code, question) {
     return __awaiter(this, void 0, Promise, function () {
-        var evaluationRes, error_5;
+        var evaluationRes, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -567,8 +577,8 @@ function evaluateCode(code, question) {
                         throw new Error('Evaluation failed');
                     return [2 /*return*/, evaluationRes.json()];
                 case 2:
-                    error_5 = _a.sent();
-                    console.error('Code evaluation error:', error_5);
+                    error_2 = _a.sent();
+                    console.error('Code evaluation error:', error_2);
                     return [2 /*return*/, {
                             score: 0,
                             feedback: 'Evaluation service unavailable',
@@ -675,7 +685,7 @@ function isInCooldown(lastAttemptAt) {
 function trackJobView(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_6;
+        var error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -695,8 +705,8 @@ function trackJobView(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_6 = _a.sent();
-                    console.error('Failed to track job view:', error_6);
+                    error_3 = _a.sent();
+                    console.error('Failed to track job view:', error_3);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -707,7 +717,7 @@ exports.trackJobView = trackJobView;
 function trackJobClick(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_7;
+        var error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -727,8 +737,8 @@ function trackJobClick(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_7 = _a.sent();
-                    console.error('Failed to track job click:', error_7);
+                    error_4 = _a.sent();
+                    console.error('Failed to track job click:', error_4);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -745,7 +755,7 @@ function getJobMetrics(jobId) {
 }
 exports.getJobMetrics = getJobMetrics;
 exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void 0, void 0, void 0, function () {
-    var session, rawData, validatedData, jobSeeker, error_8;
+    var session, rawData, validatedData, jobSeeker, error_5;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -859,10 +869,10 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     redirect: '/'
                 }];
             case 5:
-                error_8 = _b.sent();
-                console.error('Server error:', error_8);
+                error_5 = _b.sent();
+                console.error('Server error:', error_5);
                 return [2 /*return*/, {
-                        message: error_8 instanceof Error ? error_8.message : 'Failed to update profile',
+                        message: error_5 instanceof Error ? error_5.message : 'Failed to update profile',
                         success: false
                     }];
             case 6: return [2 /*return*/];
@@ -871,7 +881,7 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
 }); };
 exports.submitJobSeekerResume = function (prevState, // new first parameter (can be ignored if not needed)
 formData) { return __awaiter(void 0, void 0, Promise, function () {
-    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_9;
+    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_6;
     var _a, _b, _c, _d;
     return __generator(this, function (_e) {
         switch (_e.label) {
@@ -913,8 +923,8 @@ formData) { return __awaiter(void 0, void 0, Promise, function () {
                 _e.sent();
                 return [3 /*break*/, 6];
             case 5:
-                error_9 = _e.sent();
-                console.error("Error creating JobSeekerResume:", error_9);
+                error_6 = _e.sent();
+                console.error("Error creating JobSeekerResume:", error_6);
                 throw new Error("Failed to create resume record.");
             case 6: 
             // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.

@@ -33,46 +33,83 @@ export async function POST(req: Request) {
       return new Response("Webhook signature verification failed", { status: 400 });
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const jobId = session.metadata?.jobId;
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const jobId = paymentIntent.metadata?.jobId;
+      
+        if (!jobId) {
+          return new Response("No job ID found", { status: 400 });
+        }
+      
+        try {
+          await prisma.jobPost.update({
+            where: { id: jobId },
+            data: { 
+              status: "ACTIVE",
+              paidAt: new Date(),
+              paymentId: paymentIntent.id,
+              paymentStatus: "COMPLETED",
+              paymentAmount: paymentIntent.amount,
+            },
+          });
+        
+          // Revalidate relevant paths
+          revalidatePath('/');
+          revalidatePath('/my-jobs');
+          revalidatePath(`/job/${jobId}`);
+        } catch (error) {
+          console.error("Error updating job post:", error);
+          return new Response("Failed to update job post", { status: 500 });
+        }
+        break;
 
-      if (!jobId) {
-        console.error("No job ID found in session metadata");
-        return new Response("No job ID found", { status: 400 });
-      }
+      case "payment_intent.payment_failed":
+        const failedPayment = event.data.object as Stripe.PaymentIntent;
+        const failedJobId = failedPayment.metadata?.jobId;
 
-      try {
-        // Update the job post status to ACTIVE
-        const updatedJob = await prisma.jobPost.update({
-          where: {
-            id: jobId,
-          },
-          data: {
-            status: "ACTIVE",
-          },
-        });
+        if (failedJobId) {
+          await prisma.jobPost.update({
+            where: { id: failedJobId },
+            data: { 
+              paymentStatus: "FAILED",
+              paymentId: failedPayment.id,
+            },
+          });
+        }
+        break;
 
-        console.log("Job activated successfully:", updatedJob);
+      case "payment_intent.processing":
+        const processingPayment = event.data.object as Stripe.PaymentIntent;
+        const processingJobId = processingPayment.metadata?.jobId;
 
-        // Revalidate the necessary pages
-        revalidatePath('/');
-        revalidatePath('/my-jobs');
-        revalidatePath(`/job/${jobId}`);
-
-        return new Response(null, { status: 200 });
-      } catch (error) {
-        console.error("Error updating job status:", error);
-        return new Response("Error updating job status", { status: 500 });
-      }
+        if (processingJobId) {
+          await prisma.jobPost.update({
+            where: { id: processingJobId },
+            data: { 
+              paymentStatus: "PROCESSING",
+              paymentId: processingPayment.id,
+            },
+          });
+        }
+        break;
     }
 
     return new Response(null, { status: 200 });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error('Webhook error:', error);
     return new Response(
-      `Webhook Error: ${error instanceof Error ? error.message : "Unknown Error"}`,
+      'Webhook handler failed',
       { status: 500 }
     );
   }
+}
+
+// Add OPTIONS handler for CORS if needed
+export async function OPTIONS() {
+  return new Response(null, {
+    headers: {
+      'Allow': 'POST',
+    },
+  });
 }

@@ -8,6 +8,8 @@ var Providers_1 = require("@/components/Providers");
 // Resume-specific providers (from your resume builder)
 var Providers_2 = require("@/components/resume/src/app/components/Providers");
 var AutoSaveHeaderWrapper_1 = require("@/components/resume/src/app/components/header/AutoSaveHeaderWrapper");
+var sidebar_1 = require("@/components/sidebar/sidebar");
+var footer_1 = require("@/components/Landing/Footer/footer");
 var geistSans = google_1.Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"]
@@ -24,6 +26,8 @@ function RootLayout(_a) {
             React.createElement(Providers_1.Providers, null,
                 React.createElement(Providers_2.Providers, null,
                     React.createElement(AutoSaveHeaderWrapper_1.AutoSaveHeaderWrapper, null),
-                    children)))));
+                    React.createElement(sidebar_1["default"], null),
+                    React.createElement("main", null, children),
+                    React.createElement(footer_1.Footer, null))))));
 }
 exports["default"] = RootLayout;

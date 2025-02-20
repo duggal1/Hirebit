@@ -1,12 +1,12 @@
 export const jobListingDurationPricing = [
   {
     days: 30,
-    price: 99,
+    price: 49,
     description: "Standard listing",
   },
   {
     days: 60,
-    price: 179,
+    price: 129,
     description: "Extended visibility",
   },
   {

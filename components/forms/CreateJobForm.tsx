@@ -36,6 +36,7 @@ import JobDescriptionEditor from "../richTextEditor/JobDescriptionEditor";
 import BenefitsSelector from "../general/BenefitsSelector";
 import { JobListingDurationSelector } from "../general/JobListingDurationSelector";
 import { createJob } from "@/app/actions";
+import { PaymentModal } from "../stripe/payment-modal";
 
 interface CreateJobFormProps {
   companyName: string;
@@ -55,6 +56,12 @@ export function CreateJobForm({
   companyWebsite,
 }: CreateJobFormProps) {
   // Local state to handle comma‑separated input for skills
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
+  // Add at the top with other state declarations
+const [jobId, setJobId] = useState<string | null>(null);
+
   const [skillsInput, setSkillsInput] = useState("");
   // State to manage preview generation
   const [generatingPreview, setGeneratingPreview] = useState(false);
@@ -135,15 +142,56 @@ export function CreateJobForm({
   async function onSubmit(values: z.infer<typeof jobSchema>) {
     try {
       setPending(true);
-      const res = await createJob(values);
-      if (res.redirectUrl) {
-        window.location.href = res.redirectUrl; // Navigates to Stripe
-      } else {
-        toast.error("No redirect URL returned");
+      
+      // Create job post first
+      const { success, jobId: createdJobId } = await createJob(values);
+      
+      if (!success || !createdJobId) {
+        throw new Error('Failed to create job post');
       }
+  
+      console.log('Job created with initial status:', {
+        jobId: createdJobId,
+        status: 'pending_payment' // Initial status
+      });
+  
+      // Map duration to price ID
+      const priceIdMap: Record<number, string> = {
+        30: 'price_1QuYsyRw85cV5wwQ5dPUcH75',
+        60: 'price_1QuYqlRw85cV5wwQsiwP2aFK',
+        90: 'price_1QuYs7Rw85cV5wwQZfNT5mIg',
+      };
+      
+      const priceId = priceIdMap[values.listingDuration];
+      if (!priceId) {
+        throw new Error('Invalid listing duration');
+      }
+  
+      // Open payment modal with correct values
+      setSelectedPriceId(priceId);
+      setJobId(createdJobId);
+      setIsPaymentModalOpen(true);
+      
+      // Add listener for payment success
+      window.addEventListener('payment_success', async () => {
+        try {
+          // Fetch updated job status
+          const response = await fetch(`/api/jobs/${createdJobId}`);
+          const job = await response.json();
+          console.log('Job status after payment:', {
+            jobId: createdJobId,
+            status: job.status,
+            paymentStatus: job.paymentStatus,
+            activatedAt: job.activatedAt
+          });
+        } catch (error) {
+          console.error('Error checking job status:', error);
+        }
+      });
+      
     } catch (error: any) {
-      console.error(error);
-      toast.error("Something went wrong. Please try again.");
+      console.error('Job creation error:', error);
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setPending(false);
     }
@@ -636,25 +684,34 @@ export function CreateJobForm({
         </Card>
 
         {/* Job Listing Duration Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Listing Duration</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="listingDuration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <JobListingDurationSelector field={field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+       {/* In the Job Listing Duration Card */}
+       // In the Card component at the bottom of the form
+<Card>
+  <CardHeader>
+    <CardTitle>Job Listing Duration</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <FormField
+      control={form.control}
+      name="listingDuration"
+      render={({ field }) => (
+        <FormItem>
+          <FormControl>
+            <JobListingDurationSelector field={field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  </CardContent>
+  <PaymentModal 
+    isOpen={isPaymentModalOpen}
+    onClose={() => setIsPaymentModalOpen(false)}
+    priceId={selectedPriceId}
+    jobId={jobId} // Pass the jobId here
+  />
+</Card>
+
 
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Submitting..." : "Continue"}

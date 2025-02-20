@@ -353,15 +353,30 @@ model JobPost {
   JobApplication      JobApplication[]
   JobAnalysis         JobAnalysis?
   metrics             JobMetrics?
-  skillsRequired      String[] // List of required skills
-  positionRequirement String // Entry, Mid, Senior, Expert
-  requiredExperience  Int // Required years of experience
-  jobCategory         String // Example: Software Development, Marketing, Finance
-  interviewStages     Int // Number of interview rounds
-  visaSponsorship     Boolean // Whether visa sponsorship is available
-  compensationDetails Json // Flexible salary details, bonuses, stock options, etc.
+  skillsRequired      String[]
+  positionRequirement String
+  requiredExperience  Int
+  jobCategory         String
+  interviewStages     Int
+  visaSponsorship     Boolean
+  compensationDetails Json
+
+  // Add new payment-related fields
+  paidAt          DateTime?
+  paymentId       String?       @unique
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentAmount   Int?
+  stripeSessionId String?       @unique
 
   @@map("job_posts")
+}
+
+// Add new enum for payment status
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 model JobMetrics {
@@ -438,10 +453,10 @@ model JobApplication {
   jobSeekerId String
 
   // Job Post relation
-  job   JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId String
-   portfolio   String?   // optional field for portfolio URL
-  projects    Json?  
+  job       JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  portfolio String? // optional field for portfolio URL
+  projects  Json?
 
   // Direct Company relation (denormalized for efficiency)
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)

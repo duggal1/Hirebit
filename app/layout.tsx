@@ -1,5 +1,3 @@
-
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Inter } from "next/font/google";
@@ -12,8 +10,7 @@ import { Providers as GlobalProviders } from "@/components/Providers";
 import { Providers as ResumeProviders } from "@/components/resume/src/app/components/Providers";
 import { AutoSaveHeaderWrapper } from "@/components/resume/src/app/components/header/AutoSaveHeaderWrapper";
 import Sidebar from "@/components/sidebar/sidebar";
-
-
+import { Footer } from "@/components/Landing/Footer/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,11 +35,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${inter.className} antialiased`}
       >
         <GlobalProviders>
-        <ResumeProviders>
+          <ResumeProviders>
             <AutoSaveHeaderWrapper />
-           
-            {children}
-            </ResumeProviders>
+            <Sidebar />
+            <main>{children}</main>
+            <Footer />
+          </ResumeProviders>
         </GlobalProviders>
       </body>
     </html>

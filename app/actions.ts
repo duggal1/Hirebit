@@ -151,16 +151,18 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
         : "Failed to create profile"
     );
   }
-}export async function createJob(data: z.infer<typeof jobSchema>) {
+}
+
+
+
+export async function createJob(data: z.infer<typeof jobSchema>) {
   console.log("[createJob] Received data:", data);
   const user = await requireUser();
-  console.log("[createJob] Current user:", user);
 
   // Validate incoming data
   const validatedData = jobSchema.parse(data);
-  console.log("[createJob] Validated data:", validatedData);
 
-  // Look up the company associated with the current user
+  // Look up the company
   const company = await prisma.company.findUnique({
     where: { userId: user.id },
     select: {
@@ -168,119 +170,119 @@ export async function createJobSeeker(data: z.infer<typeof jobSeekerSchema>) {
       user: { select: { stripeCustomerId: true } },
     },
   });
-  console.log("[createJob] Company record:", company);
 
   if (!company?.id) {
-    console.error("[createJob] No company associated with user");
     throw new Error("No company associated with user");
   }
 
-  let stripeCustomerId = company.user.stripeCustomerId;
-  console.log("[createJob] Initial stripeCustomerId:", stripeCustomerId);
+  // Create job post first
+  const jobPost = await prisma.jobPost.create({
+    data: {
+      companyId: company.id,
+      jobTitle: validatedData.jobTitle,
+      employmentType: validatedData.employmentType,
+      location: validatedData.location,
+      salaryFrom: validatedData.salaryFrom,
+      salaryTo: validatedData.salaryTo,
+      listingDuration: validatedData.listingDuration,
+      benefits: validatedData.benefits,
+      jobDescription: validatedData.jobDescription,
+      status: "DRAFT", // Start as draft until payment is confirmed
+      skillsRequired: validatedData.skillsRequired,
+      positionRequirement: validatedData.positionRequirement,
+      requiredExperience: validatedData.requiredExperience,
+      jobCategory: validatedData.jobCategory,
+      interviewStages: validatedData.interviewStages,
+      visaSponsorship: validatedData.visaSponsorship,
+      compensationDetails: validatedData.compensationDetails,
+    },
+  });
 
-  // If no Stripe customer ID, create one
+  return { success: true, jobId: jobPost.id };
+}
+
+// Add new action to handle payment intent creation
+export async function createPaymentIntent(priceId: string, jobId: string) {
+  const user = await requireUser();
+
+  // Get company and ensure Stripe customer exists
+  const company = await prisma.company.findUnique({
+    where: { userId: user.id },
+    select: {
+      id: true,
+      user: { select: { stripeCustomerId: true } },
+    },
+  });
+
+  if (!company) {
+    throw new Error("Company not found");
+  }
+
+  let { stripeCustomerId } = company.user;
+
   if (!stripeCustomerId) {
-    console.log("[createJob] Creating new Stripe customer for:", user.email);
-    try {
-      const customer = await stripe.customers.create({
-        email: user.email!,
-        name: user.name || undefined,
-      });
-      stripeCustomerId = customer.id;
-      console.log("[createJob] New Stripe customer created:", stripeCustomerId);
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { stripeCustomerId: customer.id },
-      });
-      console.log("[createJob] Updated user with new stripeCustomerId");
-    } catch (error) {
-      console.error("[createJob] Stripe customer creation failed:", error);
-      throw new Error("Failed to create Stripe customer");
-    }
-  }
-
-  // Create the job post record in the database
-  let jobPost;
-  try {
-    jobPost = await prisma.jobPost.create({
-      data: {
-        companyId: company.id,
-        jobTitle: validatedData.jobTitle,
-        employmentType: validatedData.employmentType,
-        location: validatedData.location,
-        salaryFrom: validatedData.salaryFrom,
-        salaryTo: validatedData.salaryTo,
-        listingDuration: validatedData.listingDuration,
-        benefits: validatedData.benefits,
-        jobDescription: validatedData.jobDescription,
-        status: "ACTIVE",
-        skillsRequired: validatedData.skillsRequired,
-        positionRequirement: validatedData.positionRequirement,
-        requiredExperience: validatedData.requiredExperience,
-        jobCategory: validatedData.jobCategory,
-        interviewStages: validatedData.interviewStages,
-        visaSponsorship: validatedData.visaSponsorship,
-        compensationDetails: validatedData.compensationDetails,
-      },
+    const customer = await stripe.customers.create({
+      email: user.email!,
+      name: user.name || undefined,
     });
-    console.log("[createJob] Created job post:", jobPost);
-  } catch (error) {
-    console.error("[createJob] Failed to create job post:", error);
-    throw new Error("Job post creation failed");
-  }
+    stripeCustomerId = customer.id;
 
-  // Determine pricing based on the job listing duration
-  const pricingTier = jobListingDurationPricing.find(
-    (tier) => tier.days === validatedData.listingDuration
-  );
-  console.log("[createJob] Pricing tier selected:", pricingTier);
-
-  if (!pricingTier) {
-    console.error("[createJob] Invalid listing duration:", validatedData.listingDuration);
-    throw new Error("Invalid listing duration selected");
-  }
-
-  // Create a Stripe checkout session for payment
-  let session;
-  try {
-    session = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      line_items: [
-        {
-          price_data: {
-            product_data: {
-              name: `Job Posting - ${pricingTier.days} Days`,
-              description: pricingTier.description,
-              images: [
-                "https://pve1u6tfz1.ufs.sh/f/Ae8VfpRqE7c0gFltIEOxhiBIFftvV4DTM8a13LU5EyzGb2SQ",
-              ],
-            },
-            currency: "USD",
-            unit_amount: pricingTier.price * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      metadata: { jobId: jobPost.id },
-      success_url: `${BASE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${BASE_URL}/payment/cancel`,
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { stripeCustomerId: customer.id },
     });
-    console.log("[createJob] Stripe checkout session created:", session);
-  } catch (error) {
-    console.error("[createJob] Stripe checkout session creation failed:", error);
-    throw new Error("Failed to create Stripe checkout session");
   }
 
-  if (!session.url) {
-    console.error("[createJob] Stripe session URL missing:", session);
-    throw new Error("Failed to create Stripe checkout session");
+  // Get price amount from the mapping
+  const PRICE_MAPPING = {
+    'price_1QuYsyRw85cV5wwQ5dPUcH75': 4900,  // $49
+    'price_1QuYqlRw85cV5wwQsiwP2aFK': 12900, // $129
+    'price_1QuYs7Rw85cV5wwQZfNT5mIg': 24900, // $249
+  };
+
+  const amount = PRICE_MAPPING[priceId as keyof typeof PRICE_MAPPING];
+  if (!amount) {
+    throw new Error("Invalid price ID");
   }
 
-  console.log("[createJob] Returning redirect URL:", session.url);
-  // Instead of redirect(session.url), return the URL so the client can handle the redirect
-  return { redirectUrl: session.url };
+  // Create payment intent
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency: 'usd',
+    customer: stripeCustomerId,
+    metadata: {
+      jobId,
+      priceId,
+    },
+  });
+
+  return {
+    clientSecret: paymentIntent.client_secret,
+    amount,
+  };
+}
+
+// Add new action to handle payment success
+export async function handlePaymentSuccess(paymentIntentId: string) {
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  
+  if (paymentIntent.status !== 'succeeded') {
+    throw new Error('Payment not successful');
+  }
+
+  const jobId = paymentIntent.metadata.jobId;
+
+  // Activate the job post
+  await prisma.jobPost.update({
+    where: { id: jobId },
+    data: { 
+      status: "ACTIVE",
+      paidAt: new Date(),
+      paymentId: paymentIntentId,
+    },
+  });
+
+  return { success: true };
 }
 
 export async function updateJobPost(
