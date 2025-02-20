@@ -1,0 +1,74 @@
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 15s ease infinite;
+  background-size: 400% 400%;
+}
+
+.glass-effect {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.gradient-border {
+  position: relative;
+  border: 1px solid transparent;
+  background: linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0.05)) padding-box,
+              linear-gradient(to right, rgba(255,255,255,0.2), rgba(255,255,255,0.1)) border-box;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-gradient {
+  background: linear-gradient(135deg, 
+    rgba(30, 41, 59, 0.95),
+    rgba(15, 23, 42, 0.95)
+  );
+}
+
+.hover-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255,255,255,0.1),
+    rgba(255,255,255,0)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hover-gradient:hover::before {
+  opacity: 1;
+}
