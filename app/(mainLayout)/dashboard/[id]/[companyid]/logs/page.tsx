@@ -119,7 +119,7 @@ interface TransformedJobSeeker {
     timestamps: {
       updated: string;
     };
-  }[]; // resumes is an array
+  }[];
   willingToRelocate: boolean | null;
   lastAttemptAt: string | null;
   createdAt: string;
@@ -131,7 +131,6 @@ interface TransformedJobSeeker {
     lastAttempt: string | null;
   };
 }
-
 
 // ----------------------------------------------
 // Helper Components for Structured Answers and Projects
@@ -583,11 +582,9 @@ export default function LogsPage() {
     lastAttemptAt,
     createdAt,
     updatedAt,
-
-    jobApplications, // Job applications data
-    metadata,      // Metadata like created/updated timestamps
+    jobApplications,
+    metadata,
   } = selectedSeeker;
-  
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
@@ -685,50 +682,53 @@ export default function LogsPage() {
               </CardContent>
             </Card>
           </motion.div>
-
-          {/* Add similar motion.div wrappers for other stat cards... */}
+          {/* Additional stat cards can be added similarly */}
         </div>
 
         {/* Grid Layout for Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Information */}
           <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="lg:col-span-2"
-    >
-      <Card className="bg-black shadow-2xl backdrop-blur-2xl rounded-3xl overflow-hidden">
-        <CardHeader className="p-10 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-30 blur-3xl"></div>
-          <CardTitle className="text-3xl font-extrabold flex items-center gap-4 text-white">
-            <div className="p-4 rounded-2xl bg-black border border-blue-500/30 shadow-lg">
-              <Mail className="w-7 h-7 text-blue-400" />
-            </div>
-            Profile Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-10 pb-10 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InfoItem icon={Mail} label="Email" value={email} />
-            <InfoItem icon={Phone} label="Phone" value={phoneNumber || "N/A"} />
-            <InfoItem icon={MapPin} label="Location" value={location || "N/A"} />
-            <InfoItem
-              icon={Calendar}
-              label="Member Since"
-              value={new Date(metadata.createdAt).toLocaleDateString()}
-            />
-          </div>
-          <div className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 p-10 rounded-3xl backdrop-blur-lg border border-gray-700/50 shadow-xl">
-            <h3 className="text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-              About
-            </h3>
-            <p className="text-gray-300 text-lg leading-relaxed">
-              {about}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-2"
+          >
+            <Card className="bg-black shadow-2xl backdrop-blur-2xl rounded-3xl overflow-hidden">
+              <CardHeader className="p-10 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-30 blur-3xl"></div>
+                <CardTitle className="text-3xl font-extrabold flex items-center gap-4 text-white">
+                  <div className="p-4 rounded-2xl bg-black border border-blue-500/30 shadow-lg">
+                    <Mail className="w-7 h-7 text-blue-400" />
+                  </div>
+                  Profile Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-10 pb-10 space-y-10">
+                {/* Existing Info Items */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InfoItem icon={Mail} label="Email" value={email} />
+                  <InfoItem icon={Phone} label="Phone" value={phoneNumber || "N/A"} />
+                  <InfoItem icon={MapPin} label="Location" value={location || "N/A"} />
+                  <InfoItem
+                    icon={Calendar}
+                    label="Member Since"
+                    value={new Date(metadata.createdAt).toLocaleDateString()}
+                  />
+                </div>
+                {/* New Info Items added under Profile Information */}
+              
+                {/* About Section */}
+                <div className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 p-10 rounded-3xl backdrop-blur-lg border border-gray-700/50 shadow-xl">
+                  <h3 className="text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                    About
+                  </h3>
+                  <p className="text-gray-300 text-lg leading-relaxed">
+                    {about}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
        
         </div>
