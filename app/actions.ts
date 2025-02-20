@@ -314,22 +314,81 @@ export async function updateJobPost(
 
   return redirect("/my-jobs");
 }
-
 export async function deleteJobPost(jobId: string) {
   const user = await requireUser();
 
-  await prisma.jobPost.delete({
-    where: {
-      id: jobId,
-      company: {
-        userId: user.id,
+  try {
+    // Get job details before deletion including metrics
+    const jobToDelete = await prisma.jobPost.findFirst({
+      where: {
+        id: jobId,
+        company: {
+          userId: user.id,
+        }
       },
-    },
-  });
+      select: {
+        jobTitle: true,
+        location: true,
+        metrics: true,
+        JobAnalysis: true,
+        JobApplication: true,
+        SavedJobPost: true,
+      }
+    });
 
-  return redirect("/my-jobs");
+    if (!jobToDelete) {
+      return {
+        success: false,
+        error: "Job post not found or unauthorized"
+      };
+    }
+
+    // Use transaction to ensure all related records are deleted properly
+    await prisma.$transaction(async (tx) => {
+      // Delete metrics first
+      if (jobToDelete.metrics) {
+        await tx.jobMetrics.delete({
+          where: { jobPostId: jobId }
+        });
+      }
+
+      // Delete job analysis if exists
+      if (jobToDelete.JobAnalysis) {
+        await tx.jobAnalysis.delete({
+          where: { jobPostId: jobId }
+        });
+      }
+
+      // Delete all applications
+      await tx.jobApplication.deleteMany({
+        where: { jobId: jobId }
+      });
+
+      // Delete all saved job posts
+      await tx.savedJobPost.deleteMany({
+        where: { jobId: jobId }
+      });
+
+      // Finally delete the job post
+      await tx.jobPost.delete({
+        where: { id: jobId }
+      });
+    });
+
+    return {
+      success: true,
+      jobTitle: jobToDelete.jobTitle,
+      location: jobToDelete.location
+    };
+
+  } catch (error) {
+    console.error("Error deleting job post:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete job post"
+    };
+  }
 }
-
 export async function saveJobPost(jobId: string) {
   const user = await requireUser();
 

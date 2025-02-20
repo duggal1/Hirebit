@@ -402,23 +402,102 @@ function updateJobPost(data, jobId) {
 exports.updateJobPost = updateJobPost;
 function deleteJobPost(jobId) {
     return __awaiter(this, void 0, void 0, function () {
-        var user;
+        var user, jobToDelete_1, error_2;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, hooks_1.requireUser()];
                 case 1:
                     user = _a.sent();
-                    return [4 /*yield*/, db_1.prisma.jobPost["delete"]({
+                    _a.label = 2;
+                case 2:
+                    _a.trys.push([2, 5, , 6]);
+                    return [4 /*yield*/, db_1.prisma.jobPost.findFirst({
                             where: {
                                 id: jobId,
                                 company: {
                                     userId: user.id
                                 }
+                            },
+                            select: {
+                                jobTitle: true,
+                                location: true,
+                                metrics: true,
+                                JobAnalysis: true,
+                                JobApplication: true,
+                                SavedJobPost: true
                             }
                         })];
-                case 2:
+                case 3:
+                    jobToDelete_1 = _a.sent();
+                    if (!jobToDelete_1) {
+                        return [2 /*return*/, {
+                                success: false,
+                                error: "Job post not found or unauthorized"
+                            }];
+                    }
+                    // Use transaction to ensure all related records are deleted properly
+                    return [4 /*yield*/, db_1.prisma.$transaction(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        if (!jobToDelete_1.metrics) return [3 /*break*/, 2];
+                                        return [4 /*yield*/, tx.jobMetrics["delete"]({
+                                                where: { jobPostId: jobId }
+                                            })];
+                                    case 1:
+                                        _a.sent();
+                                        _a.label = 2;
+                                    case 2:
+                                        if (!jobToDelete_1.JobAnalysis) return [3 /*break*/, 4];
+                                        return [4 /*yield*/, tx.jobAnalysis["delete"]({
+                                                where: { jobPostId: jobId }
+                                            })];
+                                    case 3:
+                                        _a.sent();
+                                        _a.label = 4;
+                                    case 4: 
+                                    // Delete all applications
+                                    return [4 /*yield*/, tx.jobApplication.deleteMany({
+                                            where: { jobId: jobId }
+                                        })];
+                                    case 5:
+                                        // Delete all applications
+                                        _a.sent();
+                                        // Delete all saved job posts
+                                        return [4 /*yield*/, tx.savedJobPost.deleteMany({
+                                                where: { jobId: jobId }
+                                            })];
+                                    case 6:
+                                        // Delete all saved job posts
+                                        _a.sent();
+                                        // Finally delete the job post
+                                        return [4 /*yield*/, tx.jobPost["delete"]({
+                                                where: { id: jobId }
+                                            })];
+                                    case 7:
+                                        // Finally delete the job post
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); })];
+                case 4:
+                    // Use transaction to ensure all related records are deleted properly
                     _a.sent();
-                    return [2 /*return*/, navigation_1.redirect("/my-jobs")];
+                    return [2 /*return*/, {
+                            success: true,
+                            jobTitle: jobToDelete_1.jobTitle,
+                            location: jobToDelete_1.location
+                        }];
+                case 5:
+                    error_2 = _a.sent();
+                    console.error("Error deleting job post:", error_2);
+                    return [2 /*return*/, {
+                            success: false,
+                            error: error_2 instanceof Error ? error_2.message : "Failed to delete job post"
+                        }];
+                case 6: return [2 /*return*/];
             }
         });
     });
@@ -558,7 +637,7 @@ function submitJobApplication(jobId, formData) {
 exports.submitJobApplication = submitJobApplication;
 function evaluateCode(code, question) {
     return __awaiter(this, void 0, Promise, function () {
-        var evaluationRes, error_2;
+        var evaluationRes, error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -577,8 +656,8 @@ function evaluateCode(code, question) {
                         throw new Error('Evaluation failed');
                     return [2 /*return*/, evaluationRes.json()];
                 case 2:
-                    error_2 = _a.sent();
-                    console.error('Code evaluation error:', error_2);
+                    error_3 = _a.sent();
+                    console.error('Code evaluation error:', error_3);
                     return [2 /*return*/, {
                             score: 0,
                             feedback: 'Evaluation service unavailable',
@@ -685,7 +764,7 @@ function isInCooldown(lastAttemptAt) {
 function trackJobView(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_3;
+        var error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -705,8 +784,8 @@ function trackJobView(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_3 = _a.sent();
-                    console.error('Failed to track job view:', error_3);
+                    error_4 = _a.sent();
+                    console.error('Failed to track job view:', error_4);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -717,7 +796,7 @@ exports.trackJobView = trackJobView;
 function trackJobClick(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_4;
+        var error_5;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -737,8 +816,8 @@ function trackJobClick(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_4 = _a.sent();
-                    console.error('Failed to track job click:', error_4);
+                    error_5 = _a.sent();
+                    console.error('Failed to track job click:', error_5);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -755,7 +834,7 @@ function getJobMetrics(jobId) {
 }
 exports.getJobMetrics = getJobMetrics;
 exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void 0, void 0, void 0, function () {
-    var session, rawData, validatedData, jobSeeker, error_5;
+    var session, rawData, validatedData, jobSeeker, error_6;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -869,10 +948,10 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     redirect: '/'
                 }];
             case 5:
-                error_5 = _b.sent();
-                console.error('Server error:', error_5);
+                error_6 = _b.sent();
+                console.error('Server error:', error_6);
                 return [2 /*return*/, {
-                        message: error_5 instanceof Error ? error_5.message : 'Failed to update profile',
+                        message: error_6 instanceof Error ? error_6.message : 'Failed to update profile',
                         success: false
                     }];
             case 6: return [2 /*return*/];
@@ -881,7 +960,7 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
 }); };
 exports.submitJobSeekerResume = function (prevState, // new first parameter (can be ignored if not needed)
 formData) { return __awaiter(void 0, void 0, Promise, function () {
-    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_6;
+    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_7;
     var _a, _b, _c, _d;
     return __generator(this, function (_e) {
         switch (_e.label) {
@@ -923,8 +1002,8 @@ formData) { return __awaiter(void 0, void 0, Promise, function () {
                 _e.sent();
                 return [3 /*break*/, 6];
             case 5:
-                error_6 = _e.sent();
-                console.error("Error creating JobSeekerResume:", error_6);
+                error_7 = _e.sent();
+                console.error("Error creating JobSeekerResume:", error_7);
                 throw new Error("Failed to create resume record.");
             case 6: 
             // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.

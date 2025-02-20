@@ -107,73 +107,47 @@ var appearance = {
 };
 function CheckoutForm(_a) {
     var _this = this;
-    var onClose = _a.onClose, amount = _a.amount;
+    var onClose = _a.onClose, amount = _a.amount, jobId = _a.jobId;
     var stripe = react_stripe_js_1.useStripe();
     var elements = react_stripe_js_1.useElements();
     var _b = react_1.useState(false), loading = _b[0], setLoading = _b[1];
     var router = navigation_1.useRouter();
     var handleSubmit = function (e) { return __awaiter(_this, void 0, void 0, function () {
-        var currentOrigin, returnUrl, submitError, confirmError, error_1;
+        var error, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     e.preventDefault();
-                    if (!stripe || !elements) {
-                        sonner_1.toast.error('Payment system not ready');
+                    if (!stripe || !elements || !jobId) {
+                        sonner_1.toast.error('Payment system not ready or missing job ID');
                         return [2 /*return*/];
                     }
                     setLoading(true);
                     _a.label = 1;
                 case 1:
-                    _a.trys.push([1, 4, 5, 6]);
-                    currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-                    returnUrl = currentOrigin + "/my-jobs?success=true";
-                    // Validate return URL
-                    if (!returnUrl || !returnUrl.startsWith('http')) {
-                        throw new Error('Invalid return URL configuration');
-                    }
-                    return [4 /*yield*/, elements.submit()];
-                case 2:
-                    submitError = (_a.sent()).error;
-                    if (submitError) {
-                        throw new Error(submitError.message);
-                    }
+                    _a.trys.push([1, 3, , 4]);
                     return [4 /*yield*/, stripe.confirmPayment({
                             elements: elements,
                             confirmParams: {
-                                return_url: returnUrl,
+                                return_url: window.location.origin + "/my-jobs?success=true&job_id=" + jobId,
                                 payment_method_data: {
                                     billing_details: {} // Add billing details if needed
                                 }
-                            },
-                            redirect: 'if_required'
+                            }
                         })];
-                case 3:
-                    confirmError = (_a.sent()).error;
-                    if (confirmError) {
-                        // Handle specific error cases
-                        if (confirmError.type === 'card_error' || confirmError.type === 'validation_error') {
-                            sonner_1.toast.error(confirmError.message);
-                        }
-                        else {
-                            sonner_1.toast.error('An unexpected error occurred.');
-                        }
-                        return [2 /*return*/];
+                case 2:
+                    error = (_a.sent()).error;
+                    if (error) {
+                        throw new Error(error.message);
                     }
-                    // Payment successful
-                    sonner_1.toast.success('Payment successful!');
-                    router.push('/my-jobs');
-                    onClose();
-                    return [3 /*break*/, 6];
-                case 4:
+                    return [3 /*break*/, 4];
+                case 3:
                     error_1 = _a.sent();
-                    console.error('Payment error:', error_1);
+                    console.error('Payment processing error:', error_1);
                     sonner_1.toast.error(error_1 instanceof Error ? error_1.message : 'Payment failed');
-                    return [3 /*break*/, 6];
-                case 5:
                     setLoading(false);
-                    return [7 /*endfinally*/];
-                case 6: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     }); };
@@ -284,7 +258,7 @@ function PaymentModal(_a) {
                             clientSecret: clientSecret,
                             appearance: appearance
                         } },
-                        React.createElement(CheckoutForm, { onClose: onClose, amount: amount }))) : (React.createElement("div", { className: "flex justify-center items-center py-12" },
+                        React.createElement(CheckoutForm, { onClose: onClose, amount: amount, jobId: jobId }))) : (React.createElement("div", { className: "flex justify-center items-center py-12" },
                         React.createElement("div", { className: "relative" },
                             React.createElement("div", { className: "absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" }),
                             React.createElement("div", { className: "relative bg-gradient-to-b from-primary/80 to-primary p-4 rounded-full" },

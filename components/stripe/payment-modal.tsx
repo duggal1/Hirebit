@@ -70,7 +70,15 @@ const appearance = {
 };
 
 
-function CheckoutForm({ onClose, amount }: { onClose: () => void; amount: number }) {
+function CheckoutForm({ 
+  onClose, 
+  amount,
+  jobId 
+}: { 
+  onClose: () => void; 
+  amount: number;
+  jobId: string | null;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -79,62 +87,40 @@ function CheckoutForm({ onClose, amount }: { onClose: () => void; amount: number
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
-      toast.error('Payment system not ready');
+    if (!stripe || !elements || !jobId) {
+      toast.error('Payment system not ready or missing job ID');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Get current origin for return URL
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      const returnUrl = `${currentOrigin}/my-jobs?success=true`;
-
-      // Validate return URL
-      if (!returnUrl || !returnUrl.startsWith('http')) {
-        throw new Error('Invalid return URL configuration');
-      }
-
-      // Confirm the payment
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        throw new Error(submitError.message);
-      }
-
-      const { error: confirmError } = await stripe.confirmPayment({
+      // Always redirect after payment
+      const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: returnUrl,
+          return_url: `${window.location.origin}/my-jobs?success=true&job_id=${jobId}`,
           payment_method_data: {
             billing_details: {} // Add billing details if needed
           },
         },
-        redirect: 'if_required',
+        // Remove redirect: 'if_required' to ensure consistent behavior
       });
 
-      if (confirmError) {
-        // Handle specific error cases
-        if (confirmError.type === 'card_error' || confirmError.type === 'validation_error') {
-          toast.error(confirmError.message);
-        } else {
-          toast.error('An unexpected error occurred.');
-        }
-        return;
+      if (error) {
+        throw new Error(error.message);
       }
 
-      // Payment successful
-      toast.success('Payment successful!');
-      router.push('/my-jobs');
-      onClose();
+      // The user will be redirected to return_url by Stripe
+      // No need to handle success case here as the webhook will handle it
 
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Payment processing error:', error);
       toast.error(error instanceof Error ? error.message : 'Payment failed');
-    } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -299,16 +285,20 @@ export function PaymentModal({ isOpen, onClose, priceId, jobId }: PaymentModalPr
             </div>
             
             {clientSecret ? (
-              <Elements
-                stripe={stripePromise}
-                options={{
-                  clientSecret,
-                  appearance,
-                }}
-              >
-                <CheckoutForm onClose={onClose} amount={amount} />
-              </Elements>
-            ) : (
+  <Elements
+    stripe={stripePromise}
+    options={{
+      clientSecret,
+      appearance,
+    }}
+  >
+    <CheckoutForm 
+      onClose={onClose} 
+      amount={amount}
+      jobId={jobId} // Pass the jobId prop
+    />
+  </Elements>
+) : (
               <div className="flex justify-center items-center py-12">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />

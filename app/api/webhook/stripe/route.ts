@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.text();
     const headersList = headers();
-    const signature = headersList.get("Stripe-Signature");
+    const signature = (await headersList).get("Stripe-Signature");
 
     if (!signature) {
       console.error("No Stripe signature found");
@@ -39,11 +39,15 @@ export async function POST(req: Request) {
         const jobId = paymentIntent.metadata?.jobId;
       
         if (!jobId) {
+          console.error("No job ID found in payment intent metadata");
           return new Response("No job ID found", { status: 400 });
         }
       
         try {
-          await prisma.jobPost.update({
+          // Log the job status update attempt
+          console.log("Updating job status for:", { jobId, paymentIntentId: paymentIntent.id });
+      
+          const updatedJob = await prisma.jobPost.update({
             where: { id: jobId },
             data: { 
               status: "ACTIVE",
@@ -53,7 +57,13 @@ export async function POST(req: Request) {
               paymentAmount: paymentIntent.amount,
             },
           });
-        
+      
+          console.log("Job status updated successfully:", {
+            jobId,
+            newStatus: updatedJob.status,
+            paymentStatus: updatedJob.paymentStatus
+          });
+      
           // Revalidate relevant paths
           revalidatePath('/');
           revalidatePath('/my-jobs');
@@ -63,7 +73,7 @@ export async function POST(req: Request) {
           return new Response("Failed to update job post", { status: 500 });
         }
         break;
-
+        
       case "payment_intent.payment_failed":
         const failedPayment = event.data.object as Stripe.PaymentIntent;
         const failedJobId = failedPayment.metadata?.jobId;

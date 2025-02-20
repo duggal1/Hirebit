@@ -44,16 +44,18 @@ var cache_1 = require("next/cache");
 function POST(req) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function () {
-        var body, headersList, signature, event, _d, paymentIntent, jobId, error_1, failedPayment, failedJobId, processingPayment, processingJobId, error_2;
+        var body, headersList, signature, event, _d, paymentIntent, jobId, updatedJob, error_1, failedPayment, failedJobId, processingPayment, processingJobId, error_2;
         return __generator(this, function (_e) {
             switch (_e.label) {
                 case 0:
-                    _e.trys.push([0, 14, , 15]);
+                    _e.trys.push([0, 15, , 16]);
                     return [4 /*yield*/, req.text()];
                 case 1:
                     body = _e.sent();
                     headersList = headers_1.headers();
-                    signature = headersList.get("Stripe-Signature");
+                    return [4 /*yield*/, headersList];
+                case 2:
+                    signature = (_e.sent()).get("Stripe-Signature");
                     if (!signature) {
                         console.error("No Stripe signature found");
                         return [2 /*return*/, new Response("No Stripe signature", { status: 400 })];
@@ -72,20 +74,23 @@ function POST(req) {
                     }
                     _d = event.type;
                     switch (_d) {
-                        case "payment_intent.succeeded": return [3 /*break*/, 2];
-                        case "payment_intent.payment_failed": return [3 /*break*/, 7];
-                        case "payment_intent.processing": return [3 /*break*/, 10];
+                        case "payment_intent.succeeded": return [3 /*break*/, 3];
+                        case "payment_intent.payment_failed": return [3 /*break*/, 8];
+                        case "payment_intent.processing": return [3 /*break*/, 11];
                     }
-                    return [3 /*break*/, 13];
-                case 2:
+                    return [3 /*break*/, 14];
+                case 3:
                     paymentIntent = event.data.object;
                     jobId = (_a = paymentIntent.metadata) === null || _a === void 0 ? void 0 : _a.jobId;
                     if (!jobId) {
+                        console.error("No job ID found in payment intent metadata");
                         return [2 /*return*/, new Response("No job ID found", { status: 400 })];
                     }
-                    _e.label = 3;
-                case 3:
-                    _e.trys.push([3, 5, , 6]);
+                    _e.label = 4;
+                case 4:
+                    _e.trys.push([4, 6, , 7]);
+                    // Log the job status update attempt
+                    console.log("Updating job status for:", { jobId: jobId, paymentIntentId: paymentIntent.id });
                     return [4 /*yield*/, db_1.prisma.jobPost.update({
                             where: { id: jobId },
                             data: {
@@ -96,22 +101,27 @@ function POST(req) {
                                 paymentAmount: paymentIntent.amount
                             }
                         })];
-                case 4:
-                    _e.sent();
+                case 5:
+                    updatedJob = _e.sent();
+                    console.log("Job status updated successfully:", {
+                        jobId: jobId,
+                        newStatus: updatedJob.status,
+                        paymentStatus: updatedJob.paymentStatus
+                    });
                     // Revalidate relevant paths
                     cache_1.revalidatePath('/');
                     cache_1.revalidatePath('/my-jobs');
                     cache_1.revalidatePath("/job/" + jobId);
-                    return [3 /*break*/, 6];
-                case 5:
+                    return [3 /*break*/, 7];
+                case 6:
                     error_1 = _e.sent();
                     console.error("Error updating job post:", error_1);
                     return [2 /*return*/, new Response("Failed to update job post", { status: 500 })];
-                case 6: return [3 /*break*/, 13];
-                case 7:
+                case 7: return [3 /*break*/, 14];
+                case 8:
                     failedPayment = event.data.object;
                     failedJobId = (_b = failedPayment.metadata) === null || _b === void 0 ? void 0 : _b.jobId;
-                    if (!failedJobId) return [3 /*break*/, 9];
+                    if (!failedJobId) return [3 /*break*/, 10];
                     return [4 /*yield*/, db_1.prisma.jobPost.update({
                             where: { id: failedJobId },
                             data: {
@@ -119,14 +129,14 @@ function POST(req) {
                                 paymentId: failedPayment.id
                             }
                         })];
-                case 8:
+                case 9:
                     _e.sent();
-                    _e.label = 9;
-                case 9: return [3 /*break*/, 13];
-                case 10:
+                    _e.label = 10;
+                case 10: return [3 /*break*/, 14];
+                case 11:
                     processingPayment = event.data.object;
                     processingJobId = (_c = processingPayment.metadata) === null || _c === void 0 ? void 0 : _c.jobId;
-                    if (!processingJobId) return [3 /*break*/, 12];
+                    if (!processingJobId) return [3 /*break*/, 13];
                     return [4 /*yield*/, db_1.prisma.jobPost.update({
                             where: { id: processingJobId },
                             data: {
@@ -134,16 +144,16 @@ function POST(req) {
                                 paymentId: processingPayment.id
                             }
                         })];
-                case 11:
+                case 12:
                     _e.sent();
-                    _e.label = 12;
-                case 12: return [3 /*break*/, 13];
-                case 13: return [2 /*return*/, new Response(null, { status: 200 })];
-                case 14:
+                    _e.label = 13;
+                case 13: return [3 /*break*/, 14];
+                case 14: return [2 /*return*/, new Response(null, { status: 200 })];
+                case 15:
                     error_2 = _e.sent();
                     console.error('Webhook error:', error_2);
                     return [2 /*return*/, new Response('Webhook handler failed', { status: 500 })];
-                case 15: return [2 /*return*/];
+                case 16: return [2 /*return*/];
             }
         });
     });

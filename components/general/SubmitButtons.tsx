@@ -20,6 +20,7 @@ export function GeneralSubmitButton({
     | "ghost"
     | "link";
   width?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
 
