@@ -466,7 +466,6 @@ function CreateJobForm(_a) {
                                         } })))),
                                 React.createElement(form_1.FormMessage, null)));
                         } }))),
-            "// In the Card component at the bottom of the form",
             React.createElement(card_1.Card, null,
                 React.createElement(card_1.CardHeader, null,
                     React.createElement(card_1.CardTitle, null, "Job Listing Duration")),

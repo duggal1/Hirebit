@@ -39,9 +39,10 @@ exports.__esModule = true;
 exports.GET = void 0;
 var db_1 = require("@/app/utils/db");
 var server_1 = require("next/server");
+var client_1 = require("@/app/utils/inngest/client");
 function GET(req) {
     return __awaiter(this, void 0, void 0, function () {
-        var searchParams, email, companyId, error_1;
+        var searchParams, email, companyId, company, existingSubscription, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -53,26 +54,58 @@ function GET(req) {
                     }
                     _a.label = 1;
                 case 1:
-                    _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, db_1.prisma.newsletterSubscriber.updateMany({
+                    _a.trys.push([1, 6, , 7]);
+                    return [4 /*yield*/, db_1.prisma.company.findUnique({
+                            where: { id: companyId }
+                        })];
+                case 2:
+                    company = _a.sent();
+                    if (!company) {
+                        return [2 /*return*/, server_1.NextResponse.json({ error: "Invalid company ID" }, { status: 400 })];
+                    }
+                    return [4 /*yield*/, db_1.prisma.newsletterSubscriber.findFirst({
                             where: {
                                 email: email,
                                 companyId: companyId,
                                 status: "ACTIVE"
-                            },
-                            data: {
-                                status: "UNSUBSCRIBED",
-                                unsubscribedAt: new Date()
                             }
                         })];
-                case 2:
-                    _a.sent();
-                    return [2 /*return*/, server_1.NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL + "/newsletter/unsubscribed")];
                 case 3:
+                    existingSubscription = _a.sent();
+                    if (existingSubscription) {
+                        return [2 /*return*/, server_1.NextResponse.json({ message: "Already subscribed" }, { status: 200 })];
+                    }
+                    // Add to newsletter subscribers
+                    return [4 /*yield*/, db_1.prisma.newsletterSubscriber.create({
+                            data: {
+                                email: email,
+                                companyId: companyId,
+                                subscribedAt: new Date(),
+                                status: "ACTIVE"
+                            }
+                        })];
+                case 4:
+                    // Add to newsletter subscribers
+                    _a.sent();
+                    // Schedule first newsletter
+                    return [4 /*yield*/, client_1.inngest.send({
+                            name: "newsletter.scheduled",
+                            data: {
+                                email: email,
+                                companyId: companyId
+                            },
+                            delay: "5d"
+                        })];
+                case 5:
+                    // Schedule first newsletter
+                    _a.sent();
+                    // Redirect to success page
+                    return [2 /*return*/, server_1.NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL + "/newsletter/subscribed")];
+                case 6:
                     error_1 = _a.sent();
-                    console.error("Newsletter unsubscribe failed:", error_1);
-                    return [2 /*return*/, server_1.NextResponse.json({ error: "Unsubscribe failed" }, { status: 500 })];
-                case 4: return [2 /*return*/];
+                    console.error("Newsletter subscription failed:", error_1);
+                    return [2 /*return*/, server_1.NextResponse.json({ error: "Subscription failed" }, { status: 500 })];
+                case 7: return [2 /*return*/];
             }
         });
     });

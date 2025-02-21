@@ -14,6 +14,54 @@ if (!process.env.RESEND_API_KEY) {
 const resend = new Resend(process.env.RESEND_API_KEY);
 const RESEND_FROM_EMAIL = `Hirebit <invoices@${process.env.RESEND_DOMAIN || "hirebit.site"}>`;
 
+
+type SubscriptionDuration = '1' | '3' | '6';
+
+const PRICING = {
+  BASE_MONTHLY_PRICE: 49.99,
+  TAX_RATE: 0.1,
+  DURATIONS: {
+    '6': {
+      months: 6,
+      price: 249.00,  // Fixed price for 6 months
+      discount: 0.17  // (~17% off monthly price)
+    },
+    '3': {
+      months: 3,
+      price: 129.00,  // Fixed price for 3 months
+      discount: 0.14  // (~14% off monthly price)
+    },
+    '1': {
+      months: 1,
+      price: 49.99,   // Standard monthly price
+      discount: 0     // No discount for single month
+    }
+  } as Record<SubscriptionDuration, { months: number; price: number; discount: number }>
+};
+
+// Update the calculation function to use fixed prices
+const calculateSubscriptionPrice = (durationInMonths: number) => {
+  const durationKey = durationInMonths.toString() as SubscriptionDuration;
+  const duration = PRICING.DURATIONS[durationKey] || {
+    months: 1,
+    price: PRICING.BASE_MONTHLY_PRICE,
+    discount: 0
+  };
+
+  const basePrice = duration.price;
+  const taxes = basePrice * PRICING.TAX_RATE;
+  const monthlyPrice = PRICING.BASE_MONTHLY_PRICE * duration.months;
+  const savings = monthlyPrice - basePrice;
+
+  return {
+    basePrice,
+    taxes,
+    total: basePrice + taxes,
+    duration: duration.months,
+    savings: savings > 0 ? savings : 0
+  };
+};
+
 // Define better types for email response
 interface EmailResult {
   id: string;
@@ -21,7 +69,6 @@ interface EmailResult {
   to: string[];
   subject: string;
 }
-
 
 // Add types for job data
 interface JobData {
@@ -52,6 +99,7 @@ interface JobData {
   createdAt: Date;  // Add createdAt
   activatedAt?: Date;  // Add activatedAt as optional
 }
+
 interface StripePaymentData {
   id: string;
   amount: number;
@@ -74,6 +122,8 @@ interface StripePaymentData {
     tax_rate?: string;
     subscription_duration?: string;
     invoice_number?: string;
+    base_price?: string;
+    savings?: string;
   };
   payment_method_details: {
     type: string;
@@ -93,6 +143,8 @@ interface PaymentDetails {
   total: number;
   currency: string;
   duration: number;
+
+  savings?: number;
   billingAddress: {
     country: string;
     city?: string;
@@ -157,12 +209,16 @@ export const sendPaymentInvoiceEmail = inngest.createFunction(
         } as JobData;
       });
       
-
       const paymentData = await step.run("fetch-payment-data", async () => {
         if (paymentIntentId === 'manual_creation') {
+          // Calculate price based on duration
+          const subscriptionDuration = parseInt(event.data.subscriptionDuration || '6');
+          const pricing = calculateSubscriptionPrice(subscriptionDuration);
+          
+          
           return {
             id: `manual_${Date.now()}`,
-            amount: 24900,
+            amount: Math.round(pricing.total * 100), // Convert to cents
             currency: currency || 'usd',
             created: Date.now() / 1000,
             billing_details: {
@@ -175,10 +231,12 @@ export const sendPaymentInvoiceEmail = inngest.createFunction(
               name: jobData.company.name || ''
             },
             metadata: {
-              tax_rate: '0.1',
-              subscription_duration: '180', // 6 months
+              tax_rate: PRICING.TAX_RATE.toString(),
+              subscription_duration: (subscriptionDuration * 30).toString(),
               invoice_number: `INV-${jobData.id}-${Date.now()}`,
-              job_post_id: jobData.id
+              job_post_id: jobData.id,
+              base_price: pricing.basePrice.toString(),
+              savings: pricing.savings.toString()
             },
             payment_method_details: {
               type: 'manual',
@@ -188,129 +246,127 @@ export const sendPaymentInvoiceEmail = inngest.createFunction(
           } as StripePaymentData;
         }
        
-  // Regular Stripe payment
-  const paymentIntent = await stripe.paymentIntents.retrieve(
-    paymentIntentId,
-    {
-      expand: ['latest_charge', 'customer']
-    }
-  );
-  
-  if (!paymentIntent.latest_charge) {
-    throw new Error(`No charge found for payment intent: ${paymentIntentId}`);
-  }
-
-  return paymentIntent.latest_charge as StripePaymentData;
-});
-
-if (!paymentData) {
-  throw new Error('Failed to fetch payment data');
-}
-    
-// Update the process-payment-details section with null checks
-const paymentDetails = await step.run("process-payment-details", async () => {
-  const basePrice = (paymentData?.amount || 0) / 100;
-  const taxRate = parseFloat(paymentData?.metadata?.tax_rate || "0.1");
-  const taxes = basePrice * taxRate;
-  const total = basePrice + taxes;
-  const duration = parseInt(paymentData?.metadata?.subscription_duration || "180");
-
-  return {
-    basePrice,
-    taxes,
-    total,
-    currency: (paymentData?.currency || 'usd').toUpperCase(),
-    duration: Math.floor(duration / 30),
-    billingAddress: paymentData?.billing_details?.address || {
-      country: 'US'
-    },
-    paymentMethod: {
-      type: paymentData?.payment_method_details?.type || 'manual',
-      details: paymentData?.payment_method_details || { type: 'direct' }
-    },
-    invoiceNumber: paymentData?.metadata?.invoice_number || `INV-${Date.now()}`,
-    receiptUrl: paymentData?.receipt_url || `${process.env.NEXT_PUBLIC_APP_URL}/invoices/${jobId}`
-  } as PaymentDetails;
-});
-
+        // Regular Stripe payment
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          paymentIntentId,
+          {
+            expand: ['latest_charge', 'customer']
+          }
+        );
+      
+        if (!paymentIntent.latest_charge) {
+          throw new Error(`No charge found for payment intent: ${paymentIntentId}`);
+        }
+      
+        return paymentIntent.latest_charge as StripePaymentData;
+      });
+      
+      if (!paymentData) {
+        throw new Error('Failed to fetch payment data');
+      }
+      
+      // Update the payment details processing with pricing configuration
+      const paymentDetails = await step.run("process-payment-details", async () => {
+        const subscriptionDuration = parseInt(paymentData?.metadata?.subscription_duration || '180') / 30;
+        const pricing = calculateSubscriptionPrice(subscriptionDuration);
+        
+        return {
+          basePrice: pricing.basePrice,
+          taxes: pricing.taxes,
+          total: pricing.total,
+          currency: (paymentData?.currency || 'usd').toUpperCase(),
+          duration: pricing.duration,
+          savings: pricing.savings,
+          billingAddress: paymentData?.billing_details?.address || {
+            country: 'US'
+          },
+          paymentMethod: {
+            type: paymentData?.payment_method_details?.type || 'manual',
+            details: paymentData?.payment_method_details || { type: 'direct' }
+          },
+          invoiceNumber: paymentData?.metadata?.invoice_number || `INV-${Date.now()}`,
+          receiptUrl: paymentData?.receipt_url || `${process.env.NEXT_PUBLIC_APP_URL}/invoices/${jobId}`
+        } as PaymentDetails;
+      });
+      
       // Send email with comprehensive payment details
-    // In the email sending section, replace the existing code with:
-const emailResult = await step.run("send-invoice-email", async () => {
-  const recipientEmail = jobData.company.user.email;
-  if (!recipientEmail) {
-    throw new Error(`No email found for company: ${jobData.company.id}`);
-  }
-
-  const startDate = new Date(paymentData.created * 1000);
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + (paymentDetails.duration * 30));
-
-  const emailComponent = PaymentInvoiceEmail({
-    companyName: jobData.company.name,
-    jobTitle: jobData.jobTitle,
-    amount: `${paymentDetails.total} ${paymentDetails.currency}`,
-    paymentId: paymentData.id,
-    paymentDate: format(new Date(paymentData.created * 1000), "MMMM dd, yyyy"),
-    expirationDate: format(endDate, "MMMM dd, yyyy"),
-    jobLocation: jobData.location,
-    paymentStatus: "Completed",
-    jobPostInfo: {  // Add this object
-      id: jobData.id,
-      status: jobData.status,
-      createDate: format(new Date(jobData.createdAt), "MMMM dd, yyyy"),
-      activationDate: format(new Date(jobData.activatedAt || Date.now()), "MMMM dd, yyyy")
+      const emailResult = await step.run("send-invoice-email", async () => {
+        const recipientEmail = jobData.company.user.email;
+        if (!recipientEmail) {
+          throw new Error(`No email found for company: ${jobData.company.id}`);
+        }
+      
+        const startDate = new Date(paymentData.created * 1000);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + (paymentDetails.duration * 30));
+        const planName = `${paymentDetails.duration} Month Job Posting${paymentDetails.duration > 1 ? 's' : ''}`;
+        const emailComponent = PaymentInvoiceEmail({
+          companyName: jobData.company.name,
+          jobTitle: jobData.jobTitle,
+          amount: `${paymentDetails.total} ${paymentDetails.currency}`,
+          paymentId: paymentData.id,
+          paymentDate: format(new Date(paymentData.created * 1000), "MMMM dd, yyyy"),
+          expirationDate: format(endDate, "MMMM dd, yyyy"),
+          jobLocation: jobData.location,
+          paymentStatus: "Completed",
+          jobPostInfo: {
+            id: jobData.id,
+            status: jobData.status,
+            createDate: format(new Date(jobData.createdAt), "MMMM dd, yyyy"),
+            activationDate: format(new Date(jobData.activatedAt || Date.now()), "MMMM dd, yyyy")
+          },
+          paymentDetails: {
+            basePrice: `${paymentDetails.basePrice} ${paymentDetails.currency}`,
+            taxes: `${paymentDetails.taxes} ${paymentDetails.currency}`,
+            total: `${paymentDetails.total} ${paymentDetails.currency}`,
+            savings: `${paymentDetails.savings} ${paymentDetails.currency}`,
+            duration: `${paymentDetails.duration} months`,
+            invoiceNumber: paymentDetails.invoiceNumber,
+            billingAddress: paymentDetails.billingAddress,
+            paymentMethod: paymentDetails.paymentMethod,
+            subscriptionInfo: {
+              planName: planName,
+      startDate: format(startDate, "MMMM dd, yyyy"),
+      endDate: format(endDate, "MMMM dd, yyyy"),
+      status: "ACTIVE"
     },
-    paymentDetails: {
-  
-      basePrice: `${paymentDetails.basePrice} ${paymentDetails.currency}`,
-      taxes: `${paymentDetails.taxes} ${paymentDetails.currency}`,
-      total: `${paymentDetails.total} ${paymentDetails.currency}`,
-      duration: `${paymentDetails.duration} months`,
-      invoiceNumber: paymentDetails.invoiceNumber,
-      billingAddress: paymentDetails.billingAddress,
-      paymentMethod: paymentDetails.paymentMethod,
-      subscriptionInfo: {
-        planName: "6 Month Job Posting",
-        startDate: format(startDate, "MMMM dd, yyyy"),
-        endDate: format(endDate, "MMMM dd, yyyy"),
-        status: "ACTIVE"
-      },
-      receiptUrl: paymentDetails.receiptUrl
-    }
-  });
-
-  return await resend.emails.send({
-    from: RESEND_FROM_EMAIL,
-    to: [recipientEmail], // Now we know it's not null
-    subject: `Job Posting Confirmation: ${jobData.jobTitle}`,
-    react: emailComponent as ReactNode,
-  });
-});
-
-// Update job post section
-await prisma.jobPost.update({
-  where: { id: jobId },
-  data: {
-    status: "ACTIVE",
-    invoiceEmailId: emailResult.data?.id,
-    invoiceEmailSentAt: new Date(),
-    subscriptionStartDate: new Date(paymentData.created * 1000),
-    subscriptionEndDate: new Date(paymentData.created * 1000 + (paymentDetails.duration * 30 * 24 * 60 * 60 * 1000)),
-    paymentDetails: {
-      stripePaymentId: paymentData.id,
-      amount: paymentDetails.total,
-      basePrice: paymentDetails.basePrice,
-      taxes: paymentDetails.taxes,
-      currency: paymentDetails.currency,
-      duration: paymentDetails.duration,
-      invoiceNumber: paymentDetails.invoiceNumber,
-      billingAddress: paymentDetails.billingAddress,
-      paymentMethod: paymentDetails.paymentMethod,
-      receiptUrl: paymentDetails.receiptUrl,
-      metadata: paymentData.metadata
-    }
-  }
-});
+            receiptUrl: paymentDetails.receiptUrl
+          }
+        });
+      
+        return await resend.emails.send({
+          from: RESEND_FROM_EMAIL,
+          to: [recipientEmail],
+          subject: `Job Posting Confirmation: ${jobData.jobTitle}`,
+          react: emailComponent as ReactNode,
+        });
+      });
+      
+      // Update job post section
+      await prisma.jobPost.update({
+        where: { id: jobId },
+        data: {
+          status: "ACTIVE",
+          invoiceEmailId: emailResult.data?.id,
+          invoiceEmailSentAt: new Date(),
+          subscriptionStartDate: new Date(paymentData.created * 1000),
+          subscriptionEndDate: new Date(paymentData.created * 1000 + (paymentDetails.duration * 30 * 24 * 60 * 60 * 1000)),
+          paymentDetails: {
+            stripePaymentId: paymentData.id,
+            amount: paymentDetails.total,
+            basePrice: paymentDetails.basePrice,
+            taxes: paymentDetails.taxes,
+            currency: paymentDetails.currency,
+            duration: paymentDetails.duration,
+            invoiceNumber: paymentDetails.invoiceNumber,
+            billingAddress: paymentDetails.billingAddress,
+            paymentMethod: paymentDetails.paymentMethod,
+            receiptUrl: paymentDetails.receiptUrl,
+            metadata: paymentData.metadata
+          }
+        }
+      });
+      
       return {
         success: true,
         jobId,

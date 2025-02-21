@@ -685,7 +685,7 @@ const [jobId, setJobId] = useState<string | null>(null);
 
         {/* Job Listing Duration Card */}
        {/* In the Job Listing Duration Card */}
-       // In the Card component at the bottom of the form
+      
 <Card>
   <CardHeader>
     <CardTitle>Job Listing Duration</CardTitle>

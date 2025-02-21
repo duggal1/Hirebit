@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
-
 import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -8,6 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FormControl } from "../ui/form";
 import { ControllerRenderProps } from "react-hook-form";
 import { jobListingDurationPricing } from "@/app/utils/pricingTiers";
+import { Badge } from "@/components/ui/badge";
 
 interface JobListingDurationSelectorProps {
   field: ControllerRenderProps<any, "listingDuration">;
@@ -44,16 +42,21 @@ export function JobListingDurationSelector({
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-semibold text-lg">
-                        {duration.days} Days
+                        {duration.days / 30} {duration.days / 30 === 1 ? 'Month' : 'Months'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {duration.description}
                       </p>
+                      {duration.savings && (
+                        <Badge variant="secondary" className="mt-1">
+                          {duration.savings}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-xl">${duration.price}</p>
+                      <p className="font-bold text-xl">${duration.price.toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">
-                        ${(duration.price / duration.days).toFixed(2)}/day
+                        ${(duration.price / (duration.days / 30)).toFixed(2)}/month
                       </p>
                     </div>
                   </div>

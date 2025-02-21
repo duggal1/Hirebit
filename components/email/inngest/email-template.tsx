@@ -36,6 +36,7 @@ interface PaymentInvoiceEmailProps {
     taxes: string;
     total: string;
     duration: string;
+    savings: string;  // Add this field
     invoiceNumber: string;
     billingAddress: {
       country: string;

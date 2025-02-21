@@ -59,6 +59,47 @@ if (!process.env.RESEND_API_KEY) {
 }
 var resend = new resend_1.Resend(process.env.RESEND_API_KEY);
 var RESEND_FROM_EMAIL = "Hirebit <invoices@" + (process.env.RESEND_DOMAIN || "hirebit.site") + ">";
+var PRICING = {
+    BASE_MONTHLY_PRICE: 49.99,
+    TAX_RATE: 0.1,
+    DURATIONS: {
+        '6': {
+            months: 6,
+            price: 249.00,
+            discount: 0.17 // (~17% off monthly price)
+        },
+        '3': {
+            months: 3,
+            price: 129.00,
+            discount: 0.14 // (~14% off monthly price)
+        },
+        '1': {
+            months: 1,
+            price: 49.99,
+            discount: 0 // No discount for single month
+        }
+    }
+};
+// Update the calculation function to use fixed prices
+var calculateSubscriptionPrice = function (durationInMonths) {
+    var durationKey = durationInMonths.toString();
+    var duration = PRICING.DURATIONS[durationKey] || {
+        months: 1,
+        price: PRICING.BASE_MONTHLY_PRICE,
+        discount: 0
+    };
+    var basePrice = duration.price;
+    var taxes = basePrice * PRICING.TAX_RATE;
+    var monthlyPrice = PRICING.BASE_MONTHLY_PRICE * duration.months;
+    var savings = monthlyPrice - basePrice;
+    return {
+        basePrice: basePrice,
+        taxes: taxes,
+        total: basePrice + taxes,
+        duration: duration.months,
+        savings: savings > 0 ? savings : 0
+    };
+};
 exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
     id: "send-payment-invoice",
     name: "Send Payment Invoice Email",
@@ -111,14 +152,16 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                 case 1:
                     jobData_1 = _e.sent();
                     return [4 /*yield*/, step.run("fetch-payment-data", function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var paymentIntent;
+                            var subscriptionDuration, pricing, paymentIntent;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
                                         if (paymentIntentId_1 === 'manual_creation') {
+                                            subscriptionDuration = parseInt(event.data.subscriptionDuration || '6');
+                                            pricing = calculateSubscriptionPrice(subscriptionDuration);
                                             return [2 /*return*/, {
                                                     id: "manual_" + Date.now(),
-                                                    amount: 24900,
+                                                    amount: Math.round(pricing.total * 100),
                                                     currency: currency_1 || 'usd',
                                                     created: Date.now() / 1000,
                                                     billing_details: {
@@ -131,10 +174,12 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                                         name: jobData_1.company.name || ''
                                                     },
                                                     metadata: {
-                                                        tax_rate: '0.1',
-                                                        subscription_duration: '180',
+                                                        tax_rate: PRICING.TAX_RATE.toString(),
+                                                        subscription_duration: (subscriptionDuration * 30).toString(),
                                                         invoice_number: "INV-" + jobData_1.id + "-" + Date.now(),
-                                                        job_post_id: jobData_1.id
+                                                        job_post_id: jobData_1.id,
+                                                        base_price: pricing.basePrice.toString(),
+                                                        savings: pricing.savings.toString()
                                                     },
                                                     payment_method_details: {
                                                         type: 'manual',
@@ -161,28 +206,26 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                         throw new Error('Failed to fetch payment data');
                     }
                     return [4 /*yield*/, step.run("process-payment-details", function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var basePrice, taxRate, taxes, total, duration;
-                            var _a, _b, _c, _d, _e;
-                            return __generator(this, function (_f) {
-                                basePrice = ((paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.amount) || 0) / 100;
-                                taxRate = parseFloat(((_a = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.metadata) === null || _a === void 0 ? void 0 : _a.tax_rate) || "0.1");
-                                taxes = basePrice * taxRate;
-                                total = basePrice + taxes;
-                                duration = parseInt(((_b = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.metadata) === null || _b === void 0 ? void 0 : _b.subscription_duration) || "180");
+                            var subscriptionDuration, pricing;
+                            var _a, _b, _c, _d;
+                            return __generator(this, function (_e) {
+                                subscriptionDuration = parseInt(((_a = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.metadata) === null || _a === void 0 ? void 0 : _a.subscription_duration) || '180') / 30;
+                                pricing = calculateSubscriptionPrice(subscriptionDuration);
                                 return [2 /*return*/, {
-                                        basePrice: basePrice,
-                                        taxes: taxes,
-                                        total: total,
+                                        basePrice: pricing.basePrice,
+                                        taxes: pricing.taxes,
+                                        total: pricing.total,
                                         currency: ((paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.currency) || 'usd').toUpperCase(),
-                                        duration: Math.floor(duration / 30),
-                                        billingAddress: ((_c = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.billing_details) === null || _c === void 0 ? void 0 : _c.address) || {
+                                        duration: pricing.duration,
+                                        savings: pricing.savings,
+                                        billingAddress: ((_b = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.billing_details) === null || _b === void 0 ? void 0 : _b.address) || {
                                             country: 'US'
                                         },
                                         paymentMethod: {
-                                            type: ((_d = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.payment_method_details) === null || _d === void 0 ? void 0 : _d.type) || 'manual',
+                                            type: ((_c = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.payment_method_details) === null || _c === void 0 ? void 0 : _c.type) || 'manual',
                                             details: (paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.payment_method_details) || { type: 'direct' }
                                         },
-                                        invoiceNumber: ((_e = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.metadata) === null || _e === void 0 ? void 0 : _e.invoice_number) || "INV-" + Date.now(),
+                                        invoiceNumber: ((_d = paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.metadata) === null || _d === void 0 ? void 0 : _d.invoice_number) || "INV-" + Date.now(),
                                         receiptUrl: (paymentData_1 === null || paymentData_1 === void 0 ? void 0 : paymentData_1.receipt_url) || process.env.NEXT_PUBLIC_APP_URL + "/invoices/" + jobId_1
                                     }];
                             });
@@ -190,7 +233,7 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                 case 3:
                     paymentDetails_1 = _e.sent();
                     return [4 /*yield*/, step.run("send-invoice-email", function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var recipientEmail, startDate, endDate, emailComponent;
+                            var recipientEmail, startDate, endDate, planName, emailComponent;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -201,6 +244,7 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                         startDate = new Date(paymentData_1.created * 1000);
                                         endDate = new Date(startDate);
                                         endDate.setDate(startDate.getDate() + (paymentDetails_1.duration * 30));
+                                        planName = paymentDetails_1.duration + " Month Job Posting" + (paymentDetails_1.duration > 1 ? 's' : '');
                                         emailComponent = email_template_1.PaymentInvoiceEmail({
                                             companyName: jobData_1.company.name,
                                             jobTitle: jobData_1.jobTitle,
@@ -220,12 +264,13 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                                 basePrice: paymentDetails_1.basePrice + " " + paymentDetails_1.currency,
                                                 taxes: paymentDetails_1.taxes + " " + paymentDetails_1.currency,
                                                 total: paymentDetails_1.total + " " + paymentDetails_1.currency,
+                                                savings: paymentDetails_1.savings + " " + paymentDetails_1.currency,
                                                 duration: paymentDetails_1.duration + " months",
                                                 invoiceNumber: paymentDetails_1.invoiceNumber,
                                                 billingAddress: paymentDetails_1.billingAddress,
                                                 paymentMethod: paymentDetails_1.paymentMethod,
                                                 subscriptionInfo: {
-                                                    planName: "6 Month Job Posting",
+                                                    planName: planName,
                                                     startDate: date_fns_1.format(startDate, "MMMM dd, yyyy"),
                                                     endDate: date_fns_1.format(endDate, "MMMM dd, yyyy"),
                                                     status: "ACTIVE"
