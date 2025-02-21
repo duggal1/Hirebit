@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FormControl } from "../ui/form";
 import { ControllerRenderProps } from "react-hook-form";
-import { jobListingDurationPricing } from "@/app/utils/pricingTiers";
+import { jobListingDurationPricing } from "@/src/utils/pricingTiers";
 import { Badge } from "@/components/ui/badge";
 
 interface JobListingDurationSelectorProps {

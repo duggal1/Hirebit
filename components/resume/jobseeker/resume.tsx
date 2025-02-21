@@ -31,11 +31,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { submitJobSeekerResume } from "@/app/actions";
+import { cn } from "@/src/lib/utils";
+import { submitJobSeekerResume } from "@/src/app/actions";
 import { v4 as uuidv4 } from "uuid";
-import { useActionState } from "@/lib/useaction";
-import { Progress } from "@/app/_components/ui/progress";
+import { useActionState } from "@/src/lib/useaction";
+import { Progress } from "@/src/app/_components/ui/progress";
 
 // Define a dedicated Zod schema for resume details.
 const resumeFormSchema = z.object({

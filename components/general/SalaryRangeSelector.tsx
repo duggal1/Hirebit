@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 
 import { Control, useController } from "react-hook-form";
-import { formatCurrency } from "@/app/utils/formatCurrency";
+import { formatCurrency } from "@/src/utils/formatCurrency";
 
 interface SalaryRangeSelectorProps {
   control: Control<any>;

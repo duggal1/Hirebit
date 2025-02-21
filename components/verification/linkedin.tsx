@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, MapPin, Activity, User } from "lucide-react";
-import { LinkedInProfile } from "@/types/linkedin";
+import { LinkedInProfile } from "@/src/types/linkedin";
 
 interface LinkedInResultsProps {
   data: LinkedInProfile;

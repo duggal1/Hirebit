@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { jobSeekerSchema } from "@/app/utils/zodSchemas";
+import { jobSeekerSchema } from "@/src/utils/zodSchemas";
 import { useState } from "react";
-import { toast } from "@/app/_components/ui/use-toast";
+import { toast } from "@/src/app/_components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { UploadIcon, PlusCircleIcon, XIcon, Loader2Icon } from "lucide-react";
 import {
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { createJobSeeker, FormState, submitJobSeeker } from "@/app/actions";
+import { createJobSeeker, FormState, submitJobSeeker } from "@/src/app/actions";
 import { FileUpload } from "@/components/general/FileUpload";
 
 export default function JobSeekerForm() {

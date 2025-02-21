@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { trackJobClick } from '@/app/actions';
+import { trackJobClick } from '@/src/app/actions';
 import { useRouter } from 'next/navigation';
 
 interface JobClickTrackerProps {

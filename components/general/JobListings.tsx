@@ -1,4 +1,4 @@
-import { prisma } from "@/app/utils/db";
+import { prisma } from "@/src/utils/db";
 import { EmptyState } from "./EmptyState";
 import { PaginationComponent } from "./PaginationComponent";
 import { JobCard } from "./JobCard";

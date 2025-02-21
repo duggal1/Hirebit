@@ -1,6 +1,6 @@
 "use client";
 
-import { Switch } from "@/app/_components/ui/switch";
+import { Switch } from "@/src/app/_components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 import { Loader2 } from "lucide-react";

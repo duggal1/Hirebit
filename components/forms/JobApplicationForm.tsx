@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { submitJobApplication } from "@/app/actions";
+import { submitJobApplication } from "@/src/app/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 

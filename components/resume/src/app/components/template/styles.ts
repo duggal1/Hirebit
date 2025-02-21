@@ -1,5 +1,5 @@
 import { type TemplateType, type ColorScheme } from "@/components/resume/src/context/TemplateContext";
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/lib/utils";
 
 interface StyleConfig {
   container: string;

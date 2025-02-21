@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useSectionOrder } from "@/components/resume/src/context/SectionOrderContext";
 // Removed useTemplate as custom colorScheme is no longer used.
 import { loadFromLocalStorage } from "@/components/resume/src/lib/localStorage";
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/lib/utils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Download } from "lucide-react";

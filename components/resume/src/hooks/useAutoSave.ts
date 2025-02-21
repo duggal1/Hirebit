@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/src/hooks/use-toast";
 import { useDebouncedCallback } from "use-debounce";
 import { saveToLocalStorage } from "@/components/resume/src//lib/localStorage";
 import { ResumeData } from "@/components/resume/src//app/schemas/resume";

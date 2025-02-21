@@ -3,7 +3,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getJobMetrics } from "@/app/actions";
+import { getJobMetrics } from "@/src/app/actions";
 
 type JobMetricsProps = {
   jobId: string;

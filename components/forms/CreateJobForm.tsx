@@ -1,6 +1,6 @@
 "use client";
 
-import { countryList } from "@/app/utils/countriesList";
+import { countryList } from "@/src/utils/countriesList";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
   Form,
@@ -30,12 +30,12 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { jobSchema } from "@/app/utils/zodSchemas";
+import { jobSchema } from "@/src/utils/zodSchemas";
 import { SalaryRangeSelector } from "../general/SalaryRangeSelector";
 import JobDescriptionEditor from "../richTextEditor/JobDescriptionEditor";
 import BenefitsSelector from "../general/BenefitsSelector";
 import { JobListingDurationSelector } from "../general/JobListingDurationSelector";
-import { createJob } from "@/app/actions";
+import { createJob } from "@/src/app/actions";
 import { PaymentModal } from "../stripe/payment-modal";
 
 interface CreateJobFormProps {

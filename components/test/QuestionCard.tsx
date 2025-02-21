@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/lib/utils";
 
 interface QuestionCardProps {
   question: any;

@@ -4,7 +4,7 @@
 import { useResume } from '@/app/context/resumecontext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ResumeSchema } from '@/lib/resume-validator';
+import { ResumeSchema } from '@/src/lib/resume-validator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

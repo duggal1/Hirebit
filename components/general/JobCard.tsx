@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Card, CardHeader } from "../ui/card";
 import { MapPin, User2 } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { formatCurrency } from "@/app/utils/formatCurrency";
+import { formatCurrency } from "@/src/utils/formatCurrency";
 import Image from "next/image";
-import { formatRelativeTime } from "@/app/utils/formatRelativeTime";
+import { formatRelativeTime } from "@/src/utils/formatRelativeTime";
 
 interface iAppProps {
   job: {

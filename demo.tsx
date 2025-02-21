@@ -18,9 +18,9 @@ import Image from "next/image";
 import { XIcon } from "lucide-react";
 
 import { toast } from "sonner";
-import { companySchema } from "@/app/utils/zodSchemas";
+import { companySchema } from "@/src/utils/zodSchemas";
 import { useState } from "react";
-import { createCompany } from "@/app/actions";
+import { createCompany } from "@/src/app/actions";
 
 import {
   Select,
@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { countryList } from "@/app/utils/countriesList";
+import { countryList } from "@/src/utils/countriesList";
 import { UploadDropzone } from "@/components/general/UploadThingReExport";
 
 export default function CompanyForm() {

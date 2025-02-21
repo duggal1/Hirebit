@@ -1,7 +1,7 @@
-import { isVerified } from '@/services/githubVerification';
-import { verifyPortfolio } from '@/services/isverificationportfoliio';
-import { validateLinkedInProfile } from '@/services/linkdln';
-import { PortfolioInsights } from '@/services/portfolioService';
+import { isVerified } from '@/src/services/githubVerification';
+import { verifyPortfolio } from '@/src/services/isverificationportfoliio';
+import { validateLinkedInProfile } from '@/src/services/linkdln';
+import { PortfolioInsights } from '@/src/services/portfolioService';
 import { useState, useEffect } from 'react';
 
 interface VerificationStatusProps {

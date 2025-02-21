@@ -19,7 +19,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { Checkbox } from "../ui/checkbox";
-import { countryList } from "@/app/utils/countriesList";
+import { countryList } from "@/src/utils/countriesList";
 import { Separator } from "../ui/separator";
 import { Input } from "@/components/ui/input";
 

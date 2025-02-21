@@ -5,7 +5,7 @@ import { Wand2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { useResume } from '@/app/context/resumecontext';
-import { generateResumeContent } from "@/lib/gemini";
+import { generateResumeContent } from "@/src/lib/gemini";
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';

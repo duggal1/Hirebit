@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { projectItemSchema, type ProjectItem } from "@/components/resume/src/app/schemas/resume";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import { Switch } from "@/app/_components/ui/switch";
+import { Switch } from "@/src/app/_components/ui/switch";
 
 interface ProjectDialogProps {
   open: boolean;

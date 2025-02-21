@@ -26,8 +26,8 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
 import { GripVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Switch } from "@/app/_components/ui/switch";
+import { cn } from "@/src/lib/utils";
+import { Switch } from "@/src/app/_components/ui/switch";
 
 interface SortableItemProps {
   id: string;
