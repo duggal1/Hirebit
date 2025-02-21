@@ -21,8 +21,10 @@ export const companySchema = z.object({
 
 export const jobSeekerSchema = z.object({
   name: z.string().min(2),
+  resume: z.string().min(1, "Please upload your CV"),
+  resumeFileName: z.string().optional(),
+  resumeUploadedAt: z.date().optional(),
   about: z.string().min(50),
-  resume: z.string().url(),
   location: z.string().min(2),
   expectedSalaryMin: z.number().min(0).nullable(),
   expectedSalaryMax: z.number().min(0).nullable(),

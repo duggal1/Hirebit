@@ -92,25 +92,3 @@ export function FileUpload({ onChange, value, disabled, className, children }: F
     </div>
   );
 }
-
-// Add this to your global CSS
-const styles = `
-@keyframes gradient {
-  0%, 100% { background-position: 0% 50%; opacity: 0.5; }
-  50% { background-position: 100% 50%; opacity: 0.8; }
-}
-
-.animate-gradient {
-  background-size: 400% 400%;
-  animation: gradient 8s ease infinite;
-}
-
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 0.4; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-`;

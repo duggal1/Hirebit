@@ -495,7 +495,7 @@ export async function submitJobApplication(jobId: string, formData: FormData) {
       jobSeekerId: jobSeeker.id,
       jobId,
       coverLetter: formData.get("coverLetter") as string,
-      resume: jobSeeker.resume,
+      resume: jobSeeker.resume|| '',
       status: "PENDING",
     }
   });
@@ -622,7 +622,7 @@ export async function submitTest(
         (score >= 70 ? 'ACCEPTED' : 'REJECTED') : 'REJECTED',
       aiScore: score,
       answers: data.code ? { code: data.code } : undefined,
-      resume: jobSeeker.resume
+      resume: jobSeeker.resume || '', // Provide empty string as fallback
     }
   });
 
@@ -712,11 +712,12 @@ export const submitJobSeeker = async (
       education: formData.get('education')
         ? JSON.parse(formData.get('education') as string)
         : [],
+        resume: formData.get('resume'),
       name: formData.get('name') as string,
       phoneNumber: formData.get('phoneNumber') || "",
       jobId: formData.get('jobId') || "",
       about: formData.get('about') as string,
-      resume: formData.get('resume') as string,
+     
       location: formData.get('location') as string,
       skills: formData.get('skills') ? JSON.parse(formData.get('skills') as string) : [],
       experience: Number(formData.get('experience')) || 0,
@@ -754,8 +755,11 @@ export const submitJobSeeker = async (
     const jobSeeker = await prisma.jobSeeker.create({
       data: {
         name: validatedData.name,
+        resume: validatedData.resume || undefined, // Convert null to undefined for Prisma
+        resumeFileName: validatedData.resume ? "CV.pdf" : undefined,
+        resumeUploadedAt: validatedData.resume ? new Date() : undefined,
         about: validatedData.about,
-        resume: validatedData.resume,
+     
         location: validatedData.location,
         skills: validatedData.skills,
         experience: validatedData.experience,
@@ -788,13 +792,13 @@ export const submitJobSeeker = async (
     });
 
     // Create job application if jobId is provided
-    if (validatedData.jobId) {
+    if (validatedData.jobId && validatedData.resume) {
       await prisma.jobApplication.create({
         data: {
           jobSeekerId: jobSeeker.id,
           jobId: validatedData.jobId,
           status: "PENDING",
-          resume: validatedData.resume
+          resume: validatedData.resume // Now this will always be a string
         }
       });
     }
@@ -813,7 +817,51 @@ export const submitJobSeeker = async (
   }
 };
 
+export const updateJobSeekerCV = async (
+  prevState: FormState,
+  formData: FormData
+) => {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { 
+        message: "You must be logged in to update your CV", 
+        success: false 
+      };
+    }
 
+    const cvUrl = formData.get('resume') as string;
+    if (!cvUrl) {
+      return {
+        message: "No CV file provided",
+        success: false
+      };
+    }
+
+    // Update the JobSeeker record with new CV
+    await prisma.jobSeeker.update({
+      where: {
+        userId: session.user.id
+      },
+      data: {
+        resume: cvUrl,
+        resumeUploadedAt: new Date(),
+        resumeFileName: "CV.pdf" // You can get the actual filename if needed
+      }
+    });
+
+    return {
+      message: "CV updated successfully!",
+      success: true
+    };
+  } catch (error) {
+    console.error('Error updating CV:', error);
+    return {
+      message: error instanceof Error ? error.message : 'Failed to update CV',
+      success: false
+    };
+  }
+};
 
 
 

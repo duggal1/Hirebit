@@ -29,6 +29,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { createJobSeeker, FormState, submitJobSeeker } from "@/app/actions";
+import { FileUpload } from "@/components/general/FileUpload";
 
 export default function JobSeekerForm() {
   const router = useRouter();
@@ -100,6 +101,8 @@ export default function JobSeekerForm() {
   });
 
   const [pending, setPending] = useState(false);
+  const [disabled, setDisabled] = useState<boolean>(false);
+
   const [currentSkill, setCurrentSkill] = useState("");
 
   async function onSubmit(values: z.infer<typeof jobSeekerSchema>) {
@@ -340,14 +343,29 @@ export default function JobSeekerForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Resume URL</FormLabel>
-                <FormControl>
-                  <div className="flex gap-2">
-                    <Input {...field} placeholder="https://..." />
-                    <Button type="button" variant="outline" size="icon">
-                        <UploadIcon className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </FormControl>
+              
+<FormField
+  control={form.control}
+  name="resume"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Upload CV</FormLabel>
+      <FormControl>
+      <FileUpload
+  onChange={field.onChange}
+  value={field.value}
+  disabled={pending}
+  className="w-full"
+>
+          <p>Drag and drop your CV here or click to upload</p>
+          <p className="text-sm text-slate-400">Supports PDF files</p>
+        </FileUpload>
+      </FormControl>
+      <FormDescription>Upload your CV in PDF format</FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
                 <FormMessage />
               </FormItem>
             )}

@@ -35,10 +35,11 @@ export default function OnboardingForm() {
   return (
     <>
       <div className="flex items-center gap-3 mb-10">
-        <Image src={Logo} alt="JobMarshal Logo" width={50} height={50} />
-        <span className="text-4xl font-bold">
-          Job<span className="text-primary">Marshal</span>
-        </span>
+        <Image src={Logo} alt="JobMarshal Logo" width={80} height={80} />
+        <div className="text-6xl text-white font-black">
+            Hire
+            <span className="text-blue-600">bit</span>
+          </div>
       </div>
       <Card className="w-full max-w-lg">
         <CardContent className="p-6">{renderStep()}</CardContent>

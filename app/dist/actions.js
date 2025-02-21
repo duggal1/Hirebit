@@ -59,7 +59,7 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 exports.__esModule = true;
-exports.submitJobSeekerResume = exports.submitJobSeeker = exports.getJobMetrics = exports.trackJobClick = exports.trackJobView = exports.submitTest = exports.submitJobApplication = exports.getActiveJobs = exports.unsaveJobPost = exports.saveJobPost = exports.deleteJobPost = exports.updateJobPost = exports.handlePaymentSuccess = exports.createPaymentIntent = exports.createJob = exports.createJobSeeker = exports.createCompany = void 0;
+exports.submitJobSeekerResume = exports.updateJobSeekerCV = exports.submitJobSeeker = exports.getJobMetrics = exports.trackJobClick = exports.trackJobView = exports.submitTest = exports.submitJobApplication = exports.getActiveJobs = exports.unsaveJobPost = exports.saveJobPost = exports.deleteJobPost = exports.updateJobPost = exports.handlePaymentSuccess = exports.createPaymentIntent = exports.createJob = exports.createJobSeeker = exports.createCompany = void 0;
 var zod_1 = require("zod");
 var hooks_1 = require("./utils/hooks");
 var db_1 = require("./utils/db");
@@ -645,7 +645,7 @@ function submitJobApplication(jobId, formData) {
                                 jobSeekerId: jobSeeker.id,
                                 jobId: jobId,
                                 coverLetter: formData.get("coverLetter"),
-                                resume: jobSeeker.resume,
+                                resume: jobSeeker.resume || '',
                                 status: "PENDING"
                             }
                         })];
@@ -761,7 +761,7 @@ function submitTest(jobId, data) {
                                 (score >= 70 ? 'ACCEPTED' : 'REJECTED') : 'REJECTED',
                             aiScore: score,
                             answers: data.code ? { code: data.code } : undefined,
-                            resume: jobSeeker.resume
+                            resume: jobSeeker.resume || ''
                         }
                     })];
                 case 9:
@@ -884,11 +884,11 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     education: formData.get('education')
                         ? JSON.parse(formData.get('education'))
                         : [],
+                    resume: formData.get('resume'),
                     name: formData.get('name'),
                     phoneNumber: formData.get('phoneNumber') || "",
                     jobId: formData.get('jobId') || "",
                     about: formData.get('about'),
-                    resume: formData.get('resume'),
                     location: formData.get('location'),
                     skills: formData.get('skills') ? JSON.parse(formData.get('skills')) : [],
                     experience: Number(formData.get('experience')) || 0,
@@ -924,8 +924,10 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                 return [4 /*yield*/, db_1.prisma.jobSeeker.create({
                         data: {
                             name: validatedData.name,
+                            resume: validatedData.resume || undefined,
+                            resumeFileName: validatedData.resume ? "CV.pdf" : undefined,
+                            resumeUploadedAt: validatedData.resume ? new Date() : undefined,
                             about: validatedData.about,
-                            resume: validatedData.resume,
                             location: validatedData.location,
                             skills: validatedData.skills,
                             experience: validatedData.experience,
@@ -958,13 +960,13 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     })];
             case 2:
                 jobSeeker = _b.sent();
-                if (!validatedData.jobId) return [3 /*break*/, 4];
+                if (!(validatedData.jobId && validatedData.resume)) return [3 /*break*/, 4];
                 return [4 /*yield*/, db_1.prisma.jobApplication.create({
                         data: {
                             jobSeekerId: jobSeeker.id,
                             jobId: validatedData.jobId,
                             status: "PENDING",
-                            resume: validatedData.resume
+                            resume: validatedData.resume // Now this will always be a string
                         }
                     })];
             case 3:
@@ -986,9 +988,61 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
         }
     });
 }); };
+exports.updateJobSeekerCV = function (prevState, formData) { return __awaiter(void 0, void 0, void 0, function () {
+    var session, cvUrl, error_8;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _b.trys.push([0, 3, , 4]);
+                return [4 /*yield*/, auth_1.auth()];
+            case 1:
+                session = _b.sent();
+                if (!((_a = session === null || session === void 0 ? void 0 : session.user) === null || _a === void 0 ? void 0 : _a.id)) {
+                    return [2 /*return*/, {
+                            message: "You must be logged in to update your CV",
+                            success: false
+                        }];
+                }
+                cvUrl = formData.get('resume');
+                if (!cvUrl) {
+                    return [2 /*return*/, {
+                            message: "No CV file provided",
+                            success: false
+                        }];
+                }
+                // Update the JobSeeker record with new CV
+                return [4 /*yield*/, db_1.prisma.jobSeeker.update({
+                        where: {
+                            userId: session.user.id
+                        },
+                        data: {
+                            resume: cvUrl,
+                            resumeUploadedAt: new Date(),
+                            resumeFileName: "CV.pdf" // You can get the actual filename if needed
+                        }
+                    })];
+            case 2:
+                // Update the JobSeeker record with new CV
+                _b.sent();
+                return [2 /*return*/, {
+                        message: "CV updated successfully!",
+                        success: true
+                    }];
+            case 3:
+                error_8 = _b.sent();
+                console.error('Error updating CV:', error_8);
+                return [2 /*return*/, {
+                        message: error_8 instanceof Error ? error_8.message : 'Failed to update CV',
+                        success: false
+                    }];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); };
 exports.submitJobSeekerResume = function (prevState, // new first parameter (can be ignored if not needed)
 formData) { return __awaiter(void 0, void 0, Promise, function () {
-    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_8;
+    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_9;
     var _a, _b, _c, _d;
     return __generator(this, function (_e) {
         switch (_e.label) {
@@ -1030,8 +1084,8 @@ formData) { return __awaiter(void 0, void 0, Promise, function () {
                 _e.sent();
                 return [3 /*break*/, 6];
             case 5:
-                error_8 = _e.sent();
-                console.error("Error creating JobSeekerResume:", error_8);
+                error_9 = _e.sent();
+                console.error("Error creating JobSeekerResume:", error_9);
                 throw new Error("Failed to create resume record.");
             case 6: 
             // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.

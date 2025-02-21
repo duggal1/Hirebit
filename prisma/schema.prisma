@@ -215,10 +215,13 @@ model JobSeeker {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-  email           String          @unique // Essential for communication
-  currentJobTitle String? // Latest job title for quick assessment
-  industry        String // Primary industry of expertise
-  jobSearchStatus JobSearchStatus @default(OPEN_TO_OFFERS)
+  email            String          @unique
+  resume           String?
+  resumeFileName   String?
+  resumeUploadedAt DateTime?
+  currentJobTitle  String? // Latest job title for quick assessment
+  industry         String // Primary industry of expertise
+  jobSearchStatus  JobSearchStatus @default(OPEN_TO_OFFERS)
 
   expectedSalaryMin  Int?
   expectedSalaryMax  Int?
@@ -234,9 +237,9 @@ model JobSeeker {
   desiredEmployment String // "Full-time" | "Part-time" | "Contract"
   name              String
   about             String
-  resume            String   @db.VarChar(2048) // Increased length for URLs
-  skills            String[]
-  experience        Int
+
+  skills     String[]
+  experience Int
 
   previousJobExperience Json? // Array of previous job experience objects
 
@@ -461,7 +464,7 @@ model SavedJobPost {
 
 model JobApplication {
   id String @id @default(uuid())
-
+  resume      String 
   // Job Seeker relation
   jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
   jobSeekerId String
@@ -478,7 +481,7 @@ model JobApplication {
 
   status       ApplicationStatus @default(PENDING)
   coverLetter  String?
-  resume       String
+ 
   includeLinks Boolean           @default(false)
   answers      Json?
   aiScore      Int?

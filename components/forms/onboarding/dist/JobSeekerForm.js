@@ -69,6 +69,7 @@ var select_1 = require("@/components/ui/select");
 var navigation_1 = require("next/navigation");
 var card_1 = require("@/components/ui/card");
 var actions_1 = require("@/app/actions");
+var FileUpload_1 = require("@/components/general/FileUpload");
 function JobSeekerForm() {
     var router = navigation_1.useRouter();
     var form = react_hook_form_1.useForm({
@@ -102,10 +103,13 @@ function JobSeekerForm() {
             linkedin: "",
             github: "",
             portfolio: "",
-            // NEW FIELDS: Added new default values
             availableFrom: "",
             previousJobExperience: "",
-            willingToRelocate: false
+            willingToRelocate: false,
+            email: "",
+            currentJobTitle: "",
+            industry: "",
+            jobSearchStatus: "OPEN_TO_OFFERS"
         }
     });
     var _a = react_hook_form_1.useFieldArray({
@@ -124,7 +128,8 @@ function JobSeekerForm() {
         isDirty: form.formState.isDirty
     });
     var _c = react_1.useState(false), pending = _c[0], setPending = _c[1];
-    var _d = react_1.useState(""), currentSkill = _d[0], setCurrentSkill = _d[1];
+    var _d = react_1.useState(false), disabled = _d[0], setDisabled = _d[1];
+    var _e = react_1.useState(""), currentSkill = _e[0], setCurrentSkill = _e[1];
     function onSubmit(values) {
         return __awaiter(this, void 0, void 0, function () {
             var formData_1, result_1, error_1;
@@ -200,12 +205,54 @@ function JobSeekerForm() {
                 })))),
             React.createElement("div", { className: "space-y-4" },
                 React.createElement("h2", { className: "font-semibold text-xl" }, "Basic Information"),
+                React.createElement(form_1.FormField, { control: form.control, name: "email", render: function (_a) {
+                        var field = _a.field;
+                        return (React.createElement(form_1.FormItem, null,
+                            React.createElement(form_1.FormLabel, null, "Email Address"),
+                            React.createElement(form_1.FormControl, null,
+                                React.createElement(input_1.Input, __assign({ type: "email", placeholder: "your@email.com" }, field))),
+                            React.createElement(form_1.FormDescription, null, "Your primary contact email"),
+                            React.createElement(form_1.FormMessage, null)));
+                    } }),
                 React.createElement(form_1.FormField, { control: form.control, name: "name", render: function (_a) {
                         var field = _a.field;
                         return (React.createElement(form_1.FormItem, null,
                             React.createElement(form_1.FormLabel, null, "Full Name"),
                             React.createElement(form_1.FormControl, null,
                                 React.createElement(input_1.Input, __assign({ placeholder: "John Doe" }, field))),
+                            React.createElement(form_1.FormMessage, null)));
+                    } }),
+                React.createElement(form_1.FormField, { control: form.control, name: "currentJobTitle", render: function (_a) {
+                        var field = _a.field;
+                        return (React.createElement(form_1.FormItem, null,
+                            React.createElement(form_1.FormLabel, null, "Current Job Title"),
+                            React.createElement(form_1.FormControl, null,
+                                React.createElement(input_1.Input, __assign({ placeholder: "Software Engineer" }, field, { value: field.value || "" }))),
+                            React.createElement(form_1.FormDescription, null, "Your current or most recent job title"),
+                            React.createElement(form_1.FormMessage, null)));
+                    } }),
+                React.createElement(form_1.FormField, { control: form.control, name: "industry", render: function (_a) {
+                        var field = _a.field;
+                        return (React.createElement(form_1.FormItem, null,
+                            React.createElement(form_1.FormLabel, null, "Industry"),
+                            React.createElement(form_1.FormControl, null,
+                                React.createElement(input_1.Input, __assign({ placeholder: "Technology" }, field))),
+                            React.createElement(form_1.FormDescription, null, "Your primary industry of expertise"),
+                            React.createElement(form_1.FormMessage, null)));
+                    } }),
+                React.createElement(form_1.FormField, { control: form.control, name: "jobSearchStatus", render: function (_a) {
+                        var field = _a.field;
+                        return (React.createElement(form_1.FormItem, null,
+                            React.createElement(form_1.FormLabel, null, "Job Search Status"),
+                            React.createElement(select_1.Select, { onValueChange: field.onChange, defaultValue: field.value },
+                                React.createElement(form_1.FormControl, null,
+                                    React.createElement(select_1.SelectTrigger, null,
+                                        React.createElement(select_1.SelectValue, { placeholder: "Select your job search status" }))),
+                                React.createElement(select_1.SelectContent, null,
+                                    React.createElement(select_1.SelectItem, { value: "ACTIVELY_LOOKING" }, "Actively Looking"),
+                                    React.createElement(select_1.SelectItem, { value: "OPEN_TO_OFFERS" }, "Open to Offers"),
+                                    React.createElement(select_1.SelectItem, { value: "NOT_LOOKING" }, "Not Looking"))),
+                            React.createElement(form_1.FormDescription, null, "Let employers know your current job search status"),
                             React.createElement(form_1.FormMessage, null)));
                     } }),
                 React.createElement(form_1.FormField, { control: form.control, name: "about", render: function (_a) {
@@ -247,11 +294,17 @@ function JobSeekerForm() {
                         var field = _a.field;
                         return (React.createElement(form_1.FormItem, null,
                             React.createElement(form_1.FormLabel, null, "Resume URL"),
-                            React.createElement(form_1.FormControl, null,
-                                React.createElement("div", { className: "flex gap-2" },
-                                    React.createElement(input_1.Input, __assign({}, field, { placeholder: "https://..." })),
-                                    React.createElement(button_1.Button, { type: "button", variant: "outline", size: "icon" },
-                                        React.createElement(lucide_react_1.Upload, { className: "w-4 h-4" })))),
+                            React.createElement(form_1.FormField, { control: form.control, name: "resume", render: function (_a) {
+                                    var field = _a.field;
+                                    return (React.createElement(form_1.FormItem, null,
+                                        React.createElement(form_1.FormLabel, null, "Upload CV"),
+                                        React.createElement(form_1.FormControl, null,
+                                            React.createElement(FileUpload_1.FileUpload, { onChange: field.onChange, value: field.value, disabled: pending, className: "w-full" },
+                                                React.createElement("p", null, "Drag and drop your CV here or click to upload"),
+                                                React.createElement("p", { className: "text-sm text-slate-400" }, "Supports PDF files"))),
+                                        React.createElement(form_1.FormDescription, null, "Upload your CV in PDF format"),
+                                        React.createElement(form_1.FormMessage, null)));
+                                } }),
                             React.createElement(form_1.FormMessage, null)));
                     } })),
             React.createElement("div", { className: "space-y-4" },
@@ -310,7 +363,7 @@ function JobSeekerForm() {
                                                 newSkills.splice(index, 1);
                                                 field.onChange(newSkills);
                                             } },
-                                            React.createElement(lucide_react_1.X, { className: "w-3 h-3" })))); })),
+                                            React.createElement(lucide_react_1.XIcon, { className: "w-3 h-3" })))); })),
                                     React.createElement("div", { className: "flex gap-2" },
                                         React.createElement(input_1.Input, { placeholder: "Add a skill", value: currentSkill, onChange: function (e) { return setCurrentSkill(e.target.value); }, onKeyPress: function (e) {
                                                 if (e.key === "Enter") {
@@ -340,7 +393,7 @@ function JobSeekerForm() {
                                     url: ""
                                 });
                             } },
-                            React.createElement(lucide_react_1.PlusCircle, { className: "mr-2 w-4 h-4" }),
+                            React.createElement(lucide_react_1.PlusCircleIcon, { className: "mr-2 w-4 h-4" }),
                             "Add Certification")),
                     certFields.map(function (field, index) { return (React.createElement(card_1.Card, { key: field.id },
                         React.createElement(card_1.CardContent, { className: "pt-6" },
@@ -380,7 +433,7 @@ function JobSeekerForm() {
                                             React.createElement(form_1.FormMessage, null)));
                                     } })),
                             React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "sm", className: "mt-2", onClick: function () { return removeCert(index); } },
-                                React.createElement(lucide_react_1.X, { className: "mr-2 w-4 h-4" }),
+                                React.createElement(lucide_react_1.XIcon, { className: "mr-2 w-4 h-4" }),
                                 "Remove")))); }))),
             React.createElement("div", { className: "space-y-4" },
                 React.createElement("div", { className: "flex justify-between items-center" },
@@ -393,7 +446,7 @@ function JobSeekerForm() {
                                 fieldOfStudy: ""
                             });
                         } },
-                        React.createElement(lucide_react_1.PlusCircle, { className: "mr-2 w-4 h-4" }),
+                        React.createElement(lucide_react_1.PlusCircleIcon, { className: "mr-2 w-4 h-4" }),
                         "Add Education")),
                 educationFields.map(function (field, index) { return (React.createElement(card_1.Card, { key: field.id },
                     React.createElement(card_1.CardContent, { className: "pt-6" },
@@ -433,7 +486,7 @@ function JobSeekerForm() {
                                         React.createElement(form_1.FormMessage, null)));
                                 } })),
                         React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "sm", className: "mt-2", onClick: function () { return removeEducation(index); } },
-                            React.createElement(lucide_react_1.X, { className: "mr-2 w-4 h-4" }),
+                            React.createElement(lucide_react_1.XIcon, { className: "mr-2 w-4 h-4" }),
                             "Remove")))); })),
             React.createElement("div", { className: "space-y-4" },
                 React.createElement("h2", { className: "font-semibold text-xl" }, "Employment Preferences"),
@@ -514,7 +567,7 @@ function JobSeekerForm() {
                             React.createElement(form_1.FormMessage, null)));
                     } })),
             React.createElement(button_1.Button, { type: "submit", disabled: pending, className: "w-full" }, pending ? (React.createElement(React.Fragment, null,
-                React.createElement(lucide_react_1.Loader2, { className: "mr-2 w-4 h-4 animate-spin" }),
+                React.createElement(lucide_react_1.Loader2Icon, { className: "mr-2 w-4 h-4 animate-spin" }),
                 "Submitting...")) : ("Submit")))));
 }
 exports["default"] = JobSeekerForm;

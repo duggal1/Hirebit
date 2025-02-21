@@ -21,8 +21,10 @@ exports.companySchema = zod_1.z.object({
 });
 exports.jobSeekerSchema = zod_1.z.object({
     name: zod_1.z.string().min(2),
+    resume: zod_1.z.string().min(1, "Please upload your CV"),
+    resumeFileName: zod_1.z.string().optional(),
+    resumeUploadedAt: zod_1.z.date().optional(),
     about: zod_1.z.string().min(50),
-    resume: zod_1.z.string().url(),
     location: zod_1.z.string().min(2),
     expectedSalaryMin: zod_1.z.number().min(0).nullable(),
     expectedSalaryMax: zod_1.z.number().min(0).nullable(),
@@ -57,7 +59,7 @@ exports.jobSeekerSchema = zod_1.z.object({
     email: zod_1.z.string().email("Invalid email format"),
     currentJobTitle: zod_1.z.string().min(2).optional().nullable(),
     industry: zod_1.z.string().min(2),
-    jobSearchStatus: zod_1.z["enum"](["Actively looking", "Open to offers", "Not looking"])
+    jobSearchStatus: zod_1.z["enum"](["ACTIVELY_LOOKING", "OPEN_TO_OFFERS", "NOT_LOOKING"])
 });
 exports.jobSchema = zod_1.z.object({
     jobTitle: zod_1.z.string().min(2, "Job title must be at least 2 characters"),

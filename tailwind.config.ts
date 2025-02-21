@@ -58,6 +58,10 @@ export default withUt({
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // Adding a custom gradient utility that can be used as "bg-grainet-to-r"
+      backgroundImage: {
+        "grainet-to-r": "linear-gradient(to right, var(--tw-gradient-stops))",
+      },
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
