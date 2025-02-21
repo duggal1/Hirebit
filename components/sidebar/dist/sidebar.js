@@ -40,7 +40,7 @@ exports.__esModule = true;
 var react_1 = require("react");
 var framer_motion_1 = require("framer-motion");
 var link_1 = require("next/link");
-var image_1 = require("next/image"); // Added Image import
+var image_1 = require("next/image");
 var navigation_1 = require("next/navigation");
 var react_2 = require("next-auth/react");
 var react_query_1 = require("@tanstack/react-query");
@@ -132,22 +132,22 @@ function Sidebar() {
                         react_1["default"].createElement(link_1["default"], { href: "/", className: "flex flex-col items-center gap-2 self-center" },
                             react_1["default"].createElement(image_1["default"], { src: "/logo.png", alt: "Logo", width: 150, height: 100, className: "h-30 w-30" })))),
                 react_1["default"].createElement(framer_motion_1.AnimatePresence, null, isExpanded && (react_1["default"].createElement(framer_motion_1.motion.div, { initial: { opacity: 0, x: -10 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -10 }, transition: { duration: 0.4 }, className: "flex flex-col" },
-                    react_1["default"].createElement(framer_motion_1.motion.span, { className: "text-white/90 text-sm font-light tracking-[0.2em]", initial: { opacity: 0, y: -5 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.1 } }, "HIREBIT"),
-                    react_1["default"].createElement(framer_motion_1.motion.span, { className: "text-[10px] text-white/50 uppercase tracking-[0.3em]", initial: { opacity: 0, y: 5 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.2 } }, "Enterprise")))))),
+                    react_1["default"].createElement(framer_motion_1.motion.span, { className: "text-white/90 text-sm font-bold tracking-[0.2em]", initial: { opacity: 0, y: -5 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.1 } }, "HIREBIT"),
+                    react_1["default"].createElement(framer_motion_1.motion.span, { className: "text-[10px] text-white/50 uppercase tracking-[0.3em] font-bold", initial: { opacity: 0, y: 5 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.2 } }, "Enterprise")))))),
         react_1["default"].createElement(framer_motion_1.AnimatePresence, null, isExpanded && (react_1["default"].createElement(framer_motion_1.motion.div, { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 10 }, transition: { duration: 0.4 }, className: "px-6 mb-8" },
             react_1["default"].createElement("div", { className: "relative group" },
                 react_1["default"].createElement("div", { className: "absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-purple-500/0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-500" }),
                 react_1["default"].createElement("div", { className: "absolute inset-0 bg-white/5 rounded-xl backdrop-blur-md border border-white/10 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-top" }),
                 react_1["default"].createElement(lucide_react_1.Search, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors duration-300" }),
-                react_1["default"].createElement("input", { type: "text", placeholder: "Search...", className: "w-full h-10 bg-white/5 rounded-xl pl-10 pr-4 text-sm text-white/80 placeholder-white/30 border border-white/10 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300" }))))),
+                react_1["default"].createElement("input", { type: "text", placeholder: "Search...", className: "w-full h-10 bg-white/5 rounded-xl pl-10 pr-4 text-sm font-bold text-white/80 placeholder-white/30 border border-white/10 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300" }))))),
         react_1["default"].createElement("nav", { className: "relative px-4 py-2 space-y-2" }, menuItems.map(function (item) {
             var isActive = pathname === item.link;
             var isHovered = hoveredItem === item.id;
             var Icon = item.icon;
             return (react_1["default"].createElement(link_1["default"], { href: item.link, key: item.id },
                 react_1["default"].createElement(framer_motion_1.motion.div, { onHoverStart: function () { return setHoveredItem(item.id); }, onHoverEnd: function () { return setHoveredItem(null); }, className: "\n                  relative flex items-center gap-4 px-4 py-3 rounded-xl\n                  transition-all duration-300 cursor-pointer group\n                  " + (isActive
-                        ? "bg-white/10 text-white/90 border border-white/10"
-                        : "text-white/50 hover:text-white/90") + "\n                ", whileHover: { x: 4, scale: 1.02 }, transition: { duration: 0.3 } },
+                        ? "bg-white/10 text-white/90 border border-white/10 shadow-lg"
+                        : "text-white/50 hover:text-white/90 hover:shadow-md") + "\n                ", whileHover: { x: 4, scale: 1.02 }, transition: { duration: 0.3 } },
                     react_1["default"].createElement(framer_motion_1.motion.div, { className: "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300", style: {
                             background: "linear-gradient(45deg, rgba(59,130,246,0.1), rgba(147,51,234,0.1))"
                         } }),
@@ -155,9 +155,10 @@ function Sidebar() {
                         react_1["default"].createElement("div", { className: "w-full h-full bg-gradient-to-b from-blue-500 via-purple-500 to-blue-500 rounded-full blur-sm" }),
                         react_1["default"].createElement("div", { className: "absolute inset-0 bg-gradient-to-b from-blue-400 via-purple-400 to-blue-400 rounded-full animate-pulse" }))),
                     react_1["default"].createElement(framer_motion_1.motion.div, { whileHover: { scale: 1.1, rotate: 5 }, transition: { type: "spring", stiffness: 400, damping: 10 }, className: "relative w-6 h-6 flex items-center justify-center" },
-                        react_1["default"].createElement(Icon, { className: "w-4 h-4 relative z-10" }),
+                        react_1["default"].createElement("span", { className: "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent" },
+                            react_1["default"].createElement(Icon, { className: "w-4 h-4 relative z-10" })),
                         isActive && (react_1["default"].createElement(framer_motion_1.motion.div, { initial: { scale: 0 }, animate: { scale: 1 }, className: "absolute inset-0 bg-blue-500/20 blur-md rounded-full" }))),
-                    react_1["default"].createElement(framer_motion_1.AnimatePresence, null, isExpanded && (react_1["default"].createElement(framer_motion_1.motion.span, { initial: { opacity: 0, x: -6 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -6 }, className: "text-xs tracking-wider font-light" }, item.label.toUpperCase()))),
+                    react_1["default"].createElement(framer_motion_1.AnimatePresence, null, isExpanded && (react_1["default"].createElement(framer_motion_1.motion.span, { initial: { opacity: 0, x: -6 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -6 }, className: "text-xs tracking-wider font-bold" }, item.label.toUpperCase()))),
                     react_1["default"].createElement(framer_motion_1.AnimatePresence, null, isHovered && isExpanded && (react_1["default"].createElement(framer_motion_1.motion.div, { initial: { opacity: 0, scale: 0.8, x: -4 }, animate: { opacity: 1, scale: 1, x: 0 }, exit: { opacity: 0, scale: 0.8, x: -4 }, transition: { duration: 0.2 }, className: "ml-auto" },
                         react_1["default"].createElement(lucide_react_1.ChevronRight, { className: "w-4 h-4 text-white/50" })))))));
         }))));

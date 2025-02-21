@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useRouter, useParams } from "next/navigation";
 import { JSX, useEffect, useState } from "react";
@@ -16,9 +16,8 @@ import {
   SectionOrderProvider,
   useSectionOrder,
 } from "@/components/resume/src/context/SectionOrderContext";
-import { Providers } from "@/components/resume/src/app/components/Providers";
-import { AutoSaveHeaderWrapper } from "@/components/resume/src/app/components/header/AutoSaveHeaderWrapper";
-import { AutoSaveProvider } from "@/components/resume/src/context/AutoSaveContext";
+import Navbar from "@/components/general/Navbar";
+import { ThemeToggle } from "@/components/general/ThemeToggle";
 
 // Utility function to validate UUID format
 const isValidUUID = (uuid: string) => {
@@ -38,6 +37,7 @@ function FormSections() {
 
   return (
     <div className="space-y-6">
+       <ThemeToggle />
       <TemplateSelector />
       <SectionOrder />
       <PersonalInformation />
@@ -76,6 +76,7 @@ export default function Home() {
       
         <TemplateProvider>
           <SectionOrderProvider>
+        
             <main className="container mx-auto py-8 px-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormSections />

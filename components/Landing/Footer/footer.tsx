@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import Logo from "@/public/logo.png";
+import Image from "next/image";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -49,14 +50,22 @@ export function Footer() {
           >
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 blur-xl rounded-full transition-opacity duration-500" />
-                <div className="relative bg-gradient-to-b from-primary/30 to-primary/10 p-2 rounded-full">
-                  <Sparkles className="w-6 h-6 text-primary" />
+        
+                <div className="">
+                <Link href="/" className="">
+          <Image src={Logo} alt="Logo" className="h-20 w-20" />
+         
+        </Link>
+       
+
                 </div>
+             
               </div>
-              <span className="bg-clip-text bg-gradient-to-r from-white via-white to-white/80 font-bold text-transparent text-xl animate-text-shimmer">
-                Hirebit
-              </span>
+              <div className="   text-5xl text-white font-black">
+            Hire
+            <span className="text-blue-500">bit</span>
+          </div>
+             
             </Link>
             <p className="mt-4 max-w-md text-sm text-white/60">
               The leading job board platform connecting top talent with the best opportunities.

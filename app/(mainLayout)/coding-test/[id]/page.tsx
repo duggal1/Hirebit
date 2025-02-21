@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +19,7 @@ import { toast } from "@/app/_components/ui/use-toast";
 import Timer from "@/app/_components/Timer";
 import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
 import { CodeProblem, EvaluationResult } from "@/types/code";
+import LoadingState from "@/components/loading/Loadingstate/loading";
 
 export default function CodingTest() {
   const params = useParams();
@@ -46,7 +46,6 @@ export default function CodingTest() {
     if (activeTab === "hint" && currentQuestion && !hint) {
       fetchHint();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentQuestion]);
 
   async function fetchHint() {
@@ -69,7 +68,6 @@ export default function CodingTest() {
     }
   }
 
-  // Add loadQuestions function
   async function loadQuestions() {
     try {
       setIsLoading(true);
@@ -87,7 +85,6 @@ export default function CodingTest() {
       console.log("Received questions data:", data);
 
       if (!Array.isArray(data) || data.length === 0) {
-        console.error("No questions received from API");
         throw new Error("No questions available for this test");
       }
 
@@ -111,7 +108,6 @@ export default function CodingTest() {
     }
   }, [jobSeekerId]);
 
-  // Single handleSubmit function
   async function handleSubmit(): Promise<void> {
     if (!currentQuestion || !code) return;
 
@@ -136,8 +132,6 @@ export default function CodingTest() {
           title: "Test Completed",
           description: "Redirecting to results page...",
         });
-
-        // Use the router from component level
         router.push(`/coding-test/${jobSeekerId}/result`);
       }
     } catch (error) {
@@ -154,25 +148,25 @@ export default function CodingTest() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-transparent">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 opacity-20 animate-pulse" />
-          <div className="relative animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-cyan-400" />
-        </div>
+      <div className="flex flex-col items-center justify-center">
+        <span className="text-3xl font-black tracking-light text-neutral-100 mb-4">
+          Wait while we generate your personalized coding questions!
+        </span>
+        <LoadingState />
       </div>
     );
-  }
+  }   
 
   if (error || !currentQuestion) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
-        <div className="relative p-8 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/10">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-600 mb-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <div className="p-8 rounded-lg bg-gray-800">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">
             {error || "No questions available"}
           </h1>
           <Button
             onClick={() => router.push("/dashboard")}
-            className="bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-xl"
+            className="bg-gray-700 hover:bg-gray-600 transition duration-300"
           >
             Return to Dashboard
           </Button>
@@ -180,53 +174,34 @@ export default function CodingTest() {
       </div>
     );
   }
-
+  
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
-      {/* Background Elements */}
-      <div
-        className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(white,transparent_85%)] pointer-events-none"
-        style={{
-          backgroundSize: "30px 30px",
-          opacity: 0.15,
-        }}
-      />
-      <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob" />
-      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000" />
-      <div className="absolute top-40 left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000" />
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+      {/* Ambient background effect */}
+      <div className="fixed inset-0 bg-black">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(50,50,255,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,50,255,0.05),transparent_50%)]" />
+      </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 mx-auto px-6 py-12 max-w-8xl">
+      <div className="relative mx-auto px-6 py-12 max-w-7xl">
+        {/* Header Section */}
         <div className="mb-12">
-          <div className="flex justify-between items-center">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 blur-sm bg-cyan-400 rounded-full animate-pulse" />
-                  <div className="relative bg-cyan-400 rounded-full w-2 h-2" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
+                {currentQuestion?.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 mt-4">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800/50">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-gray-300">{currentQuestion?.difficulty}</span>
                 </div>
-                <h1 className="font-bold text-5xl tracking-tight">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient">
-                    {currentQuestion.title}
-                  </span>
-                </h1>
-              </div>
-              <div className="flex items-center gap-8 pl-6">
-                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
-                  <div className="bg-red-400 rounded-full w-2 h-2" />
-                  <span className="font-medium text-red-400/90 text-sm">
-                    {currentQuestion.difficulty}
-                  </span>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800/50">
+                  <Timer duration={currentQuestion?.timeLimit} onComplete={handleSubmit} />
                 </div>
-                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
-                  <div className="bg-yellow-400 rounded-full w-2 h-2" />
-                  {currentQuestion.timeLimit && (
-                    <Timer duration={currentQuestion.timeLimit} onComplete={handleSubmit} />
-                  )}
-                </div>
-                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg border border-white/10">
-                  <div className="bg-green-400 rounded-full w-2 h-2" />
-                  <span className="font-medium text-green-400/90 text-sm">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800/50">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-gray-300">
                     {currentQuestionIndex + 1} of {questions.length}
                   </span>
                 </div>
@@ -235,65 +210,79 @@ export default function CodingTest() {
           </div>
         </div>
 
-        <div className="gap-8 grid lg:grid-cols-2">
-          {/* Problem Description */}
-          <Card className="relative border-0 bg-white/5 backdrop-blur-xl overflow-hidden rounded-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10" />
-            <div className="relative p-8">
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          <Card className="bg-gray-900/30 backdrop-blur-xl border border-gray-800/50 rounded-2xl shadow-2xl">
+            <div className="p-8">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="border-white/[0.05] bg-white/[0.05] border">
-                  <TabsTrigger value="problem" className="data-[state=active]:bg-white/[0.08]">
+                <TabsList className="flex space-x-4 p-1 bg-gray-800/30 rounded-xl backdrop-blur-sm">
+                  <TabsTrigger 
+                    value="problem" 
+                    className="flex items-center px-6 py-3 rounded-lg text-sm transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-purple-500/50 data-[state=active]:shadow-lg"
+                  >
                     <Info className="mr-2 w-4 h-4" />
                     Problem
                   </TabsTrigger>
-                  <TabsTrigger value="hint" className="data-[state=active]:bg-white/[0.08]">
+                  <TabsTrigger 
+                    value="hint"
+                    className="flex items-center px-6 py-3 rounded-lg text-sm transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-purple-500/50 data-[state=active]:shadow-lg"
+                  >
                     <Lightbulb className="mr-2 w-4 h-4" />
                     Hint
                   </TabsTrigger>
-                  <TabsTrigger value="solution" className="data-[state=active]:bg-white/[0.08]">
+                  <TabsTrigger 
+                    value="solution"
+                    className="flex items-center px-6 py-3 rounded-lg text-sm transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-purple-500/50 data-[state=active]:shadow-lg"
+                  >
                     <Brain className="mr-2 w-4 h-4" />
                     Solution
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="problem" className="space-y-6 mt-6">
-                  <div>
-                    <p className="text-gray-300 whitespace-pre-wrap">
-                      {currentQuestion.description}
+                <TabsContent value="problem" className="mt-6 space-y-6">
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-gray-300 leading-relaxed">
+                      {currentQuestion?.description}
                     </p>
                   </div>
-
                   <div>
-                    <h3 className="mb-3 font-medium text-lg text-white/90">Constraints</h3>
-                    <ul className="space-y-2">
-                      {currentQuestion.constraints.map((constraint, index) => (
-                        <li key={index} className="flex items-start gap-2 text-gray-300">
-                          <ArrowRight className="mt-1 w-4 h-4 text-purple-400" />
-                          <span>{constraint}</span>
+                    <h3 className="text-xl font-medium text-white mb-4">
+                      Constraints
+                    </h3>
+                    <ul className="space-y-3">
+                      {(currentQuestion?.constraints ?? []).map((constraint, index) => (
+                        <li key={index} className="flex items-start gap-3 bg-gray-800/30 p-4 rounded-xl backdrop-blur-sm">
+                          <ArrowRight className="mt-1 w-5 h-5 text-purple-400" />
+                          <span className="text-gray-300">{constraint}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
-
                   <div>
-                    <h3 className="mb-3 font-medium text-lg text-white/90">Examples</h3>
-                    {currentQuestion.examples.map((example, index) => (
+                    <h3 className="text-xl font-medium text-white mb-4">
+                      Examples
+                    </h3>
+                    {(currentQuestion?.examples ?? []).map((example, index) => (
                       <div
                         key={index}
-                        className="border-white/[0.05] bg-white/[0.02] mb-3 p-4 border rounded-lg"
+                        className="mb-4 p-6 bg-gray-800/30 border border-gray-700/50 rounded-xl backdrop-blur-sm"
                       >
-                        <div className="space-y-2">
-                          <div>
-                            <span className="font-medium text-purple-400">Input: </span>
-                            <span className="text-gray-300">{example.input}</span>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-purple-400">Input:</span>
+                            <code className="px-3 py-1 bg-gray-900/50 rounded-lg text-gray-300">
+                              {example.input}
+                            </code>
                           </div>
-                          <div>
-                            <span className="font-medium text-blue-400">Output: </span>
-                            <span className="text-gray-300">{example.output}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-blue-400">Output:</span>
+                            <code className="px-3 py-1 bg-gray-900/50 rounded-lg text-gray-300">
+                              {example.output}
+                            </code>
                           </div>
                           {example.explanation && (
-                            <div>
-                              <span className="font-medium text-cyan-400">Explanation: </span>
+                            <div className="flex items-start gap-2">
+                              <span className="font-medium text-cyan-400">Explanation:</span>
                               <span className="text-gray-300">{example.explanation}</span>
                             </div>
                           )}
@@ -303,16 +292,8 @@ export default function CodingTest() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="hint" className="space-y-6 mt-6">
-                  {hint ? (
-                    <p className="text-gray-300 whitespace-pre-wrap">{hint}</p>
-                  ) : (
-                    <p className="text-gray-300">Loading hint...</p>
-                  )}
-                </TabsContent>
-
                 <TabsContent value="solution" className="mt-6">
-                  <div className="border-white/[0.05] border rounded-lg overflow-hidden">
+                  <div className="overflow-hidden rounded-xl border border-gray-800/50 backdrop-blur-xl">
                     <Editor
                       height="600px"
                       defaultLanguage="python"
@@ -329,37 +310,31 @@ export default function CodingTest() {
                         fontFamily: "JetBrains Mono, monospace",
                         padding: { top: 20 },
                         overviewRulerBorder: false,
-                        scrollbar: {
-                          vertical: "visible",
-                          horizontal: "visible",
-                          verticalScrollbarSize: 12,
-                          horizontalScrollbarSize: 12,
-                        },
                       }}
                     />
                   </div>
-                  <div className="flex justify-between mt-4">
+                  <div className="flex justify-between mt-6">
                     <Button
                       variant="outline"
-                      className="bg-white/[0.05] hover:bg-white/[0.08] text-gray-300"
+                      className="px-6 py-3 bg-gray-800/30 border-gray-700/50 hover:bg-gray-700/50 text-gray-300 backdrop-blur-sm rounded-xl"
                       onClick={() => setCode("")}
                     >
                       Reset
                     </Button>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       {currentQuestionIndex > 0 && (
                         <Button
                           onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
-                          className="bg-white/[0.05] hover:bg-white/[0.08]"
+                          className="px-6 py-3 bg-gray-800/30 border-gray-700/50 hover:bg-gray-700/50 backdrop-blur-sm rounded-xl"
                         >
-                          <ChevronLeft className="mr-1 w-4 h-4" />
+                          <ChevronLeft className="mr-2 w-4 h-4" />
                           Previous
                         </Button>
                       )}
                       <Button
                         onClick={handleSubmit}
                         disabled={isEvaluating}
-                        className="border-0 bg-gradient-to-r from-purple-500 hover:from-purple-600 to-blue-500 hover:to-blue-600 text-white"
+                        className="px-6 py-3 bg-gradient-to-r from-purple-600/80 to-blue-600/80 hover:from-purple-700/80 hover:to-blue-700/80 text-white backdrop-blur-sm rounded-xl shadow-lg shadow-purple-500/20"
                       >
                         {isEvaluating ? (
                           <>
@@ -371,7 +346,7 @@ export default function CodingTest() {
                             {currentQuestionIndex < questions.length - 1 ? (
                               <>
                                 Next Question
-                                <ChevronRight className="ml-1 w-4 h-4" />
+                                <ChevronRight className="ml-2 w-4 h-4" />
                               </>
                             ) : (
                               "Complete Test"
@@ -382,23 +357,30 @@ export default function CodingTest() {
                     </div>
                   </div>
                 </TabsContent>
+
+                <TabsContent value="hint" className="mt-6">
+                  {hint ? (
+                    <p className="text-gray-300 leading-relaxed bg-gray-800/30 p-6 rounded-xl backdrop-blur-sm border border-gray-700/50">
+                      {hint}
+                    </p>
+                  ) : (
+                    <div className="flex items-center justify-center h-32 bg-gray-800/30 rounded-xl backdrop-blur-sm">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
             </div>
           </Card>
 
           {/* Analysis Section */}
-          <div className="space-y-6">
-            {evaluationResult && (
-              <div className="gap-6 grid">
-                <CodeQualityMetricsCard metrics={evaluationResult.codeQualityMetrics} />
-                <div className="gap-6 grid lg:grid-cols-2">
-                  {/* Add other cards here */}
-                </div>
-              </div>
-            )}
-          </div>
+          {evaluationResult && (
+            <div className="space-y-6">
+              <CodeQualityMetricsCard metrics={evaluationResult.codeQualityMetrics} />
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
+}; 

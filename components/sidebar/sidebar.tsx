@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image"; // Added Image import
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
@@ -155,7 +155,6 @@ export default function Sidebar() {
               transition={{ duration: 0.5 }}
             >
               <Link href="/" className="flex flex-col items-center gap-2 self-center">
-                {/* Updated Image component with valid src */}
                 <Image src="/logo.png" alt="Logo" width={150} height={100} className="h-30 w-30" />
               </Link>
             </motion.div>
@@ -171,7 +170,7 @@ export default function Sidebar() {
                 className="flex flex-col"
               >
                 <motion.span
-                  className="text-white/90 text-sm font-light tracking-[0.2em]"
+                  className="text-white/90 text-sm font-bold tracking-[0.2em]"
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
@@ -179,7 +178,7 @@ export default function Sidebar() {
                   HIREBIT
                 </motion.span>
                 <motion.span
-                  className="text-[10px] text-white/50 uppercase tracking-[0.3em]"
+                  className="text-[10px] text-white/50 uppercase tracking-[0.3em] font-bold"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
@@ -209,7 +208,7 @@ export default function Sidebar() {
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full h-10 bg-white/5 rounded-xl pl-10 pr-4 text-sm text-white/80 placeholder-white/30 border border-white/10 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300"
+                className="w-full h-10 bg-white/5 rounded-xl pl-10 pr-4 text-sm font-bold text-white/80 placeholder-white/30 border border-white/10 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300"
               />
             </div>
           </motion.div>
@@ -232,8 +231,8 @@ export default function Sidebar() {
                   relative flex items-center gap-4 px-4 py-3 rounded-xl
                   transition-all duration-300 cursor-pointer group
                   ${isActive 
-                    ? "bg-white/10 text-white/90 border border-white/10" 
-                    : "text-white/50 hover:text-white/90"}
+                    ? "bg-white/10 text-white/90 border border-white/10 shadow-lg" 
+                    : "text-white/50 hover:text-white/90 hover:shadow-md"}
                 `}
                 whileHover={{ x: 4, scale: 1.02 }}
                 transition={{ duration: 0.3 }}
@@ -257,13 +256,15 @@ export default function Sidebar() {
                   </motion.div>
                 )}
 
-                {/* Icon with hover animation */}
+                {/* Icon with gradient effect */}
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   className="relative w-6 h-6 flex items-center justify-center"
                 >
-                  <Icon className="w-4 h-4 relative z-10" />
+                  <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    <Icon className="w-4 h-4 relative z-10" />
+                  </span>
                   {isActive && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -280,7 +281,7 @@ export default function Sidebar() {
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -6 }}
-                      className="text-xs tracking-wider font-light"
+                      className="text-xs tracking-wider font-bold"
                     >
                       {item.label.toUpperCase()}
                     </motion.span>

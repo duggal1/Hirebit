@@ -4,7 +4,8 @@ exports.__esModule = true;
 exports.Footer = void 0;
 var link_1 = require("next/link");
 var framer_motion_1 = require("framer-motion");
-var lucide_react_1 = require("lucide-react");
+var logo_png_1 = require("@/public/logo.png");
+var image_1 = require("next/image");
 function Footer() {
     var currentYear = new Date().getFullYear();
     var footerSections = [
@@ -42,10 +43,12 @@ function Footer() {
                 React.createElement(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, className: "col-span-2" },
                     React.createElement(link_1["default"], { href: "/", className: "flex items-center gap-2 group" },
                         React.createElement("div", { className: "relative" },
-                            React.createElement("div", { className: "absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 blur-xl rounded-full transition-opacity duration-500" }),
-                            React.createElement("div", { className: "relative bg-gradient-to-b from-primary/30 to-primary/10 p-2 rounded-full" },
-                                React.createElement(lucide_react_1.Sparkles, { className: "w-6 h-6 text-primary" }))),
-                        React.createElement("span", { className: "bg-clip-text bg-gradient-to-r from-white via-white to-white/80 font-bold text-transparent text-xl animate-text-shimmer" }, "Hirebit")),
+                            React.createElement("div", { className: "" },
+                                React.createElement(link_1["default"], { href: "/", className: "" },
+                                    React.createElement(image_1["default"], { src: logo_png_1["default"], alt: "Logo", className: "h-20 w-20" })))),
+                        React.createElement("div", { className: "   text-5xl text-white font-black" },
+                            "Hire",
+                            React.createElement("span", { className: "text-blue-500" }, "bit"))),
                     React.createElement("p", { className: "mt-4 max-w-md text-sm text-white/60" }, "The leading job board platform connecting top talent with the best opportunities.")),
                 footerSections.map(function (section, sectionIndex) { return (React.createElement(framer_motion_1.motion.div, { key: section.title, initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { delay: sectionIndex * 0.1 } },
                     React.createElement("h3", { className: "bg-clip-text bg-gradient-to-r from-white via-white to-white/80 font-semibold text-transparent" }, section.title),

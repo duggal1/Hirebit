@@ -59,7 +59,7 @@ function SortableItem({ id, title, visible, onToggle }: SortableItemProps) {
     >
       <div
         className={cn(
-          "flex items-center justify-between p-4 bg-white border rounded-lg",
+          "flex items-center justify-between p-4 bg-black border rounded-lg",
           isDragging && "shadow-lg"
         )}
       >

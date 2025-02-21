@@ -1,10 +1,10 @@
 "use strict";
 exports.__esModule = true;
 var LoginForm_1 = require("@/components/forms/LoginForm");
-var image_1 = require("next/image");
 var link_1 = require("next/link");
 var react_1 = require("react");
 var logo_png_1 = require("@/public/logo.png");
+var image_1 = require("next/image");
 var LoginPage = function () {
     return (react_1["default"].createElement("div", { className: "min-h-screen w-screen flex items-center justify-center bg-black" },
         react_1["default"].createElement("div", { className: "flex w-full max-w-sm flex-col gap-6" },

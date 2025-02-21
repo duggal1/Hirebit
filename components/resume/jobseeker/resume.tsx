@@ -182,588 +182,562 @@ export function JobSeekerResume({ jobSeekerId }: JobSeekerResumeProps) {
   const pathname = usePathname();
 const isCodingTestPage = pathname.includes("/coding-test/");
 
-  return (
-    <div className="bg-gradient-to-r from-black to-blue-900/10 ">
-      {/* Animated background elements */}
-      <div className="">
-        <div className="">
-          <div className="" />
-          <div className="" />
-        </div>
-      </div>
-   
+return (
+  <div className="relative min-h-screen bg-black overflow-hidden">
+    {/* Animated background elements */}
+    <div className="absolute inset-0 pointer-events-none">
+      <div className=""></div>
+      <div className=""></div>
+    </div>
 
-
-      <div className="relative mx-auto px-6 py-12 max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-10"
+    <div className="relative mx-auto px-6 py-12 max-w-7xl z-10">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-10"
+      >
+        {/* Ultra modern header */}
+        <motion.header
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="relative mb-16"
         >
-          {/* Ultra modern header */}
-          <motion.header
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="relative mb-16"
-          >
-            <div className="absolute -top-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl" />
-            <div className="relative flex items-center gap-8">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 p-6 rounded-2xl backdrop-blur-xl border border-white/10"
-              >
-                <Rocket className="w-10 h-10 text-blue-400" />
-              </motion.div>
-              <div>
-                <motion.h1
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
-                >
-                  Resume Analysis
-                </motion.h1>
-                <motion.p
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="mt-3 text-xl text-gray-400"
-                >
-                  Let's enhance your professional profile
-                </motion.p>
-              </div>
-            </div>
-          </motion.header>
-
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-8">
-              {/* Glass card container */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-              >
-                {/* Personal Info Card */}
-                <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-2xl">
-                  <FormField
-                    control={form.control}
-                    name="resumeName"
-                    render={({ field }) => (
-                      <FormItem className="mb-8">
-                        <FormLabel className="text-lg font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          Resume Name
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-14 bg-white/5 border-white/10 focus:border-blue-500 rounded-xl text-white placeholder-gray-500"
-                            placeholder="Enter a name for your resume"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="resumeBio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-lg font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          Professional Bio
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            className="min-h-[150px] bg-white/5 border-white/10 focus:border-blue-500 rounded-xl text-white placeholder-gray-500"
-                            placeholder="Write a compelling professional bio"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-    
-      {/* Main container with clean layout */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 to-black p-1">
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-transparent to-cyan-600/20 animate-gradient-slow"></div>
-        
-        <div className="relative bg-zinc-900/80 backdrop-blur-xl rounded-[1.4rem] p-8 border border-white/5">
-          {/* Clean, organized content layout */}
-          <div className="space-y-8">
-            {/* Modern header section */}
-            <div className="space-y-2">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
-                <span className="text-xs font-medium text-violet-300"> Dont have a Resume?</span>
-              </div>
-              
-              <h2 className="text-3xl font-semibold tracking-tight text-white">
-           dont worrry we got you!!
-              </h2>
-              
-              <p className="text-zinc-400 text-sm leading-relaxed max-w-md">
-                Design a professional resume that captures attention and showcases your potential.
-              </p>
-            </div>
-
-            {/* Feature highlights with clean spacing */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="text-sm font-medium text-white">AI-Powered</div>
-                <div className="text-xs text-zinc-400 mt-1">Smart formatting & suggestions</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="text-sm font-medium text-white">ATS-Friendly</div>
-                <div className="text-xs text-zinc-400 mt-1">Optimized for job systems</div>
-              </div>
-            </div>
-
-            {/* Modern call-to-action button */}
-            <a
-              href={`/resume/${jobSeekerId}/resume-builder`}
-              className="group relative flex items-center justify-between w-full"
+          <div className="absolute -top-20 -left-20 w-60 h-60 bg-blue-700/20 rounded-full blur-3xl" />
+          <div className="relative flex items-center gap-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="bg-gradient-to-br from-blue-800/30 to-purple-800/30 p-6 rounded-xl backdrop-blur-lg border border-gray-700"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative flex items-center justify-between w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 group-hover:border-white/20 transition-all duration-300">
-                <div className="flex items-center gap-3">
-                  <Rocket className="w-5 h-5 text-violet-400" />
-                  <span className="font-medium text-white">Start Building</span>
-                </div>
-                <ArrowUpRight className="w-5 h-5 text-white/70 group-hover:text-white transition-colors duration-300" />
-              </div>
-            </a>
+              <Rocket className="w-10 h-10 text-blue-300" />
+            </motion.div>
+            <div>
+              <motion.h1
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+              >
+                Resume Analysis
+              </motion.h1>
+              <motion.p
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-3 text-xl text-gray-300"
+              >
+                Let's enhance your professional profile
+              </motion.p>
+            </div>
           </div>
+        </motion.header>
 
-          {/* Clean status indicator */}
-          <div className="absolute bottom-8 right-8 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-xs text-zinc-500 font-medium">System Online</span>
-          </div>
-        </div>
-      </div>
-  
-
-
-                {/* Upload Card */}
-                <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-2xl">
-                  <div className="flex items-center gap-4 mb-8">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-3 rounded-xl"
-                    >
-                      <UploadCloud className="w-6 h-6 text-blue-400" />
-                    </motion.div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      Upload Resume
-                    </h2>
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="pdfUrlId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                          >
-                            <FileUpload
-                              value={field.value}
-                              onChange={handleResumeUpload}
-                              disabled={analyzing}
-                              className="border-2 border-dashed border-white/10 hover:border-blue-500/50 rounded-2xl transition-all duration-300"
-                            >
-                              <div className="flex flex-col items-center justify-center h-56 space-y-6">
-                                <motion.div
-                                  animate={{ y: [0, -10, 0] }}
-                                  transition={{ repeat: Infinity, duration: 2 }}
-                                  className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-5 rounded-full"
-                                >
-                                  <UploadCloud className="w-10 h-10 text-blue-400" />
-                                </motion.div>
-                                <div className="text-center">
-                                  <p className="text-xl font-medium text-white mb-2">
-                                    Drop your resume here
-                                  </p>
-                                  <p className="text-gray-400">PDF format • Max 4MB</p>
-                                </div>
-                              </div>
-                            </FileUpload>
-                          </motion.div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {analyzing && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-6"
-                    >
-                      <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-                          <p className="text-blue-400 font-medium">
-                            Analyzing your resume...
-                          </p>
-                        </div>
-                        <Progress
-                         value={66}
-                        className="h-1 bg-gray-800"
-                        indicatorClassName="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500"
-                          />
-
-                      </div>
-                    </motion.div>
+        <Form {...form}>
+          <form onSubmit={onSubmit} className="space-y-8">
+            {/* Glass card container */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            >
+              {/* Personal Info Card */}
+              <div className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg">
+                <FormField
+                  control={form.control}
+                  name="resumeName"
+                  render={({ field }) => (
+                    <FormItem className="mb-8">
+                      <FormLabel className="text-lg font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        Resume Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          className="h-14 bg-black border border-gray-700 focus:border-blue-400 rounded-xl text-white placeholder-gray-500"
+                          placeholder="Enter a name for your resume"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="resumeBio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        Professional Bio
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          className="min-h-[150px] bg-black border border-gray-700 focus:border-blue-400 rounded-xl text-white placeholder-gray-500"
+                          placeholder="Write a compelling professional bio"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+    
+              {/* Main container with clean layout */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-black p-1 shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-transparent to-cyan-600/20 animate-gradient-slow"></div>
+                
+                <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-xl p-8 border border-gray-700">
+                  {/* Clean, organized content layout */}
+                  <div className="space-y-8">
+                    {/* Modern header section */}
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-violet-800/10 border border-violet-800/20">
+                        <span className="text-xs font-medium text-violet-300">Dont have a Resume?</span>
+                      </div>
+                      
+                      <h2 className="text-3xl font-semibold tracking-tight text-white">
+                        dont worrry we got you!!
+                      </h2>
+                      
+                      <p className="text-gray-400 text-sm leading-relaxed max-w-md">
+                        Design a professional resume that captures attention and showcases your potential.
+                      </p>
+                    </div>
+
+                    {/* Feature highlights with clean spacing */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl bg-black/30 border border-gray-700">
+                        <div className="text-sm font-medium text-white">AI-Powered</div>
+                        <div className="text-xs text-gray-400 mt-1">Smart formatting & suggestions</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-black/30 border border-gray-700">
+                        <div className="text-sm font-medium text-white">ATS-Friendly</div>
+                        <div className="text-xs text-gray-400 mt-1">Optimized for job systems</div>
+                      </div>
+                    </div>
+
+                    {/* Modern call-to-action button */}
+                    <a
+                      href={`/resume/${jobSeekerId}/resume-builder`}
+                      className="group relative flex items-center justify-between w-full"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-violet-700 to-cyan-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex items-center justify-between w-full px-6 py-4 rounded-2xl bg-black/40 border border-gray-700 group-hover:border-gray-500 transition-all duration-300">
+                        <div className="flex items-center gap-3">
+                          <Rocket className="w-5 h-5 text-violet-400" />
+                          <span className="font-medium text-white">Start Building</span>
+                        </div>
+                        <ArrowUpRight className="w-5 h-5 text-white/70 group-hover:text-white transition-colors duration-300" />
+                      </div>
+                    </a>
+                  </div>
+
+                  {/* Clean status indicator */}
+                  <div className="absolute bottom-8 right-8 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span className="text-xs text-gray-500 font-medium">System Online</span>
+                  </div>
                 </div>
-              </motion.div>
+              </div>
 
-              {/* Analysis Results */}
-              <AnimatePresence>
-                {resumeAnalysis && (
+              {/* Upload Card */}
+              <div className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg">
+                <div className="flex items-center gap-4 mb-8">
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    whileHover={{ scale: 1.1 }}
+                    className="bg-gradient-to-r from-blue-800/20 to-purple-800/20 p-3 rounded-lg"
                   >
-                    {/* Stats Card */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="col-span-full bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8"
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          Resume Statistics
-                        </h3>
-                        {resumeAnalysis.isValid ? (
-                          <div className="flex items-center gap-2 text-green-400">
-                            <CheckCircle className="w-5 h-5" />
-                            <span>Valid Resume</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-red-400">
-                            <XCircle className="w-5 h-5" />
-                            <span>Needs Improvement</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Experience Level */}
-                        <div className="bg-white/5 rounded-2xl p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <Briefcase className="w-5 h-5 text-blue-400" />
-                            <span className="text-gray-400">Experience</span>
-                          </div>
-                          <p className="text-2xl font-bold text-white">
-                            {resumeAnalysis.experience.years} Years
-                          </p>
-                          <p className="text-gray-400 mt-1">
-                            {resumeAnalysis.experience.level}
-                          </p>
-                        </div>
-
-                        {/* Skills Overview */}
-                        <div className="bg-white/5 rounded-2xl p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <Zap className="w-5 h-5 text-purple-400" />
-                            <span className="text-gray-400">Skills</span>
-                          </div>
-                          <p className="text-2xl font-bold text-white">
-                            {resumeAnalysis.skills.length}
-                          </p>
-                          <p className="text-gray-400 mt-1">Key Skills</p>
-                        </div>
-
-                        {/* Education */}
-                        <div className="bg-white/5 rounded-2xl p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <GraduationCap className="w-5 h-5 text-yellow-400" />
-                            <span className="text-gray-400">Education</span>
-                          </div>
-                          <p className="text-2xl font-bold text-white">
-                            {resumeAnalysis.education.length}
-                          </p>
-                          <p className="text-gray-400 mt-1">Qualifications</p>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    {/* Skills Cloud */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8"
-                    >
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                        Skills Overview
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {resumeAnalysis.skills.map((skill: string, index: number) => (
-                          <motion.span
-                            key={index}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full text-blue-400 text-sm font-medium"
-                          >
-                            {skill}
-                          </motion.span>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    {/* Education Timeline */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8"
-                    >
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                        Education
-                      </h3>
-                      <div className="space-y-4">
-                        {resumeAnalysis.education.map(
-                          (
-                            edu: { degree: string; institution: string; year: string },
-                            index: number
-                          ) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.2 }}
-                              className="relative pl-6 pb-4 border-l border-gray-700"
-                            >
-                              <div className="absolute left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
-                              <p className="text-white font-medium">{edu.degree}</p>
-                              <p className="text-gray-400">{edu.institution}</p>
-                              <p className="text-gray-500 text-sm">{edu.year}</p>
-                            </motion.div>
-                          )
-                        )}
-                      </div>
-                    </motion.div>
-
-                    {/* Feedback Analysis */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8"
-                    >
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                        Detailed Feedback
-                      </h3>
-                      <div className="space-y-6">
-                        {/* Strengths */}
+                    <UploadCloud className="w-6 h-6 text-blue-300" />
+                  </motion.div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Upload Resume
+                  </h2>
+                </div>
+                  
+                <FormField
+                  control={form.control}
+                  name="pdfUrlId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
                         <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-green-500/10 rounded-2xl p-4"
+                          whileHover={{ scale: 1.02 }}
+                          transition={{ type: "spring", stiffness: 300 }}
                         >
-                          <h4 className="text-green-400 font-medium mb-2">
-                            Strengths
-                          </h4>
-                          <ul className="space-y-2">
-                            {resumeAnalysis.feedback.strengths.map(
-                              (strength: string, index: number) => (
-                                <motion.li
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className="flex items-center gap-2 text-gray-300"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                                  <span>{strength}</span>
-                                </motion.li>
-                              )
-                            )}
-                          </ul>
-                        </motion.div>
-
-                        {/* Areas for Improvement */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-yellow-500/10 rounded-2xl p-4"
-                        >
-                          <h4 className="text-yellow-400 font-medium mb-2">
-                            Areas for Improvement
-                          </h4>
-                          <ul className="space-y-2">
-                            {resumeAnalysis.feedback.improvements.map(
-                              (improvement: string, index: number) => (
-                                <motion.li
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className="flex items-center gap-2 text-gray-300"
-                                >
-                                  <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                                  <span>{improvement}</span>
-                                </motion.li>
-                              )
-                            )}
-                          </ul>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-
-                    {/* Buzzwords Analysis */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8"
-                    >
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                        Buzzword Analysis
-                      </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-400">Total Buzzwords</span>
-                          <span className="text-2xl font-bold text-white">
-                            {resumeAnalysis.buzzwords.count}
-                          </span>
-                        </div>
-                        {resumeAnalysis.buzzwords.list.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-4">
-                            {resumeAnalysis.buzzwords.list.map(
-                              (word: string, index: number) => (
-                                <motion.span
-                                  key={index}
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-sm"
-                                >
-                                  {word}
-                                </motion.span>
-                              )
-                            )}
-                          </div>
-                        )}
-                        {resumeAnalysis.buzzwords.warning && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-4 p-4 bg-red-500/10 rounded-xl border border-red-500/20"
+                          <FileUpload
+                            value={field.value}
+                            onChange={handleResumeUpload}
+                            disabled={analyzing}
+                            className="border-2 border-dashed border-gray-700 hover:border-blue-400 rounded-2xl transition-all duration-300"
                           >
-                            <p className="text-red-400 text-sm font-medium">
-                              ⚠️ High buzzword usage detected. Consider reducing for more impact.
-                            </p>
-                          </motion.div>
-                        )}
-                       {/* Critical Flaws Card */}
-{resumeAnalysis.criticalFlaws && resumeAnalysis.criticalFlaws.length > 0 && (
-  <motion.div
-    whileHover={{ scale: 1.03, boxShadow: "0 0 30px rgba(255,0,0,0.1)" }}
-    whileTap={{ scale: 0.98 }}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ type: "spring", stiffness: 300 }}
-    className="relative bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-lg overflow-hidden"
-  >
-    {/* Animated gradient overlay */}
-    <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-red-400/10 to-red-300/10 pointer-events-none blur-3xl"></div>
-    <div className="relative">
-      <h3 className="text-2xl font-extrabold bg-gradient-to-r from-red-400 to-red-200 bg-clip-text text-transparent mb-4">
-        Critical Flaws
-      </h3>
-      <ul className="space-y-2">
-        {resumeAnalysis.criticalFlaws.map((flaw: string, index: number) => (
-          <motion.li
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-center gap-2 text-red-400 text-lg"
-          >
-            <XCircle className="w-5 h-5" />
-            <span>{flaw}</span>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
-  </motion.div>
-)}
+                            <div className="flex flex-col items-center justify-center h-56 space-y-6">
+                              <motion.div
+                                animate={{ y: [0, -10, 0] }}
+                                transition={{ repeat: Infinity, duration: 2 }}
+                                className="bg-gradient-to-r from-blue-800/20 to-purple-800/20 p-5 rounded-full"
+                              >
+                                <UploadCloud className="w-10 h-10 text-blue-300" />
+                              </motion.div>
+                              <div className="text-center">
+                                <p className="text-xl font-medium text-white mb-2">
+                                  Drop your resume here
+                                </p>
+                                <p className="text-gray-400">PDF format • Max 4MB</p>
+                              </div>
+                            </div>
+                          </FileUpload>
+                        </motion.div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-
-{/* Additional Recommendations Card */}
-{resumeAnalysis.additionalRecommendations && (
-  <motion.div
-    whileHover={{ scale: 1.03, boxShadow: "0 0 30px rgba(255,255,255,0.1)" }}
-    whileTap={{ scale: 0.98 }}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ type: "spring", stiffness: 300 }}
-    className="relative bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-lg overflow-hidden"
-  >
-    {/* Animated gradient background overlay */}
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 pointer-events-none blur-3xl"></div>
-    <div className="relative">
-      <h3 className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
-        Additional Recommendations
-      </h3>
-      <p className="text-lg text-gray-300 leading-relaxed">
-        {resumeAnalysis.additionalRecommendations}
-      </p>
-    </div>
-  </motion.div>
-)}
-          </div>
-                    </motion.div>
+                {analyzing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6"
+                  >
+                    <div className="bg-blue-700/10 rounded-xl p-4 border border-blue-700/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Loader2 className="w-5 h-5 text-blue-300 animate-spin" />
+                        <p className="text-blue-300 font-medium">
+                          Analyzing your resume...
+                        </p>
+                      </div>
+                      <Progress
+                        value={66}
+                        className="h-1 bg-gray-700"
+                        indicatorClassName="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500"
+                      />
+                    </div>
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </div>
+            </motion.div>
 
-              {/* Submit Button */}
-              <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="sticky bottom-8 mt-8"
-  >
-    <motion.div
-      // Continuous pulsing if NOT on the coding test page.
-      animate={
-        !isCodingTestPage ? { scale: [1, 1.05, 1] } : {}
-      }
-      transition={
-        !isCodingTestPage
-          ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-          : {}
-      }
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="bg-white/5 backdrop-blur-2xl rounded-2xl border border-white/10 p-6"
-    >
-      <Button
-        type="submit"
-        disabled={!isFormValid}
-        className={cn(
-          "w-full h-14 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white rounded-xl font-medium text-lg transition-all duration-300",
-          !isFormValid && "opacity-50 cursor-not-allowed"
-        )}
-      >
-        <motion.div
-          className="flex items-center justify-center gap-2"
-          whileHover={{ gap: "0.75rem" }}
-        >
-          <Rocket className="w-5 h-5" />
-          <span>{isFormValid ? "Submit Resume" : "Complete All Fields"}</span>
-        </motion.div>
-      </Button>
-    </motion.div>
-  </motion.div>
-                  
-            </form>
-          </Form>
-        </motion.div>
-      </div>
+            {/* Analysis Results */}
+            <AnimatePresence>
+              {resumeAnalysis && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {/* Stats Card */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="col-span-full bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        Resume Statistics
+                      </h3>
+                      {resumeAnalysis.isValid ? (
+                        <div className="flex items-center gap-2 text-green-400">
+                          <CheckCircle className="w-5 h-5" />
+                          <span>Valid Resume</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400">
+                          <XCircle className="w-5 h-5" />
+                          <span>Needs Improvement</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Experience Level */}
+                      <div className="bg-black/30 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Briefcase className="w-5 h-5 text-blue-300" />
+                          <span className="text-gray-400">Experience</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {resumeAnalysis.experience.years} Years
+                        </p>
+                        <p className="text-gray-400 mt-1">
+                          {resumeAnalysis.experience.level}
+                        </p>
+                      </div>
+
+                      {/* Skills Overview */}
+                      <div className="bg-black/30 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Zap className="w-5 h-5 text-purple-300" />
+                          <span className="text-gray-400">Skills</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {resumeAnalysis.skills.length}
+                        </p>
+                        <p className="text-gray-400 mt-1">Key Skills</p>
+                      </div>
+
+                      {/* Education */}
+                      <div className="bg-black/30 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <GraduationCap className="w-5 h-5 text-yellow-400" />
+                          <span className="text-gray-400">Education</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {resumeAnalysis.education.length}
+                        </p>
+                        <p className="text-gray-400 mt-1">Qualifications</p>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Skills Cloud */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg"
+                  >
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
+                      Skills Overview
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {resumeAnalysis.skills.map((skill: string, index: number) => (
+                        <motion.span
+                          key={index}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-800/10 to-purple-800/10 rounded-full text-blue-300 text-sm font-medium"
+                        >
+                          {skill}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Education Timeline */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg"
+                  >
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
+                      Education
+                    </h3>
+                    <div className="space-y-4">
+                      {resumeAnalysis.education.map(
+                        (
+                          edu: { degree: string; institution: string; year: string },
+                          index: number
+                        ) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.2 }}
+                            className="relative pl-6 pb-4 border-l border-gray-700"
+                          >
+                            <div className="absolute left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
+                            <p className="text-white font-medium">{edu.degree}</p>
+                            <p className="text-gray-400">{edu.institution}</p>
+                            <p className="text-gray-500 text-sm">{edu.year}</p>
+                          </motion.div>
+                        )
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Feedback Analysis */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg"
+                  >
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
+                      Detailed Feedback
+                    </h3>
+                    <div className="space-y-6">
+                      {/* Strengths */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-green-800/10 rounded-xl p-4 border border-green-800/20"
+                      >
+                        <h4 className="text-green-400 font-medium mb-2">
+                          Strengths
+                        </h4>
+                        <ul className="space-y-2">
+                          {resumeAnalysis.feedback.strengths.map(
+                            (strength: string, index: number) => (
+                              <motion.li
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="flex items-center gap-2 text-gray-300"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                                <span>{strength}</span>
+                              </motion.li>
+                            )
+                          )}
+                        </ul>
+                      </motion.div>
+
+                      {/* Areas for Improvement */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-yellow-800/10 rounded-xl p-4 border border-yellow-800/20"
+                      >
+                        <h4 className="text-yellow-400 font-medium mb-2">
+                          Areas for Improvement
+                        </h4>
+                        <ul className="space-y-2">
+                          {resumeAnalysis.feedback.improvements.map(
+                            (improvement: string, index: number) => (
+                              <motion.li
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="flex items-center gap-2 text-gray-300"
+                              >
+                                <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                                <span>{improvement}</span>
+                              </motion.li>
+                            )
+                          )}
+                        </ul>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+
+                  {/* Buzzwords Analysis */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg"
+                  >
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
+                      Buzzword Analysis
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Total Buzzwords</span>
+                        <span className="text-2xl font-bold text-white">
+                          {resumeAnalysis.buzzwords.count}
+                        </span>
+                      </div>
+                      {resumeAnalysis.buzzwords.list.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {resumeAnalysis.buzzwords.list.map(
+                            (word: string, index: number) => (
+                              <motion.span
+                                key={index}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="px-3 py-1 bg-purple-800/10 text-purple-300 rounded-full text-sm"
+                              >
+                                {word}
+                              </motion.span>
+                            )
+                          )}
+                        </div>
+                      )}
+                      {resumeAnalysis.buzzwords.warning && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-4 p-4 bg-red-800/10 rounded-xl border border-red-800/20"
+                        >
+                          <p className="text-red-400 text-sm font-medium">
+                            ⚠️ High buzzword usage detected. Consider reducing for more impact.
+                          </p>
+                        </motion.div>
+                      )}
+
+                      {/* Critical Flaws Card */}
+                      {resumeAnalysis.criticalFlaws && resumeAnalysis.criticalFlaws.length > 0 && (
+                        <motion.div
+                          whileHover={{ scale: 1.03, boxShadow: "0 0 30px rgba(255,0,0,0.1)" }}
+                          whileTap={{ scale: 0.98 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                          className="relative bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg overflow-hidden"
+                        >
+                          {/* Animated gradient overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-red-400/10 to-red-300/10 pointer-events-none blur-3xl"></div>
+                          <div className="relative">
+                            <h3 className="text-2xl font-extrabold bg-gradient-to-r from-red-400 to-red-200 bg-clip-text text-transparent mb-4">
+                              Critical Flaws
+                            </h3>
+                            <ul className="space-y-2">
+                              {resumeAnalysis.criticalFlaws.map((flaw: string, index: number) => (
+                                <motion.li
+                                  key={index}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
+                                  className="flex items-center gap-2 text-red-400 text-lg"
+                                >
+                                  <XCircle className="w-5 h-5" />
+                                  <span>{flaw}</span>
+                                </motion.li>
+                              ))}
+                            </ul>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Additional Recommendations Card */}
+                      {resumeAnalysis.additionalRecommendations && (
+                        <motion.div
+                          whileHover={{ scale: 1.03, boxShadow: "0 0 30px rgba(255,255,255,0.1)" }}
+                          whileTap={{ scale: 0.98 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                          className="relative bg-black/30 backdrop-blur-lg rounded-3xl border border-gray-700 p-8 shadow-lg overflow-hidden"
+                        >
+                          {/* Animated gradient background overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-800/10 via-purple-800/10 to-pink-800/10 pointer-events-none blur-3xl"></div>
+                          <div className="relative">
+                            <h3 className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
+                              Additional Recommendations
+                            </h3>
+                            <p className="text-lg text-gray-300 leading-relaxed">
+                              {resumeAnalysis.additionalRecommendations}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Submit Button */}
+            <motion.button
+  type="submit"
+  disabled={!isFormValid}
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  className={cn(
+    "w-full h-14 bg-gradient-to-r from-indigo-600 to-pink-600 text-white rounded-lg font-semibold transition transform duration-200 ease-in-out",
+    !isFormValid && "opacity-50 cursor-not-allowed"
+  )}
+>
+  <div className="flex items-center justify-center gap-2">
+    <Rocket className="w-5 h-5" />
+    <span>{isFormValid ? "Submit Resume" : "Complete All Fields"}</span>
+  </div>
+</motion.button>
+
+
+          </form>
+        </Form>
+      </motion.div>
     </div>
-  );
+  </div>
+)
 }

@@ -15,13 +15,12 @@ async function generatePhdCodingQuestion(
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const prompt = `
-Generate 1 advanced PhD-level coding challenge for a ${jobTitle} position that solves a real-world problem using cutting-edge techniques. The challenge should test the following skills: ${skills.join(', ')}.
-Return ONLY a valid JSON object with this structure:
+Generate 6 extremely hard and complex PhD-level coding challenge for a ${jobTitle} role that solves a real-world problem using advanced techniques. It should test the following skills: ${skills.join(', ')}. Do not generate more than 400 tokens. Return ONLY a valid JSON object in the following structure:
 {
   "title": "A descriptive title",
   "description": "Detailed problem description with context and requirements",
   "difficulty": "PhD",
-  "timeLimit": 7200,
+  "timeLimit": 1120,
   "testCases": [
     {"input": "input format", "expectedOutput": "output format"},
     {"input": "input format", "expectedOutput": "output format"}
@@ -57,7 +56,7 @@ Return ONLY a valid JSON object with this structure:
       id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...parsedQuestion,
       difficulty: "PhD", // enforce PhD-level
-      timeLimit: 7200
+      timeLimit: 1120
     };
   } catch (error) {
     console.error("Error generating coding question:", error);
@@ -125,4 +124,4 @@ export async function generateQuestionForJob(jobPostId: string): Promise<CodingQ
 }
 
 export default generatePhdCodingQuestion;
-export { generatePhdCodingQuestionHint };
+export { generatePhdCodingQuestionHint }; 
