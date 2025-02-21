@@ -1,3 +1,4 @@
+"use client";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ import Timer from "@/app/_components/Timer";
 import CodeQualityMetricsCard from "@/app/_components/CodeQualityMetricsCard";
 import { CodeProblem, EvaluationResult } from "@/types/code";
 import LoadingState from "@/components/loading/Loadingstate/loading";
+import { CheatGuard } from "@/components/test/CheatGuard";
 
 export default function CodingTest() {
   const params = useParams();
@@ -291,6 +293,38 @@ export default function CodingTest() {
                     ))}
                   </div>
                 </TabsContent>
+               
+
+                <CheatGuard 
+  onViolation={async (count: number) => {
+    try {
+      await fetch(`/api/coding-test/${jobSeekerId}/violations`, {
+        method: 'POST',
+        body: JSON.stringify({ count })
+      });
+      
+      if (count >= 3) {
+        toast({
+          title: "Test Terminated",
+          description: "Test has been terminated due to multiple violations",
+          variant: "destructive"
+        });
+        router.push('/');
+      }
+    } catch (err) {
+      console.error('Failed to record violation:', err);
+    }
+  }} 
+  onTestTerminate={() => {
+    toast({
+      title: "Test Terminated",
+      description: "Test has been terminated due to multiple violations",
+      variant: "destructive"
+    });
+    localStorage.setItem(`test-terminated-${jobSeekerId}`, 'true');
+  }}
+  maxViolations={3}
+/>
 
                 <TabsContent value="solution" className="mt-6">
                   <div className="overflow-hidden rounded-xl border border-gray-800/50 backdrop-blur-xl">
