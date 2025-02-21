@@ -72,7 +72,15 @@ const Pricing = () => {
     return (
         <div className="flex flex-col items-center justify-center py-12 md:py-16 lg:py-32 w-full relative">
         <div className="absolute inset-0 bg-transparent" />
-        <Container>
+        <Container
+        
+        delay={0.0}
+               
+  duration={0.8}  // Longer duration for smoother animation
+  reverse={false} // Animate from bottom to top
+  simple={false}  
+        
+        >
             <div className="flex flex-col items-center text-center max-w-xl mx-auto">
                 <SectionBadge title="Recruitment Plans" />
                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-heading font-medium !leading-snug mt-6 bg-gradient-to-r from-blue-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">

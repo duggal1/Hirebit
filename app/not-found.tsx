@@ -12,7 +12,7 @@ export default function NotFound() {
     <div className="relative min-h-screen bg-transparent flex flex-col items-center justify-center px-4 overflow-hidden">
       {/* Subtle blue gradient accent */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-black to-blue-900 opacity-40" />
+        <div className="absolute top-0 left-0 w-full h-full bg-transparent opacity-40" />
       </div>
 
       {/* Navigation Bar */}
@@ -83,7 +83,7 @@ export default function NotFound() {
           transition={{ delay: 0.6 }}
         >
           <Link
-            href="/"
+            href="/main"
             className="inline-flex items-center px-8 py-4 bg-blue-800 rounded-2xl font-semibold text-white hover:bg-blue-700 transition-all duration-300"
           >
             Return Home

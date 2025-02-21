@@ -21,7 +21,7 @@ var firstRow = reviews_1.REVIEWS.slice(0, reviews_1.REVIEWS.length / 2);
 var secondRow = reviews_1.REVIEWS.slice(reviews_1.REVIEWS.length / 2);
 var Reviews = function () {
     return (React.createElement("div", { className: "flex flex-col items-center justify-center py-12 md:py-16 lg:py-24  w-full" },
-        React.createElement(container_1["default"], null,
+        React.createElement(container_1["default"], { delay: 0.0, duration: 0.8, reverse: false, simple: false },
             React.createElement("div", { className: "flex flex-col items-center text-center max-w-xl mx-auto" },
                 React.createElement(section_bade_1.SectionBadge, { title: "Our Customers" }),
                 React.createElement("h2", { className: "text-2xl md:text-4xl lg:text-5xl font-heading font-black !leading-snug mt-6" }, "What our customers say about Hirebit"),

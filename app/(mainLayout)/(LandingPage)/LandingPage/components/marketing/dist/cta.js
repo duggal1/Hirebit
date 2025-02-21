@@ -8,7 +8,7 @@ var particles_1 = require("../ui/particles");
 var retro_grid_1 = require("../ui/retro-grid");
 var CTA = function () {
     return (React.createElement("div", { className: "flex flex-col items-center justify-center py-16 md:py-20 lg:py-32 w-full relative" },
-        React.createElement(container_1["default"], null,
+        React.createElement(container_1["default"], { delay: 0.0, duration: 0.8, reverse: false, simple: false },
             React.createElement("div", { className: "flex flex-col items-center justify-center text-center w-full px-6 md:px-0 mx-auto min-h-[600px] bg-gradient-to-b from-background/80 to-background border border-foreground/10 rounded-[2.5rem] overflow-hidden relative backdrop-blur-xl" },
                 React.createElement("div", { className: "absolute top-0 left-1/2 -translate-x-1/2 w-full h-24 bg-violet-500/30 blur-[8rem]" }),
                 React.createElement("div", { className: "absolute bottom-0 right-1/2 translate-x-1/2 w-full h-24 bg-blue-500/30 blur-[8rem]" }),

@@ -51,7 +51,7 @@ var RECRUITER_PERKS = [
 var Perks = function () {
     return (React.createElement("div", { className: "flex flex-col items-center justify-center py-16 md:py-24 lg:py-32 w-full relative" },
         React.createElement("div", { className: "bg-transparent" }),
-        React.createElement(container_1["default"], null,
+        React.createElement(container_1["default"], { delay: 0.0, duration: 0.8, reverse: false, simple: false },
             React.createElement("div", { className: "flex flex-col items-center text-center max-w-3xl mx-auto" },
                 React.createElement(section_bade_1.SectionBadge, { title: "Why Recruiters Choose Us" }),
                 React.createElement("h2", { className: "text-4xl md:text-5xl lg:text-6xl font-black !leading-tight mt-8 bg-gradient-to-r from-foreground via-violet-600 to-blue-600 bg-clip-text text-transparent" }, "Hire Better, Faster, Smarter"),

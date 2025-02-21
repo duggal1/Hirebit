@@ -8,7 +8,12 @@ const Connect = () => {
     return (
         <div className="flex flex-col items-center justify-center py-8 md:py-12 w-full relative">
         <div className="absolute inset-0 bg-transparent" />
-        <Container>
+        <Container 
+        delay={0.0}
+               
+        duration={0.8}  // Longer duration for smoother animation
+        reverse={false} // Animate from bottom to top
+        simple={false} >
             <div className="flex flex-col items-center text-center max-w-2xl mx-auto relative z-10">
                 <SectionBadge title="Top Quality Jobs" />
                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-black  !leading-snug mt-6 bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent">

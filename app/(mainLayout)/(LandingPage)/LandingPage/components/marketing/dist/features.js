@@ -3,6 +3,7 @@
 exports.__esModule = true;
 var container_1 = require("../global/container");
 var magic_card_1 = require("../ui/magic-card");
+var ripple_1 = require("../ui/ripple");
 var lucide_react_1 = require("lucide-react");
 var section_bade_1 = require("../ui/section-bade");
 var Features = function () {
@@ -10,7 +11,7 @@ var Features = function () {
         React.createElement("div", { className: "relative z-10" },
             React.createElement("div", { className: "flex flex-col items-center justify-center py-12 md:py-16 lg:py-32 w-full relative overflow-hidden" },
                 React.createElement("div", { className: "bg-transparent z-0" }),
-                React.createElement(container_1["default"], { className: "relative z-10" },
+                React.createElement(container_1["default"], { delay: 0.0, duration: 0.8, reverse: false, simple: false, className: "relative z-10" },
                     React.createElement("div", { className: "flex flex-col items-center text-center max-w-3xl mx-auto" },
                         React.createElement(section_bade_1.SectionBadge, { title: "Why Hirebit?" }),
                         React.createElement("h2", { className: "text-5xl md:text-5xl lg:text-6xl font-heading font-black !leading-tight mt-6 bg-gradient-to-r from-foreground via-indigo-800 to-blue-600 bg-clip-text text-transparent" },
@@ -27,7 +28,8 @@ var Features = function () {
                                         React.createElement("div", { className: "flex flex-col gap-6 p-8" },
                                             React.createElement(lucide_react_1.Shield, { className: "w-16 h-16 text-violet-800" }),
                                             React.createElement("h3", { className: "text-2xl font-bold" }, "Triple Verification"),
-                                            React.createElement("p", { className: "text-accent-foreground/80" }, "Every candidate profile is thoroughly verified through resume checks, skill assessments, and video interviews.")))),
+                                            React.createElement("p", { className: "text-accent-foreground/80" }, "Every candidate profile is thoroughly verified through resume checks, skill assessments, and video interviews.")),
+                                        React.createElement(ripple_1.Ripple, null))),
                                 React.createElement(magic_card_1["default"], { particles: true, className: "hover:scale-[1.02] transition-all duration-300" },
                                     React.createElement("div", { className: "bento-card p-8" },
                                         React.createElement(lucide_react_1.Sparkle, { className: "w-12 h-12 text-blue-800 mb-6" }),

@@ -42,7 +42,14 @@ const Perks = () => {
     return (
         <div className="flex flex-col items-center justify-center py-16 md:py-24 lg:py-32 w-full relative">
             <div className="bg-transparent" />
-            <Container>
+            <Container          
+            delay={0.0}
+               
+            duration={0.8}  // Longer duration for smoother animation
+            reverse={false} // Animate from bottom to top
+            simple={false}  
+            
+            >
                 <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
                     <SectionBadge title="Why Recruiters Choose Us" />
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-black !leading-tight mt-8 bg-gradient-to-r from-foreground via-violet-600 to-blue-600 bg-clip-text text-transparent">

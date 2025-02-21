@@ -9,7 +9,12 @@ import RetroGrid from "../ui/retro-grid";
 const CTA = () => {
     return (
         <div className="flex flex-col items-center justify-center py-16 md:py-20 lg:py-32 w-full relative">
-            <Container>
+            <Container
+            delay={0.0}
+               
+            duration={0.8}  // Longer duration for smoother animation
+            reverse={false} // Animate from bottom to top
+            simple={false} >
                 <div className="flex flex-col items-center justify-center text-center w-full px-6 md:px-0 mx-auto min-h-[600px] bg-gradient-to-b from-background/80 to-background border border-foreground/10 rounded-[2.5rem] overflow-hidden relative backdrop-blur-xl">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-24 bg-violet-500/30 blur-[8rem]"></div>
                     <div className="absolute bottom-0 right-1/2 translate-x-1/2 w-full h-24 bg-blue-500/30 blur-[8rem]"></div>

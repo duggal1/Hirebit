@@ -6,16 +6,23 @@ import { Ripple } from "../ui/ripple";
 
 import { Shield,Sparkle, Target, Zap, BarChart2 } from "lucide-react";
 import { SectionBadge } from "../ui/section-bade";
+import { WarpBackground } from "@/components/magicui/warp-background";
+
 
 
 const Features = () => {
   return (
     <div className="relative">
+     
 
   <div className="relative z-10">
     <div className="flex flex-col items-center justify-center py-12 md:py-16 lg:py-32 w-full relative overflow-hidden">
       <div className="bg-transparent z-0" />
-      <Container className="relative z-10">
+      <Container delay={0.0}
+               
+               duration={0.8}  // Longer duration for smoother animation
+               reverse={false} // Animate from bottom to top
+               simple={false} className="relative z-10">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
           <SectionBadge title="Why Hirebit?" />
           <h2 className="text-5xl md:text-5xl lg:text-6xl font-heading font-black !leading-tight mt-6 bg-gradient-to-r from-foreground via-indigo-800 to-blue-600 bg-clip-text text-transparent">
@@ -42,7 +49,7 @@ const Features = () => {
                       Every candidate profile is thoroughly verified through resume checks, skill assessments, and video interviews.
                     </p>
                   </div>
-         
+                <Ripple/>
                 </div>
               </MagicCard>
               <MagicCard particles={true} className="hover:scale-[1.02] transition-all duration-300">
@@ -91,7 +98,10 @@ const Features = () => {
       </div>
     </div>
     </div>
+   
+
     </div>
+
   );
 
 };

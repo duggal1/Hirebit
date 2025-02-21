@@ -12,7 +12,13 @@ const secondRow = REVIEWS.slice(REVIEWS.length / 2);
 const Reviews = () => {
     return (
         <div className="flex flex-col items-center justify-center py-12 md:py-16 lg:py-24  w-full">
-            <Container>
+            <Container
+            delay={0.0}
+               
+            duration={0.8}  // Longer duration for smoother animation
+            reverse={false} // Animate from bottom to top
+            simple={false}  
+            >
                 <div className="flex flex-col items-center text-center max-w-xl mx-auto">
                     <SectionBadge title="Our Customers" />
                     <h2 className="text-2xl md:text-4xl lg:text-5xl font-heading font-black !leading-snug mt-6">
