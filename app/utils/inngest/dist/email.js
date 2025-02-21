@@ -46,7 +46,7 @@ if (!process.env.RESEND_API_KEY) {
     throw new Error("RESEND_API_KEY is not configured");
 }
 var resend = new resend_1.Resend(process.env.RESEND_API_KEY);
-var RESEND_FROM_EMAIL = "Hirebit <invoices@" + (process.env.RESEND_DOMAIN || 'hirebit.site') + ">";
+var RESEND_FROM_EMAIL = "Hirebit <invoices@" + (process.env.RESEND_DOMAIN || "hirebit.site") + ">";
 exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
     id: "send-payment-invoice",
     name: "Send Payment Invoice Email",
@@ -55,23 +55,23 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
     var event = _a.event, step = _a.step;
     return __awaiter(void 0, void 0, void 0, function () {
         var jobId_1, paymentIntentId_1, jobData_1, startDate, expirationDate_1, emailResult, error_1;
-        var _b, _c, _d;
-        return __generator(this, function (_e) {
-            switch (_e.label) {
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     console.log("[Inngest] Starting with data:", event.data);
-                    _e.label = 1;
+                    _b.label = 1;
                 case 1:
-                    _e.trys.push([1, 5, , 6]);
+                    _b.trys.push([1, 5, , 6]);
                     jobId_1 = event.data.jobId;
-                    paymentIntentId_1 = event.data.paymentIntentId || 'manual_creation';
+                    paymentIntentId_1 = event.data.paymentIntentId || "manual_creation";
                     if (!jobId_1) {
                         throw new Error("Missing required jobId");
                     }
                     return [4 /*yield*/, step.run("fetch-job-details", function () { return __awaiter(void 0, void 0, void 0, function () {
                             var job;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
+                            var _a, _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
                                     case 0: return [4 /*yield*/, db_1.prisma.jobPost.findUnique({
                                             where: { id: jobId_1 },
                                             include: {
@@ -83,25 +83,21 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                             }
                                         })];
                                     case 1:
-                                        job = _a.sent();
-                                        if (!job || !job.company) {
-                                            throw new Error("Job or company not found for jobId: " + jobId_1);
+                                        job = _c.sent();
+                                        if (!((_b = (_a = job === null || job === void 0 ? void 0 : job.company) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.email)) {
+                                            throw new Error("Invalid job data for jobId: " + jobId_1);
                                         }
                                         return [2 /*return*/, job];
                                 }
                             });
                         }); })];
                 case 2:
-                    jobData_1 = _e.sent();
-                    // Verify email exists
-                    if (!jobData_1.company.user.email) {
-                        throw new Error("No email found for company: " + jobData_1.company.id);
-                    }
+                    jobData_1 = _b.sent();
                     startDate = new Date();
                     expirationDate_1 = new Date(startDate);
                     expirationDate_1.setDate(startDate.getDate() + (jobData_1.listingDuration || 30));
                     return [4 /*yield*/, step.run("send-invoice-email", function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var recipientEmail, response;
+                            var recipientEmail, emailComponent, response;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -109,43 +105,50 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                         if (!recipientEmail) {
                                             throw new Error("Invalid recipient email for company: " + jobData_1.company.id);
                                         }
-                                        console.log("[Inngest] Sending email to:", recipientEmail);
+                                        emailComponent = email_template_1.PaymentInvoiceEmail({
+                                            companyName: jobData_1.company.name,
+                                            jobTitle: jobData_1.jobTitle,
+                                            amount: "$" + (jobData_1.paymentAmount || jobData_1.salaryFrom / 100).toFixed(2),
+                                            paymentId: paymentIntentId_1,
+                                            paymentDate: date_fns_1.format(new Date(), "MMMM dd, yyyy"),
+                                            expirationDate: date_fns_1.format(expirationDate_1, "MMMM dd, yyyy"),
+                                            jobDuration: jobData_1.listingDuration + " days",
+                                            jobLocation: jobData_1.location,
+                                            paymentStatus: "Completed",
+                                            companyDescription: jobData_1.company.about,
+                                            jobDescription: jobData_1.jobDescription,
+                                            benefits: jobData_1.benefits,
+                                            skillsRequired: jobData_1.skillsRequired,
+                                            salary: {
+                                                from: jobData_1.salaryFrom,
+                                                to: jobData_1.salaryTo
+                                            },
+                                            recipientEmail: recipientEmail,
+                                            companyId: jobData_1.company.id
+                                        });
                                         return [4 /*yield*/, resend.emails.send({
                                                 from: RESEND_FROM_EMAIL,
                                                 to: [recipientEmail],
                                                 subject: "Job Posting Confirmation: " + jobData_1.jobTitle,
-                                                react: email_template_1.PaymentInvoiceEmail({
-                                                    companyName: jobData_1.company.name,
-                                                    jobTitle: jobData_1.jobTitle,
-                                                    amount: "$" + (jobData_1.salaryFrom / 100).toFixed(2),
-                                                    paymentId: paymentIntentId_1,
-                                                    paymentDate: date_fns_1.format(new Date(), "MMMM dd, yyyy"),
-                                                    expirationDate: date_fns_1.format(expirationDate_1, "MMMM dd, yyyy"),
-                                                    jobDuration: jobData_1.listingDuration + " days",
-                                                    jobLocation: jobData_1.location,
-                                                    paymentStatus: "Completed"
-                                                })
+                                                react: emailComponent
                                             })];
                                     case 1:
                                         response = _a.sent();
-                                        if (response.error) {
-                                            throw new Error("Email send failed: " + response.error.message);
-                                        }
                                         return [2 /*return*/, response];
                                 }
                             });
                         }); })];
                 case 3:
-                    emailResult = _e.sent();
+                    emailResult = _b.sent();
                     // Update job with email data
                     return [4 /*yield*/, db_1.prisma.jobPost.update({
                             where: { id: jobId_1 },
                             data: {
                                 status: "ACTIVE",
-                                invoiceEmailId: (_b = emailResult.data) === null || _b === void 0 ? void 0 : _b.id,
+                                invoiceEmailId: emailResult.id,
                                 invoiceEmailSentAt: new Date(),
                                 invoiceData: {
-                                    emailId: (_c = emailResult.data) === null || _c === void 0 ? void 0 : _c.id,
+                                    emailId: emailResult.id,
                                     sentAt: new Date().toISOString(),
                                     amount: jobData_1.salaryFrom,
                                     expirationDate: expirationDate_1.toISOString(),
@@ -156,15 +159,15 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                         })];
                 case 4:
                     // Update job with email data
-                    _e.sent();
+                    _b.sent();
                     return [2 /*return*/, {
                             success: true,
                             jobId: jobId_1,
-                            emailId: (_d = emailResult.data) === null || _d === void 0 ? void 0 : _d.id,
+                            emailId: emailResult.id,
                             sentAt: new Date().toISOString()
                         }];
                 case 5:
-                    error_1 = _e.sent();
+                    error_1 = _b.sent();
                     console.error("[Inngest] Email failed:", error_1);
                     throw error_1;
                 case 6: return [2 /*return*/];

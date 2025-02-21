@@ -4,114 +4,149 @@ exports.PaymentInvoiceEmail = void 0;
 var components_1 = require("@react-email/components");
 var React = require("react");
 exports.PaymentInvoiceEmail = function (_a) {
-    var companyName = _a.companyName, jobTitle = _a.jobTitle, amount = _a.amount, paymentId = _a.paymentId, paymentDate = _a.paymentDate, expirationDate = _a.expirationDate, jobDuration = _a.jobDuration, jobLocation = _a.jobLocation, paymentStatus = _a.paymentStatus;
+    var companyName = _a.companyName, jobTitle = _a.jobTitle, amount = _a.amount, paymentId = _a.paymentId, paymentDate = _a.paymentDate, expirationDate = _a.expirationDate, jobLocation = _a.jobLocation, paymentStatus = _a.paymentStatus;
     return (React.createElement(components_1.Html, null,
         React.createElement(components_1.Head, null),
-        React.createElement(components_1.Preview, null, "Payment Invoice for Your Job Posting on Hirebit"),
+        React.createElement(components_1.Preview, null,
+            "Payment Confirmation for ",
+            jobTitle),
         React.createElement(components_1.Body, { style: main },
             React.createElement(components_1.Container, { style: container },
                 React.createElement(components_1.Section, { style: header },
-                    React.createElement(components_1.Img, { src: process.env.NEXT_PUBLIC_APP_URL + "/logo.png", width: "140", height: "40", alt: "Hirebit" })),
+                    React.createElement(components_1.Img, { src: "/logo.png", width: 120, height: 40, alt: "Hirebit", style: logoStyle })),
                 React.createElement(components_1.Section, { style: content },
-                    React.createElement(components_1.Text, { style: title }, "Payment Invoice"),
-                    React.createElement(components_1.Text, { style: subtitle }, "Thank you for posting a job on Hirebit!"),
-                    React.createElement(components_1.Section, { style: detailsContainer },
-                        React.createElement(components_1.Row, null,
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Company"),
-                                React.createElement(components_1.Text, { style: valueText }, companyName)),
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Amount Paid"),
-                                React.createElement(components_1.Text, { style: valueText }, amount))),
-                        React.createElement(components_1.Hr, { style: divider }),
-                        React.createElement(components_1.Row, null,
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Job Title"),
-                                React.createElement(components_1.Text, { style: valueText }, jobTitle)),
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Location"),
-                                React.createElement(components_1.Text, { style: valueText }, jobLocation))),
-                        React.createElement(components_1.Hr, { style: divider }),
-                        React.createElement(components_1.Row, null,
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Payment Date"),
-                                React.createElement(components_1.Text, { style: valueText }, paymentDate)),
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Payment Status"),
-                                React.createElement(components_1.Text, { style: valueText }, paymentStatus))),
-                        React.createElement(components_1.Hr, { style: divider }),
-                        React.createElement(components_1.Row, null,
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Duration"),
-                                React.createElement(components_1.Text, { style: valueText }, jobDuration)),
-                            React.createElement(components_1.Column, null,
-                                React.createElement(components_1.Text, { style: labelText }, "Expiration Date"),
-                                React.createElement(components_1.Text, { style: valueText }, expirationDate))),
-                        React.createElement(components_1.Hr, { style: divider }),
-                        React.createElement(components_1.Text, { style: labelText }, "Payment ID"),
-                        React.createElement(components_1.Text, { style: valueText }, paymentId)),
-                    React.createElement(components_1.Text, { style: footerText },
-                        "Your job posting will be active until ",
-                        expirationDate,
-                        ". You'll receive a notification before the expiration date."))))));
+                    React.createElement(components_1.Text, { style: title }, "Payment Confirmation"),
+                    React.createElement(components_1.Text, { style: subtitle }, "Thank you for your payment"),
+                    React.createElement(components_1.Section, { style: infoBox },
+                        React.createElement(components_1.Section, { style: infoItem },
+                            React.createElement(components_1.Text, { style: label }, "Company"),
+                            React.createElement(components_1.Text, { style: value }, companyName)),
+                        React.createElement(components_1.Section, { style: infoItem },
+                            React.createElement(components_1.Text, { style: label }, "Position"),
+                            React.createElement(components_1.Text, { style: value }, jobTitle)),
+                        React.createElement(components_1.Section, { style: infoItem },
+                            React.createElement(components_1.Text, { style: label }, "Location"),
+                            React.createElement(components_1.Text, { style: value }, jobLocation))),
+                    React.createElement(components_1.Section, { style: paymentBox },
+                        React.createElement(components_1.Text, { style: amount }, amount),
+                        React.createElement(components_1.Text, { style: status }, paymentStatus),
+                        React.createElement(components_1.Section, { style: paymentDetails },
+                            React.createElement(components_1.Section, { style: detailRow },
+                                React.createElement(components_1.Text, { style: detailLabel }, "Payment ID"),
+                                React.createElement(components_1.Text, { style: detailValue }, paymentId)),
+                            React.createElement(components_1.Section, { style: detailRow },
+                                React.createElement(components_1.Text, { style: detailLabel }, "Payment Date"),
+                                React.createElement(components_1.Text, { style: detailValue }, paymentDate)),
+                            React.createElement(components_1.Section, { style: detailRow },
+                                React.createElement(components_1.Text, { style: detailLabel }, "Expiration Date"),
+                                React.createElement(components_1.Text, { style: detailValue }, expirationDate))))),
+                React.createElement(components_1.Hr, { style: divider }),
+                React.createElement(components_1.Text, { style: footer },
+                    "Your job posting will be active until ",
+                    expirationDate)))));
 };
-exports["default"] = exports.PaymentInvoiceEmail;
-// Styles
+// Style definitions with proper typing
 var main = {
     backgroundColor: "#f6f9fc",
-    fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif'
+    padding: "30px 0"
 };
 var container = {
-    backgroundColor: "#ffffff",
+    maxWidth: "500px",
     margin: "0 auto",
-    padding: "20px 0 48px",
-    marginBottom: "64px",
-    borderRadius: "12px",
-    maxWidth: "600px"
+    backgroundColor: "#ffffff",
+    borderRadius: "8px",
+    overflow: "hidden",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)"
 };
 var header = {
-    padding: "32px 48px 0"
+    padding: "20px",
+    backgroundColor: "#f8fafc",
+    textAlign: "center"
+};
+var logoStyle = {
+    margin: "0 auto"
 };
 var content = {
-    padding: "0 48px"
+    padding: "32px 24px"
 };
 var title = {
-    fontSize: "32px",
+    fontSize: "24px",
     fontWeight: "600",
-    color: "#000",
-    marginBottom: "4px"
+    color: "#1a1a1a",
+    textAlign: "center",
+    margin: "0 0 8px"
 };
 var subtitle = {
     fontSize: "16px",
-    color: "#666",
-    marginTop: "0",
-    marginBottom: "24px"
+    color: "#666666",
+    textAlign: "center",
+    margin: "0 0 32px"
 };
-var detailsContainer = {
-    backgroundColor: "#f9fafb",
+var infoBox = {
+    backgroundColor: "#f8fafc",
     borderRadius: "8px",
-    padding: "24px",
+    padding: "20px",
     marginBottom: "24px"
 };
-var labelText = {
+var infoItem = {
+    marginBottom: "12px"
+};
+var label = {
     fontSize: "14px",
-    color: "#666",
+    color: "#666666",
     marginBottom: "4px"
 };
-var valueText = {
+var value = {
     fontSize: "16px",
-    color: "#000",
-    fontWeight: "500",
-    marginTop: "0",
-    marginBottom: "16px"
+    color: "#1a1a1a",
+    fontWeight: "500"
+};
+var paymentBox = {
+    backgroundColor: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    padding: "24px"
+};
+var amount = {
+    fontSize: "32px",
+    fontWeight: "700",
+    color: "#1a1a1a",
+    textAlign: "center",
+    margin: "0 0 8px"
+};
+var status = {
+    fontSize: "14px",
+    color: "#10b981",
+    textAlign: "center",
+    textTransform: "uppercase",
+    margin: "0 0 24px"
+};
+var paymentDetails = {
+    borderTop: "1px solid #e5e7eb",
+    paddingTop: "16px"
+};
+var detailRow = {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "8px"
+};
+var detailLabel = {
+    fontSize: "14px",
+    color: "#666666"
+};
+var detailValue = {
+    fontSize: "14px",
+    color: "#1a1a1a",
+    fontWeight: "500"
 };
 var divider = {
-    borderTop: "1px solid #e6e6e6",
-    margin: "16px 0"
+    margin: "32px 0",
+    borderTop: "1px solid #e5e7eb"
 };
-var footerText = {
+var footer = {
     fontSize: "14px",
-    color: "#666",
-    marginTop: "32px",
-    fontStyle: "italic"
+    color: "#666666",
+    textAlign: "center",
+    padding: "0 24px 32px"
 };
+exports["default"] = exports.PaymentInvoiceEmail;

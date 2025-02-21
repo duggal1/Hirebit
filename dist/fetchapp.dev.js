@@ -12,7 +12,7 @@ function main() {
       switch (_context.prev = _context.next) {
         case 0:
           _context.next = 2;
-          return regeneratorRuntime.awrap(prisma.jobPost.findMany());
+          return regeneratorRuntime.awrap(prisma.jobMetrics.findMany());
 
         case 2:
           jobSeekers = _context.sent;

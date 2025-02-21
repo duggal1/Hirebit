@@ -296,12 +296,13 @@ model Company {
   glassdoorRating Float? // Average Glassdoor rating (e.g., 4.2)
   techStack       String[] // List of technologies the company primarily uses
 
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String           @unique
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  JobPost        JobPost[]
-  JobApplication JobApplication[]
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String                 @unique
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  JobPost              JobPost[]
+  JobApplication       JobApplication[]
+  NewsletterSubscriber NewsletterSubscriber[]
 
   @@map("companies")
 }
@@ -534,4 +535,18 @@ enum ApplicationStatus {
   READY
   NOT_READY
   ACTIVE
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  subscribedAt DateTime @default(now())
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([email, companyId])
+  @@index([status])
 }

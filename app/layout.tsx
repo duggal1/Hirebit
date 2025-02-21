@@ -37,7 +37,7 @@ export default function RootLayout({
         <GlobalProviders>
           <ResumeProviders>
             <AutoSaveHeaderWrapper />
-            <Sidebar />
+    
             <main>{children}</main>
             <Footer />
           </ResumeProviders>
