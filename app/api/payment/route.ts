@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       currency: 'usd',
       metadata: {
         priceId,
-        jobId,
+        jobId, // Ensure this is passed correctly
         environment: process.env.NODE_ENV,
         timestamp: new Date().toISOString(),
       },
@@ -62,12 +62,26 @@ export async function POST(req: Request) {
         enabled: true,
       },
     });
+    
+ 
+    return NextResponse.json({
+      clientSecret: paymentIntent.client_secret,
+      amount: paymentIntent.amount,
+      confirmParams: {
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/my-jobs?job_id=${jobId}`,
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      }
+    });
 
     console.log('Payment intent created:', {
       id: paymentIntent.id,
       amount: paymentIntent.amount,
       status: paymentIntent.status,
     });
+  
 
     // Return success response
     return NextResponse.json({
@@ -98,6 +112,8 @@ export async function POST(req: Request) {
       );
     }
 
+
+
     // Handle general errors
     console.error('Payment API error:', error);
     return NextResponse.json(
@@ -122,3 +138,4 @@ export async function OPTIONS() {
     },
   });
 }
+

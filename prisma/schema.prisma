@@ -333,6 +333,9 @@ model JobSeekerResume {
 model JobPost {
   id                  String           @id @default(uuid())
   jobTitle            String
+  invoiceData         Json?
+  invoiceEmailId      String?
+  invoiceEmailSentAt  DateTime?
   employmentType      String
   codingQuestions     CodingQuestion[]
   location            String

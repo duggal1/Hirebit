@@ -87,15 +87,12 @@ function POST(req) {
                         })];
                 case 2:
                     paymentIntent = _b.sent();
-                    console.log('Payment intent created:', {
-                        id: paymentIntent.id,
-                        amount: paymentIntent.amount,
-                        status: paymentIntent.status
-                    });
-                    // Return success response
                     return [2 /*return*/, server_1.NextResponse.json({
                             clientSecret: paymentIntent.client_secret,
-                            amount: paymentIntent.amount
+                            amount: paymentIntent.amount,
+                            confirmParams: {
+                                return_url: process.env.NEXT_PUBLIC_APP_URL + "/my-jobs?job_id=" + jobId
+                            }
                         }, {
                             headers: {
                                 'Cache-Control': 'no-store, no-cache, must-revalidate'

@@ -68,8 +68,9 @@ var stripe_1 = require("./utils/stripe");
 var cache_1 = require("next/cache");
 var arcjet_1 = require("./utils/arcjet");
 var next_1 = require("@arcjet/next");
+var client_1 = require("./utils/inngest/client");
 var jobMetrics_1 = require("./utils/jobMetrics");
-var client_1 = require("@prisma/client");
+var client_2 = require("@prisma/client");
 var auth_1 = require("./utils/auth");
 var zodSchemas_1 = require("./utils/zodSchemas");
 var uuid_1 = require("uuid"); // Import UUID generator
@@ -170,7 +171,7 @@ function createJobSeeker(data) {
                                 desiredEmployment: validatedData.desiredEmployment,
                                 certifications: validatedData.certifications
                                     ? validatedData.certifications
-                                    : client_1.Prisma.JsonNull,
+                                    : client_2.Prisma.JsonNull,
                                 phoneNumber: validatedData.phoneNumber,
                                 linkedin: validatedData.linkedin || null,
                                 github: validatedData.github || null,
@@ -217,7 +218,7 @@ function createJobSeeker(data) {
 exports.createJobSeeker = createJobSeeker;
 function createJob(data) {
     return __awaiter(this, void 0, void 0, function () {
-        var user, validatedData, company, jobPost;
+        var user, validatedData, company, jobPost, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -230,7 +231,12 @@ function createJob(data) {
                             where: { userId: user.id },
                             select: {
                                 id: true,
-                                user: { select: { stripeCustomerId: true } }
+                                user: {
+                                    select: {
+                                        stripeCustomerId: true,
+                                        email: true
+                                    }
+                                }
                             }
                         })];
                 case 2:
@@ -249,19 +255,41 @@ function createJob(data) {
                                 listingDuration: validatedData.listingDuration,
                                 benefits: validatedData.benefits,
                                 jobDescription: validatedData.jobDescription,
-                                status: "DRAFT",
+                                status: "ACTIVE",
                                 skillsRequired: validatedData.skillsRequired,
                                 positionRequirement: validatedData.positionRequirement,
                                 requiredExperience: validatedData.requiredExperience,
                                 jobCategory: validatedData.jobCategory,
                                 interviewStages: validatedData.interviewStages,
                                 visaSponsorship: validatedData.visaSponsorship,
-                                compensationDetails: validatedData.compensationDetails
+                                compensationDetails: validatedData.compensationDetails,
+                                paidAt: new Date(),
+                                paymentStatus: "COMPLETED"
                             }
                         })];
                 case 3:
                     jobPost = _a.sent();
-                    return [2 /*return*/, { success: true, jobId: jobPost.id }];
+                    _a.label = 4;
+                case 4:
+                    _a.trys.push([4, 6, , 7]);
+                    return [4 /*yield*/, client_1.inngest.send({
+                            name: "payment.succeeded",
+                            data: {
+                                jobId: jobPost.id,
+                                paymentIntentId: "manual_creation",
+                                amount: validatedData.salaryFrom,
+                                currency: "usd"
+                            }
+                        })];
+                case 5:
+                    _a.sent();
+                    console.log("[createJob] Inngest event sent for job:", jobPost.id);
+                    return [3 /*break*/, 7];
+                case 6:
+                    error_2 = _a.sent();
+                    console.error("[createJob] Failed to send Inngest event:", error_2);
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/, { success: true, jobId: jobPost.id }];
             }
         });
     });
@@ -402,7 +430,7 @@ function updateJobPost(data, jobId) {
 exports.updateJobPost = updateJobPost;
 function deleteJobPost(jobId) {
     return __awaiter(this, void 0, void 0, function () {
-        var user, jobToDelete_1, error_2;
+        var user, jobToDelete_1, error_3;
         var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
@@ -491,11 +519,11 @@ function deleteJobPost(jobId) {
                             location: jobToDelete_1.location
                         }];
                 case 5:
-                    error_2 = _a.sent();
-                    console.error("Error deleting job post:", error_2);
+                    error_3 = _a.sent();
+                    console.error("Error deleting job post:", error_3);
                     return [2 /*return*/, {
                             success: false,
-                            error: error_2 instanceof Error ? error_2.message : "Failed to delete job post"
+                            error: error_3 instanceof Error ? error_3.message : "Failed to delete job post"
                         }];
                 case 6: return [2 /*return*/];
             }
@@ -637,7 +665,7 @@ function submitJobApplication(jobId, formData) {
 exports.submitJobApplication = submitJobApplication;
 function evaluateCode(code, question) {
     return __awaiter(this, void 0, Promise, function () {
-        var evaluationRes, error_3;
+        var evaluationRes, error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -656,8 +684,8 @@ function evaluateCode(code, question) {
                         throw new Error('Evaluation failed');
                     return [2 /*return*/, evaluationRes.json()];
                 case 2:
-                    error_3 = _a.sent();
-                    console.error('Code evaluation error:', error_3);
+                    error_4 = _a.sent();
+                    console.error('Code evaluation error:', error_4);
                     return [2 /*return*/, {
                             score: 0,
                             feedback: 'Evaluation service unavailable',
@@ -764,7 +792,7 @@ function isInCooldown(lastAttemptAt) {
 function trackJobView(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_4;
+        var error_5;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -784,8 +812,8 @@ function trackJobView(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_4 = _a.sent();
-                    console.error('Failed to track job view:', error_4);
+                    error_5 = _a.sent();
+                    console.error('Failed to track job view:', error_5);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -796,7 +824,7 @@ exports.trackJobView = trackJobView;
 function trackJobClick(jobId) {
     "use server";
     return __awaiter(this, void 0, void 0, function () {
-        var error_5;
+        var error_6;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -816,8 +844,8 @@ function trackJobClick(jobId) {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_5 = _a.sent();
-                    console.error('Failed to track job click:', error_5);
+                    error_6 = _a.sent();
+                    console.error('Failed to track job click:', error_6);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
             }
@@ -834,7 +862,7 @@ function getJobMetrics(jobId) {
 }
 exports.getJobMetrics = getJobMetrics;
 exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void 0, void 0, void 0, function () {
-    var session, rawData, validatedData, jobSeeker, error_6;
+    var session, rawData, validatedData, jobSeeker, error_7;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -910,7 +938,7 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                             desiredEmployment: validatedData.desiredEmployment,
                             certifications: validatedData.certifications
                                 ? validatedData.certifications
-                                : client_1.Prisma.JsonNull,
+                                : client_2.Prisma.JsonNull,
                             phoneNumber: validatedData.phoneNumber,
                             linkedin: validatedData.linkedin || null,
                             github: validatedData.github || null,
@@ -948,10 +976,10 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
                     redirect: '/'
                 }];
             case 5:
-                error_6 = _b.sent();
-                console.error('Server error:', error_6);
+                error_7 = _b.sent();
+                console.error('Server error:', error_7);
                 return [2 /*return*/, {
-                        message: error_6 instanceof Error ? error_6.message : 'Failed to update profile',
+                        message: error_7 instanceof Error ? error_7.message : 'Failed to update profile',
                         success: false
                     }];
             case 6: return [2 /*return*/];
@@ -960,7 +988,7 @@ exports.submitJobSeeker = function (prevState, formData) { return __awaiter(void
 }); };
 exports.submitJobSeekerResume = function (prevState, // new first parameter (can be ignored if not needed)
 formData) { return __awaiter(void 0, void 0, Promise, function () {
-    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_7;
+    var user, jobSeeker, resumeDataRaw, parsedResult, validResumeData, error_8;
     var _a, _b, _c, _d;
     return __generator(this, function (_e) {
         switch (_e.label) {
@@ -1002,8 +1030,8 @@ formData) { return __awaiter(void 0, void 0, Promise, function () {
                 _e.sent();
                 return [3 /*break*/, 6];
             case 5:
-                error_7 = _e.sent();
-                console.error("Error creating JobSeekerResume:", error_7);
+                error_8 = _e.sent();
+                console.error("Error creating JobSeekerResume:", error_8);
                 throw new Error("Failed to create resume record.");
             case 6: 
             // After successful storage, redirect the user to the coding test page using the JobSeeker's unique id.

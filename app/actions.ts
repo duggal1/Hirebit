@@ -162,12 +162,16 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
   // Validate incoming data
   const validatedData = jobSchema.parse(data);
 
-  // Look up the company
   const company = await prisma.company.findUnique({
     where: { userId: user.id },
     select: {
       id: true,
-      user: { select: { stripeCustomerId: true } },
+      user: { 
+        select: { 
+          stripeCustomerId: true,
+          email: true 
+        } 
+      },
     },
   });
 
@@ -175,7 +179,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
     throw new Error("No company associated with user");
   }
 
-  // Create job post first
+  // Create job post with ACTIVE status
   const jobPost = await prisma.jobPost.create({
     data: {
       companyId: company.id,
@@ -187,7 +191,7 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       listingDuration: validatedData.listingDuration,
       benefits: validatedData.benefits,
       jobDescription: validatedData.jobDescription,
-      status: "DRAFT", // Start as draft until payment is confirmed
+      status: "ACTIVE", // Set as ACTIVE by default
       skillsRequired: validatedData.skillsRequired,
       positionRequirement: validatedData.positionRequirement,
       requiredExperience: validatedData.requiredExperience,
@@ -195,8 +199,27 @@ export async function createJob(data: z.infer<typeof jobSchema>) {
       interviewStages: validatedData.interviewStages,
       visaSponsorship: validatedData.visaSponsorship,
       compensationDetails: validatedData.compensationDetails,
+      paidAt: new Date(), // Set payment time
+      paymentStatus: "COMPLETED", // Mark as paid
     },
   });
+
+  // Trigger Inngest email event
+  try {
+    await inngest.send({
+      name: "payment.succeeded",
+      data: {
+        jobId: jobPost.id,
+        paymentIntentId: "manual_creation", // Placeholder for direct creation
+        amount: validatedData.salaryFrom, // Use job salary as amount
+        currency: "usd",
+      },
+    });
+
+    console.log("[createJob] Inngest event sent for job:", jobPost.id);
+  } catch (error) {
+    console.error("[createJob] Failed to send Inngest event:", error);
+  }
 
   return { success: true, jobId: jobPost.id };
 }
@@ -388,7 +411,7 @@ export async function deleteJobPost(jobId: string) {
       error: error instanceof Error ? error.message : "Failed to delete job post"
     };
   }
-}
+} 
 export async function saveJobPost(jobId: string) {
   const user = await requireUser();
 
