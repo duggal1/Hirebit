@@ -16,9 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-// Import our modern chart component
-import UltraModernVisualizations from "@/components/charts/dashboard/recuiter/charts";
+import ModernVisualizations from "@/components/charts/dashboard/recuiter/charts";
 
 // ChartJS registration
 import {
@@ -317,7 +315,7 @@ export default function RecruiterDashboard() {
 
             {/* Charts Section */}
             {chartData && (
-              <UltraModernVisualizations
+              <ModernVisualizations
                 lineData={chartData.lineData}
                 barData={chartData.barData}
                 pieData={chartData.pieData}

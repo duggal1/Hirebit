@@ -103,7 +103,8 @@ async function getJob(jobId: string, userId?: string) {
 
 const JobIdPage = async ({ params }: { params: { jobId: string } }) => {
 
-  const { jobId } = await params;
+  const { jobId } = params;
+
   const req = await request();
 
   const decision = await aj.protect(req);

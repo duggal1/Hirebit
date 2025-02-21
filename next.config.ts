@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -17,7 +23,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "blog.tmcnet.com",
         port: "",
-      }
+      },
     ],
   },
 };

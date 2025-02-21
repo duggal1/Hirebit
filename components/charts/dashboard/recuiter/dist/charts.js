@@ -57,7 +57,7 @@ var glowEffect = {
         ctx.shadowOffsetY = 0;
     }
 };
-var UltraModernVisualizations = function (_a) {
+var ModernVisualizations = function (_a) {
     var lineData = _a.lineData, barData = _a.barData, pieData = _a.pieData, mapData = _a.mapData;
     var chartRef = react_1.useRef(null);
     var isInView = framer_motion_1.useInView(chartRef, { once: false, amount: 0.2 });
@@ -331,4 +331,4 @@ var UltraModernVisualizations = function (_a) {
                     react_1["default"].createElement("div", { className: "w-[400px]" },
                         react_1["default"].createElement(react_chartjs_2_1.Pie, { data: modernPieData, options: pieOptions, plugins: [glowEffect] })))))));
 };
-exports["default"] = UltraModernVisualizations;
+exports["default"] = ModernVisualizations;

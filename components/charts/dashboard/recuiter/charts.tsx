@@ -77,7 +77,7 @@ const glowEffect: Plugin<'line' | 'bar' | 'pie'> = {
   }
 };
 
-const UltraModernVisualizations: React.FC<UltraModernVisualizationsProps> = ({
+const ModernVisualizations: React.FC<UltraModernVisualizationsProps> = ({
   lineData,
   barData,
   pieData,
@@ -441,4 +441,4 @@ const UltraModernVisualizations: React.FC<UltraModernVisualizationsProps> = ({
   );
 };
 
-export default UltraModernVisualizations;
+export default ModernVisualizations;

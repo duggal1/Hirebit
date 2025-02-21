@@ -190,8 +190,11 @@ const AnswersDisplay = ({ answers }: { answers: any }) => {
             transition={{ delay: index * 0.1 }}
             className="mb-2"
           >
-            <strong>{key}:</strong>{" "}
-            {typeof value === "object" ? JSON.stringify(value, null, 2) : value}
+          // Replace the problematic line with this safer version:
+<strong>{key}:</strong>{" "}
+{typeof value === "object" && value !== null 
+  ? JSON.stringify(value, null, 2)
+  : String(value ?? '')}
           </motion.li>
         ))}
       </ul>
@@ -248,7 +251,7 @@ const ProjectsDisplay = ({ projects }: { projects: any }) => {
   return <pre>{JSON.stringify(projects, null, 2)}</pre>;
 };
 
-const renderAnswerValue = (value: any): JSX.Element => {
+const renderAnswerValue = (value: any): React.ReactNode => {
   if (typeof value === "string") {
     if (value.startsWith("http://") || value.startsWith("https://")) {
       return (
@@ -281,9 +284,8 @@ const renderAnswerValue = (value: any): JSX.Element => {
         ))}
       </div>
     );
-  } else {
-    return <span>{String(value)}</span>;
   }
+  return <span>{String(value)}</span>;
 };
 
 const ApplicationAnswersDisplay = ({ answers }: { answers: any }) => {
