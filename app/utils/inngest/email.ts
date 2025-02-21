@@ -22,6 +22,7 @@ interface EmailResult {
   subject: string;
 }
 
+
 // Add types for job data
 interface JobData {
   id: string;
@@ -43,6 +44,62 @@ interface JobData {
   benefits: string[];
   skillsRequired: string[];
 }
+interface StripePaymentData {
+  id: string;
+  amount: number;
+  currency: string;
+  created: number;
+  receipt_url: string;
+  billing_details: {
+    address: {
+      country: string;
+      city?: string;
+      line1?: string;
+      line2?: string;
+      postal_code?: string;
+      state?: string;
+    };
+    email: string;
+    name: string;
+  };
+  metadata: {
+    tax_rate?: string;
+    subscription_duration?: string;
+    invoice_number?: string;
+  };
+  payment_method_details: {
+    type: string;
+    card?: {
+      brand: string;
+      last4: string;
+      exp_month: number;
+      exp_year: number;
+      country: string;
+    };
+  };
+}
+
+interface PaymentDetails {
+  basePrice: number;
+  taxes: number;
+  total: number;
+  currency: string;
+  duration: number;
+  billingAddress: {
+    country: string;
+    city?: string;
+    line1?: string;
+    line2?: string;
+    postal_code?: string;
+    state?: string;
+  };
+  paymentMethod: {
+    type: string;
+    details: any;
+  };
+  invoiceNumber: string;
+  receiptUrl: string;
+}
 
 export const sendPaymentInvoiceEmail = inngest.createFunction(
   {
@@ -52,104 +109,133 @@ export const sendPaymentInvoiceEmail = inngest.createFunction(
   },
   { event: "payment.succeeded" },
   async ({ event, step }) => {
-    console.log("[Inngest] Starting with data:", event.data);
-
     try {
       const { jobId } = event.data;
-      const paymentIntentId = event.data.paymentIntentId || "manual_creation";
+      
+      // Get detailed payment data from Stripe
+      const paymentData = await step.run("fetch-payment-data", async () => {
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          event.data.paymentIntentId,
+          {
+            expand: ['latest_charge', 'customer', 'payment_method']
+          }
+        );
+        
+        return paymentIntent.latest_charge as StripePaymentData;
+      });
 
-      if (!jobId) {
-        throw new Error(`Missing required jobId`);
-      }
-
-      // Fetch job and company details with type assertion
+      // Fetch job data
       const jobData = await step.run("fetch-job-details", async () => {
         const job = await prisma.jobPost.findUnique({
           where: { id: jobId },
           include: {
             company: {
               include: {
-                user: true,
-              },
-            },
-          },
-        }) as JobData;
+                user: true
+              }
+            }
+          }
+        });
 
-        if (!job?.company?.user?.email) {
-          throw new Error(`Invalid job data for jobId: ${jobId}`);
-        }
-
+        if (!job) throw new Error(`Job not found: ${jobId}`);
         return job;
       });
 
-      const startDate = new Date();
-      const expirationDate = new Date(startDate);
-      expirationDate.setDate(startDate.getDate() + (jobData.listingDuration || 30));
+      // Process payment details
+      const paymentDetails = await step.run("process-payment-details", async () => {
+        const basePrice = paymentData.amount / 100;
+        const taxRate = parseFloat(paymentData.metadata.tax_rate || "0.1");
+        const taxes = basePrice * taxRate;
+        const total = basePrice + taxes;
+        const duration = parseInt(paymentData.metadata.subscription_duration || "180");
 
-      // Send email with proper typing
-      const emailResult = await step.run("send-invoice-email", async () => {
-        const recipientEmail = jobData.company.user.email;
-
-        if (!recipientEmail) {
-          throw new Error(`Invalid recipient email for company: ${jobData.company.id}`);
-        }
-
-        const emailComponent = PaymentInvoiceEmail({
-          companyName: jobData.company.name,
-          jobTitle: jobData.jobTitle,
-          amount: `$${(jobData.paymentAmount || jobData.salaryFrom / 100).toFixed(2)}`,
-          paymentId: paymentIntentId,
-          paymentDate: format(new Date(), "MMMM dd, yyyy"),
-          expirationDate: format(expirationDate, "MMMM dd, yyyy"),
-          jobDuration: `${jobData.listingDuration} days`,
-          jobLocation: jobData.location,
-          paymentStatus: "Completed",
-          companyDescription: jobData.company.about,
-          jobDescription: jobData.jobDescription,
-          benefits: jobData.benefits,
-          skillsRequired: jobData.skillsRequired,
-          salary: {
-            from: jobData.salaryFrom,
-            to: jobData.salaryTo,
+        return {
+          basePrice,
+          taxes,
+          total,
+          currency: paymentData.currency.toUpperCase(),
+          duration: Math.floor(duration / 30),
+          billingAddress: paymentData.billing_details.address,
+          paymentMethod: {
+            type: paymentData.payment_method_details.type,
+            details: paymentData.payment_method_details
           },
-          recipientEmail,
-          companyId: jobData.company.id,
-        });
-
-        // First cast to unknown and then to EmailResult
-        const response = await resend.emails.send({
-          from: RESEND_FROM_EMAIL,
-          to: [recipientEmail],
-          subject: `Job Posting Confirmation: ${jobData.jobTitle}`,
-          react: emailComponent as ReactNode,
-        }) as unknown as EmailResult;
-
-        return response;
+          invoiceNumber: paymentData.metadata.invoice_number || `INV-${Date.now()}`,
+          receiptUrl: paymentData.receipt_url
+        } as PaymentDetails;
       });
 
-      // Update job with email data
-      await prisma.jobPost.update({
-        where: { id: jobId },
-        data: {
-          status: "ACTIVE",
-          invoiceEmailId: emailResult.id,
-          invoiceEmailSentAt: new Date(),
-          invoiceData: {
-            emailId: emailResult.id,
-            sentAt: new Date().toISOString(),
-            amount: jobData.salaryFrom,
-            expirationDate: expirationDate.toISOString(),
-            paymentMethod: "Direct Creation",
-            receiptUrl: `${process.env.NEXT_PUBLIC_APP_URL}/job/${jobId}`,
-          },
-        },
-      });
+      // Send email with comprehensive payment details
+    // In the email sending section, replace the existing code with:
+const emailResult = await step.run("send-invoice-email", async () => {
+  const recipientEmail = jobData.company.user.email;
+  if (!recipientEmail) {
+    throw new Error(`No email found for company: ${jobData.company.id}`);
+  }
 
+  const startDate = new Date(paymentData.created * 1000);
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + (paymentDetails.duration * 30));
+
+  const emailComponent = PaymentInvoiceEmail({
+    companyName: jobData.company.name,
+    jobTitle: jobData.jobTitle,
+    amount: `${paymentDetails.currency} ${paymentDetails.total.toFixed(2)}`,
+    paymentId: paymentData.id,
+    paymentDate: format(startDate, "MMMM dd, yyyy"),
+    expirationDate: format(endDate, "MMMM dd, yyyy"),
+    jobLocation: jobData.location,
+    paymentStatus: "Completed",
+    paymentDetails: {
+      basePrice: `${paymentDetails.currency} ${paymentDetails.basePrice.toFixed(2)}`,
+      taxes: `${paymentDetails.currency} ${paymentDetails.taxes.toFixed(2)}`,
+      total: `${paymentDetails.currency} ${paymentDetails.total.toFixed(2)}`,
+      duration: `${paymentDetails.duration} months`,
+      invoiceNumber: paymentDetails.invoiceNumber,
+      billingAddress: paymentDetails.billingAddress,
+      paymentMethod: paymentDetails.paymentMethod,
+      receiptUrl: paymentDetails.receiptUrl
+    }
+  });
+
+  return await resend.emails.send({
+    from: RESEND_FROM_EMAIL,
+    to: [recipientEmail], // Now we know it's not null
+    subject: `Job Posting Confirmation: ${jobData.jobTitle}`,
+    react: emailComponent as ReactNode,
+  });
+});
+
+// Update job post section
+await prisma.jobPost.update({
+  where: { id: jobId },
+  data: {
+    status: "ACTIVE",
+    invoiceEmailId: emailResult.data?.id,
+    invoiceEmailSentAt: new Date(),
+    subscriptionStartDate: new Date(paymentData.created * 1000),
+    subscriptionEndDate: new Date(paymentData.created * 1000 + (paymentDetails.duration * 30 * 24 * 60 * 60 * 1000)),
+    paymentDetails: {
+      stripePaymentId: paymentData.id,
+      amount: paymentDetails.total,
+      basePrice: paymentDetails.basePrice,
+      taxes: paymentDetails.taxes,
+      currency: paymentDetails.currency,
+      duration: paymentDetails.duration,
+      invoiceNumber: paymentDetails.invoiceNumber,
+      billingAddress: paymentDetails.billingAddress,
+      paymentMethod: paymentDetails.paymentMethod,
+      receiptUrl: paymentDetails.receiptUrl,
+      metadata: paymentData.metadata
+    }
+  }
+});
       return {
         success: true,
         jobId,
-        emailId: emailResult.id,
-        sentAt: new Date().toISOString(),
+        emailId: emailResult.data?.id,
+        paymentId: paymentData.id,
+        paymentDetails
       };
     } catch (error) {
       console.error("[Inngest] Email failed:", error);

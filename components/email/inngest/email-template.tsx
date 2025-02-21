@@ -8,13 +8,14 @@ import {
   Text,
   Hr,
   Img,
+  Link,
 } from "@react-email/components";
 import * as React from "react";
 
-// Update the StyleObject type to match React Email's expectations
 interface StyleObject {
   [key: string]: string | number | undefined;
 }
+
 
 interface PaymentInvoiceEmailProps {
   companyName: string;
@@ -25,6 +26,26 @@ interface PaymentInvoiceEmailProps {
   expirationDate: string;
   jobLocation: string;
   paymentStatus: string;
+  paymentDetails: {
+    basePrice: string;
+    taxes: string;
+    total: string;
+    duration: string;
+    invoiceNumber: string;
+    billingAddress: {
+      country: string;
+      city?: string;
+      line1?: string;
+      line2?: string;
+      postal_code?: string;
+      state?: string;
+    };
+    paymentMethod: {
+      type: string;
+      details: any;
+    };
+    receiptUrl: string;
+  };
 }
 
 export const PaymentInvoiceEmail: React.FC<PaymentInvoiceEmailProps> = ({
@@ -39,90 +60,106 @@ export const PaymentInvoiceEmail: React.FC<PaymentInvoiceEmailProps> = ({
 }) => {
   return (
     <Html>
-      <Head />
+      <Head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </Head>
       <Preview>Payment Confirmation for {jobTitle}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
             <Img
               src="/logo.png"
-              width={120}
-              height={40}
+              width={140}
+              height={45}
               alt="Hirebit"
               style={logoStyle as any}
             />
           </Section>
 
           <Section style={content}>
-            <Text style={title as any}>Payment Confirmation</Text>
-            <Text style={subtitle as any}>Thank you for your payment</Text>
-
-            <Section style={infoBox}>
-              <Section style={infoItem}>
-                <Text style={label as any}>Company</Text>
-                <Text style={value as any}>{companyName}</Text>
-              </Section>
-              <Section style={infoItem}>
-                <Text style={label as any}>Position</Text>
-                <Text style={value as any}>{jobTitle}</Text>
-              </Section>
-              <Section style={infoItem}>
-                <Text style={label as any}>Location</Text>
-                <Text style={value as any}>{jobLocation}</Text>
-              </Section>
-            </Section>
-
-            <Section style={paymentBox}>
+            <Section style={heroSection}>
               <Text style={amount as any}>{amount}</Text>
               <Text style={status as any}>{paymentStatus}</Text>
-              <Section style={paymentDetails}>
+              <Text style={confirmationText as any}>Payment Confirmed</Text>
+            </Section>
+
+            <Section style={infoContainer}>
+              <Section style={infoColumn}>
+                <Text style={columnLabel as any}>Payment Details</Text>
                 <Section style={detailRow}>
-                  <Text style={detailLabel as any}>Payment ID</Text>
+                  <Text style={detailLabel as any}>ID</Text>
                   <Text style={detailValue as any}>{paymentId}</Text>
                 </Section>
                 <Section style={detailRow}>
-                  <Text style={detailLabel as any}>Payment Date</Text>
+                  <Text style={detailLabel as any}>Date</Text>
                   <Text style={detailValue as any}>{paymentDate}</Text>
                 </Section>
                 <Section style={detailRow}>
-                  <Text style={detailLabel as any}>Expiration Date</Text>
+                  <Text style={detailLabel as any}>Expires</Text>
                   <Text style={detailValue as any}>{expirationDate}</Text>
                 </Section>
               </Section>
+
+              <Section style={infoColumn}>
+                <Text style={columnLabel as any}>Job Information</Text>
+                <Section style={detailRow}>
+                  <Text style={detailLabel as any}>Company</Text>
+                  <Text style={detailValue as any}>{companyName}</Text>
+                </Section>
+                <Section style={detailRow}>
+                  <Text style={detailLabel as any}>Position</Text>
+                  <Text style={detailValue as any}>{jobTitle}</Text>
+                </Section>
+                <Section style={detailRow}>
+                  <Text style={detailLabel as any}>Location</Text>
+                  <Text style={detailValue as any}>{jobLocation}</Text>
+                </Section>
+              </Section>
+            </Section>
+
+            <Section style={ctaSection}>
+              <Link href="#" style={ctaButton as any}>
+                View Full Invoice
+              </Link>
             </Section>
           </Section>
 
           <Hr style={divider as any} />
 
-          <Text style={footer as any}>
-            Your job posting will be active until {expirationDate}
-          </Text>
+          <Section style={footer}>
+            <Text style={footerText as any}>
+              Your job posting will remain active until
+            </Text>
+            <Text style={footerHighlight as any}>{expirationDate}</Text>
+          </Section>
         </Container>
       </Body>
     </Html>
   );
 };
 
-
-// Style definitions with proper typing
 const main: StyleObject = {
-  backgroundColor: "#f6f9fc",
-  padding: "30px 0",
+  backgroundColor: "#FAFAFA",
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
+  padding: "40px 0",
 };
 
 const container: StyleObject = {
-  maxWidth: "500px",
+  maxWidth: "600px",
   margin: "0 auto",
   backgroundColor: "#ffffff",
-  borderRadius: "8px",
+  borderRadius: "16px",
   overflow: "hidden",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
 };
 
 const header: StyleObject = {
-  padding: "20px",
-  backgroundColor: "#f8fafc",
+  padding: "32px",
+  backgroundColor: "#ffffff",
   textAlign: "center",
+  borderBottom: "1px solid #f1f1f1",
 };
 
 const logoStyle: StyleObject = {
@@ -130,103 +167,117 @@ const logoStyle: StyleObject = {
 };
 
 const content: StyleObject = {
-  padding: "32px 24px",
+  padding: "0",
 };
 
-const title: StyleObject = {
-  fontSize: "24px",
+const heroSection: StyleObject = {
+  backgroundColor: "#F8FAFC",
+  padding: "48px 32px",
+  textAlign: "center",
+};
+
+const amount: StyleObject = {
+  fontSize: "48px",
+  lineHeight: "1",
+  fontWeight: "700",
+  color: "#111827",
+  margin: "0 0 16px",
+  letterSpacing: "-0.02em",
+};
+
+const status: StyleObject = {
+  fontSize: "14px",
+  color: "#059669",
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
   fontWeight: "600",
-  color: "#1a1a1a",
-  textAlign: "center",
-  margin: "0 0 8px",
+  backgroundColor: "#ECFDF5",
+  padding: "6px 12px",
+  borderRadius: "6px",
+  display: "inline-block",
+  margin: "0 0 16px",
 };
 
-const subtitle: StyleObject  = {
+const confirmationText: StyleObject = {
   fontSize: "16px",
-  color: "#666666",
-  textAlign: "center",
-  margin: "0 0 32px",
+  color: "#6B7280",
+  margin: "0",
 };
 
-const infoBox: StyleObject  = {
-  backgroundColor: "#f8fafc",
-  borderRadius: "8px",
-  padding: "20px",
-  marginBottom: "24px",
+const infoContainer: StyleObject = {
+  padding: "32px",
+  display: "flex",
+  gap: "32px",
 };
 
-const infoItem: StyleObject  = {
+const infoColumn: StyleObject = {
+  flex: "1",
+};
+
+const columnLabel: StyleObject = {
+  fontSize: "14px",
+  fontWeight: "600",
+  color: "#111827",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  marginBottom: "16px",
+};
+
+const detailRow: StyleObject = {
   marginBottom: "12px",
 };
 
-const label: StyleObject  = {
+const detailLabel: StyleObject = {
   fontSize: "14px",
-  color: "#666666",
+  color: "#6B7280",
   marginBottom: "4px",
 };
 
-const value: StyleObject  = {
-  fontSize: "16px",
-  color: "#1a1a1a",
+const detailValue: StyleObject = {
+  fontSize: "15px",
+  color: "#111827",
   fontWeight: "500",
 };
 
-const paymentBox: StyleObject  = {
-  backgroundColor: "#ffffff",
-  border: "1px solid #e5e7eb",
+const ctaSection: StyleObject = {
+  padding: "32px",
+  textAlign: "center",
+};
+
+const ctaButton: StyleObject = {
+  backgroundColor: "#111827",
+  color: "#ffffff",
+  padding: "12px 24px",
   borderRadius: "8px",
-  padding: "24px",
-};
-
-const amount: StyleObject  = {
-  fontSize: "32px",
-  fontWeight: "700",
-  color: "#1a1a1a",
-  textAlign: "center",
-  margin: "0 0 8px",
-};
-
-const status: StyleObject  = {
   fontSize: "14px",
-  color: "#10b981",
-  textAlign: "center",
-  textTransform: "uppercase",
-  margin: "0 0 24px",
-};
-
-const paymentDetails: StyleObject  = {
-  borderTop: "1px solid #e5e7eb",
-  paddingTop: "16px",
-};
-
-const detailRow: StyleObject  = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: "8px",
-};
-
-const detailLabel: StyleObject  = {
-  fontSize: "14px",
-  color: "#666666",
-};
-
-
-const detailValue: StyleObject  = {
-  fontSize: "14px",
-  color: "#1a1a1a",
   fontWeight: "500",
+  textDecoration: "none",
+  display: "inline-block",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
 };
 
-const divider: StyleObject  = {
-  margin: "32px 0",
-  borderTop: "1px solid #e5e7eb",
+const divider: StyleObject = {
+  margin: "0",
+  borderTop: "1px solid #f1f1f1",
 };
 
-const footer :StyleObject  = {
-  fontSize: "14px",
-  color: "#666666",
+const footer: StyleObject = {
+  padding: "32px",
   textAlign: "center",
-  padding: "0 24px 32px",
+};
+
+const footerText: StyleObject = {
+  fontSize: "14px",
+  color: "#6B7280",
+  margin: "0 0 4px",
+};
+
+const footerHighlight: StyleObject = {
+  fontSize: "14px",
+  color: "#111827",
+  fontWeight: "600",
+  margin: "0",
 };
 
 export default PaymentInvoiceEmail;

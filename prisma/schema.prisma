@@ -364,13 +364,23 @@ model JobPost {
   interviewStages     Int
   visaSponsorship     Boolean
   compensationDetails Json
+  paymentDetails      Json?
 
-  // Add new payment-related fields
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+
   paidAt          DateTime?
   paymentId       String?       @unique
   paymentStatus   PaymentStatus @default(PENDING)
   paymentAmount   Int?
   stripeSessionId String?       @unique
+  taxAmount       Int?
+  taxRate         Float?
+  taxCountry      String?
+  invoiceNumber   String?
+  billingAddress  Json?
+  paymentMethod   Json?
+  subscriptionId  String?
 
   @@map("job_posts")
 }

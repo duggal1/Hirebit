@@ -40,6 +40,7 @@ exports.sendPaymentInvoiceEmail = void 0;
 var date_fns_1 = require("date-fns");
 var resend_1 = require("resend");
 var client_1 = require("./client");
+var stripe_1 = require("../stripe");
 var db_1 = require("../db");
 var email_template_1 = require("@/components/email/inngest/email-template");
 if (!process.env.RESEND_API_KEY) {
@@ -54,24 +55,32 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
 }, { event: "payment.succeeded" }, function (_a) {
     var event = _a.event, step = _a.step;
     return __awaiter(void 0, void 0, void 0, function () {
-        var jobId_1, paymentIntentId_1, jobData_1, startDate, expirationDate_1, emailResult, error_1;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var jobId_1, paymentData_1, jobData_1, paymentDetails_1, emailResult, error_1;
+        var _b, _c;
+        return __generator(this, function (_d) {
+            switch (_d.label) {
                 case 0:
-                    console.log("[Inngest] Starting with data:", event.data);
-                    _b.label = 1;
-                case 1:
-                    _b.trys.push([1, 5, , 6]);
+                    _d.trys.push([0, 6, , 7]);
                     jobId_1 = event.data.jobId;
-                    paymentIntentId_1 = event.data.paymentIntentId || "manual_creation";
-                    if (!jobId_1) {
-                        throw new Error("Missing required jobId");
-                    }
+                    return [4 /*yield*/, step.run("fetch-payment-data", function () { return __awaiter(void 0, void 0, void 0, function () {
+                            var paymentIntent;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, stripe_1.stripe.paymentIntents.retrieve(event.data.paymentIntentId, {
+                                            expand: ['latest_charge', 'customer', 'payment_method']
+                                        })];
+                                    case 1:
+                                        paymentIntent = _a.sent();
+                                        return [2 /*return*/, paymentIntent.latest_charge];
+                                }
+                            });
+                        }); })];
+                case 1:
+                    paymentData_1 = _d.sent();
                     return [4 /*yield*/, step.run("fetch-job-details", function () { return __awaiter(void 0, void 0, void 0, function () {
                             var job;
-                            var _a, _b;
-                            return __generator(this, function (_c) {
-                                switch (_c.label) {
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
                                     case 0: return [4 /*yield*/, db_1.prisma.jobPost.findUnique({
                                             where: { id: jobId_1 },
                                             include: {
@@ -83,94 +92,124 @@ exports.sendPaymentInvoiceEmail = client_1.inngest.createFunction({
                                             }
                                         })];
                                     case 1:
-                                        job = _c.sent();
-                                        if (!((_b = (_a = job === null || job === void 0 ? void 0 : job.company) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.email)) {
-                                            throw new Error("Invalid job data for jobId: " + jobId_1);
-                                        }
+                                        job = _a.sent();
+                                        if (!job)
+                                            throw new Error("Job not found: " + jobId_1);
                                         return [2 /*return*/, job];
                                 }
                             });
                         }); })];
                 case 2:
-                    jobData_1 = _b.sent();
-                    startDate = new Date();
-                    expirationDate_1 = new Date(startDate);
-                    expirationDate_1.setDate(startDate.getDate() + (jobData_1.listingDuration || 30));
+                    jobData_1 = _d.sent();
+                    return [4 /*yield*/, step.run("process-payment-details", function () { return __awaiter(void 0, void 0, void 0, function () {
+                            var basePrice, taxRate, taxes, total, duration;
+                            return __generator(this, function (_a) {
+                                basePrice = paymentData_1.amount / 100;
+                                taxRate = parseFloat(paymentData_1.metadata.tax_rate || "0.1");
+                                taxes = basePrice * taxRate;
+                                total = basePrice + taxes;
+                                duration = parseInt(paymentData_1.metadata.subscription_duration || "180");
+                                return [2 /*return*/, {
+                                        basePrice: basePrice,
+                                        taxes: taxes,
+                                        total: total,
+                                        currency: paymentData_1.currency.toUpperCase(),
+                                        duration: Math.floor(duration / 30),
+                                        billingAddress: paymentData_1.billing_details.address,
+                                        paymentMethod: {
+                                            type: paymentData_1.payment_method_details.type,
+                                            details: paymentData_1.payment_method_details
+                                        },
+                                        invoiceNumber: paymentData_1.metadata.invoice_number || "INV-" + Date.now(),
+                                        receiptUrl: paymentData_1.receipt_url
+                                    }];
+                            });
+                        }); })];
+                case 3:
+                    paymentDetails_1 = _d.sent();
                     return [4 /*yield*/, step.run("send-invoice-email", function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var recipientEmail, emailComponent, response;
+                            var recipientEmail, startDate, endDate, emailComponent;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
                                         recipientEmail = jobData_1.company.user.email;
                                         if (!recipientEmail) {
-                                            throw new Error("Invalid recipient email for company: " + jobData_1.company.id);
+                                            throw new Error("No email found for company: " + jobData_1.company.id);
                                         }
+                                        startDate = new Date(paymentData_1.created * 1000);
+                                        endDate = new Date(startDate);
+                                        endDate.setDate(startDate.getDate() + (paymentDetails_1.duration * 30));
                                         emailComponent = email_template_1.PaymentInvoiceEmail({
                                             companyName: jobData_1.company.name,
                                             jobTitle: jobData_1.jobTitle,
-                                            amount: "$" + (jobData_1.paymentAmount || jobData_1.salaryFrom / 100).toFixed(2),
-                                            paymentId: paymentIntentId_1,
-                                            paymentDate: date_fns_1.format(new Date(), "MMMM dd, yyyy"),
-                                            expirationDate: date_fns_1.format(expirationDate_1, "MMMM dd, yyyy"),
-                                            jobDuration: jobData_1.listingDuration + " days",
+                                            amount: paymentDetails_1.currency + " " + paymentDetails_1.total.toFixed(2),
+                                            paymentId: paymentData_1.id,
+                                            paymentDate: date_fns_1.format(startDate, "MMMM dd, yyyy"),
+                                            expirationDate: date_fns_1.format(endDate, "MMMM dd, yyyy"),
                                             jobLocation: jobData_1.location,
                                             paymentStatus: "Completed",
-                                            companyDescription: jobData_1.company.about,
-                                            jobDescription: jobData_1.jobDescription,
-                                            benefits: jobData_1.benefits,
-                                            skillsRequired: jobData_1.skillsRequired,
-                                            salary: {
-                                                from: jobData_1.salaryFrom,
-                                                to: jobData_1.salaryTo
-                                            },
-                                            recipientEmail: recipientEmail,
-                                            companyId: jobData_1.company.id
+                                            paymentDetails: {
+                                                basePrice: paymentDetails_1.currency + " " + paymentDetails_1.basePrice.toFixed(2),
+                                                taxes: paymentDetails_1.currency + " " + paymentDetails_1.taxes.toFixed(2),
+                                                total: paymentDetails_1.currency + " " + paymentDetails_1.total.toFixed(2),
+                                                duration: paymentDetails_1.duration + " months",
+                                                invoiceNumber: paymentDetails_1.invoiceNumber,
+                                                billingAddress: paymentDetails_1.billingAddress,
+                                                paymentMethod: paymentDetails_1.paymentMethod,
+                                                receiptUrl: paymentDetails_1.receiptUrl
+                                            }
                                         });
                                         return [4 /*yield*/, resend.emails.send({
                                                 from: RESEND_FROM_EMAIL,
-                                                to: [recipientEmail],
+                                                to: [jobData_1.company.user.email],
                                                 subject: "Job Posting Confirmation: " + jobData_1.jobTitle,
                                                 react: emailComponent
                                             })];
-                                    case 1:
-                                        response = _a.sent();
-                                        return [2 /*return*/, response];
+                                    case 1: return [2 /*return*/, _a.sent()];
                                 }
                             });
                         }); })];
-                case 3:
-                    emailResult = _b.sent();
-                    // Update job with email data
+                case 4:
+                    emailResult = _d.sent();
+                    // Update job with comprehensive payment details
                     return [4 /*yield*/, db_1.prisma.jobPost.update({
                             where: { id: jobId_1 },
                             data: {
                                 status: "ACTIVE",
-                                invoiceEmailId: emailResult.id,
+                                invoiceEmailId: (_b = emailResult.data) === null || _b === void 0 ? void 0 : _b.id,
                                 invoiceEmailSentAt: new Date(),
-                                invoiceData: {
-                                    emailId: emailResult.id,
-                                    sentAt: new Date().toISOString(),
-                                    amount: jobData_1.salaryFrom,
-                                    expirationDate: expirationDate_1.toISOString(),
-                                    paymentMethod: "Direct Creation",
-                                    receiptUrl: process.env.NEXT_PUBLIC_APP_URL + "/job/" + jobId_1
+                                subscriptionStartDate: new Date(paymentData_1.created * 1000),
+                                subscriptionEndDate: new Date(paymentData_1.created * 1000 + (paymentDetails_1.duration * 30 * 24 * 60 * 60 * 1000)),
+                                paymentDetails: {
+                                    stripePaymentId: paymentData_1.id,
+                                    amount: paymentDetails_1.total,
+                                    basePrice: paymentDetails_1.basePrice,
+                                    taxes: paymentDetails_1.taxes,
+                                    currency: paymentDetails_1.currency,
+                                    duration: paymentDetails_1.duration,
+                                    invoiceNumber: paymentDetails_1.invoiceNumber,
+                                    billingAddress: paymentDetails_1.billingAddress,
+                                    paymentMethod: paymentDetails_1.paymentMethod,
+                                    receiptUrl: paymentDetails_1.receiptUrl,
+                                    metadata: paymentData_1.metadata
                                 }
                             }
                         })];
-                case 4:
-                    // Update job with email data
-                    _b.sent();
+                case 5:
+                    // Update job with comprehensive payment details
+                    _d.sent();
                     return [2 /*return*/, {
                             success: true,
                             jobId: jobId_1,
-                            emailId: emailResult.id,
-                            sentAt: new Date().toISOString()
+                            emailId: (_c = emailResult.data) === null || _c === void 0 ? void 0 : _c.id,
+                            paymentId: paymentData_1.id,
+                            paymentDetails: paymentDetails_1
                         }];
-                case 5:
-                    error_1 = _b.sent();
+                case 6:
+                    error_1 = _d.sent();
                     console.error("[Inngest] Email failed:", error_1);
                     throw error_1;
-                case 6: return [2 /*return*/];
+                case 7: return [2 /*return*/];
             }
         });
     });
