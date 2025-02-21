@@ -31,6 +31,11 @@ interface JobData {
     id: string;
     name: string;
     about: string;
+    location: {  // Add location object
+      country: string;
+      city?: string;
+      state?: string;
+    };
     user: {
       email: string | null;
     };
@@ -43,6 +48,9 @@ interface JobData {
   jobDescription: string;
   benefits: string[];
   skillsRequired: string[];
+  status: string;  // Add status
+  createdAt: Date;  // Add createdAt
+  activatedAt?: Date;  // Add activatedAt as optional
 }
 interface StripePaymentData {
   id: string;
@@ -62,7 +70,7 @@ interface StripePaymentData {
     email: string;
     name: string;
   };
-  metadata: {
+  metadata?: {
     tax_rate?: string;
     subscription_duration?: string;
     invoice_number?: string;
@@ -75,7 +83,7 @@ interface StripePaymentData {
       exp_month: number;
       exp_year: number;
       country: string;
-    };
+    } | null;
   };
 }
 
@@ -110,60 +118,120 @@ export const sendPaymentInvoiceEmail = inngest.createFunction(
   { event: "payment.succeeded" },
   async ({ event, step }) => {
     try {
-      const { jobId } = event.data;
-      
-      // Get detailed payment data from Stripe
-      const paymentData = await step.run("fetch-payment-data", async () => {
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          event.data.paymentIntentId,
-          {
-            expand: ['latest_charge', 'customer', 'payment_method']
-          }
-        );
-        
-        return paymentIntent.latest_charge as StripePaymentData;
-      });
+      const { jobId, paymentIntentId, amount, currency } = event.data;
 
-      // Fetch job data
-      const jobData = await step.run("fetch-job-details", async () => {
+      const jobData = await step.run("fetch-job-data", async () => {
         const job = await prisma.jobPost.findUnique({
           where: { id: jobId },
           include: {
             company: {
-              include: {
-                user: true
+              select: {
+                id: true,
+                name: true,
+                about: true,
+                location: true,  // Include company location
+                user: {
+                  select: {
+                    email: true
+                  }
+                }
               }
             }
           }
         });
-
-        if (!job) throw new Error(`Job not found: ${jobId}`);
-        return job;
-      });
-
-      // Process payment details
-      const paymentDetails = await step.run("process-payment-details", async () => {
-        const basePrice = paymentData.amount / 100;
-        const taxRate = parseFloat(paymentData.metadata.tax_rate || "0.1");
-        const taxes = basePrice * taxRate;
-        const total = basePrice + taxes;
-        const duration = parseInt(paymentData.metadata.subscription_duration || "180");
-
+      
+        if (!job) {
+          throw new Error(`Job not found: ${jobId}`);
+        }
+      
         return {
-          basePrice,
-          taxes,
-          total,
-          currency: paymentData.currency.toUpperCase(),
-          duration: Math.floor(duration / 30),
-          billingAddress: paymentData.billing_details.address,
-          paymentMethod: {
-            type: paymentData.payment_method_details.type,
-            details: paymentData.payment_method_details
-          },
-          invoiceNumber: paymentData.metadata.invoice_number || `INV-${Date.now()}`,
-          receiptUrl: paymentData.receipt_url
-        } as PaymentDetails;
+          ...job,
+          company: {
+            ...job.company,
+            location: job.company.location || {
+              country: 'US',
+              city: undefined,
+              state: undefined
+            }
+          }
+        } as JobData;
       });
+      
+
+      const paymentData = await step.run("fetch-payment-data", async () => {
+        if (paymentIntentId === 'manual_creation') {
+          return {
+            id: `manual_${Date.now()}`,
+            amount: 24900,
+            currency: currency || 'usd',
+            created: Date.now() / 1000,
+            billing_details: {
+              address: {
+                country: jobData.company.location.country || 'US',
+                city: jobData.company.location.city,
+                state: jobData.company.location.state,
+              },
+              email: jobData.company.user.email || '',
+              name: jobData.company.name || ''
+            },
+            metadata: {
+              tax_rate: '0.1',
+              subscription_duration: '180', // 6 months
+              invoice_number: `INV-${jobData.id}-${Date.now()}`,
+              job_post_id: jobData.id
+            },
+            payment_method_details: {
+              type: 'manual',
+              card: null
+            },
+            receipt_url: `${process.env.NEXT_PUBLIC_APP_URL}/invoices/download/${jobData.id}`
+          } as StripePaymentData;
+        }
+       
+  // Regular Stripe payment
+  const paymentIntent = await stripe.paymentIntents.retrieve(
+    paymentIntentId,
+    {
+      expand: ['latest_charge', 'customer']
+    }
+  );
+  
+  if (!paymentIntent.latest_charge) {
+    throw new Error(`No charge found for payment intent: ${paymentIntentId}`);
+  }
+
+  return paymentIntent.latest_charge as StripePaymentData;
+});
+
+if (!paymentData) {
+  throw new Error('Failed to fetch payment data');
+}
+    
+// Update the process-payment-details section with null checks
+const paymentDetails = await step.run("process-payment-details", async () => {
+  const basePrice = (paymentData?.amount || 0) / 100;
+  const taxRate = parseFloat(paymentData?.metadata?.tax_rate || "0.1");
+  const taxes = basePrice * taxRate;
+  const total = basePrice + taxes;
+  const duration = parseInt(paymentData?.metadata?.subscription_duration || "180");
+
+  return {
+    basePrice,
+    taxes,
+    total,
+    currency: (paymentData?.currency || 'usd').toUpperCase(),
+    duration: Math.floor(duration / 30),
+    billingAddress: paymentData?.billing_details?.address || {
+      country: 'US'
+    },
+    paymentMethod: {
+      type: paymentData?.payment_method_details?.type || 'manual',
+      details: paymentData?.payment_method_details || { type: 'direct' }
+    },
+    invoiceNumber: paymentData?.metadata?.invoice_number || `INV-${Date.now()}`,
+    receiptUrl: paymentData?.receipt_url || `${process.env.NEXT_PUBLIC_APP_URL}/invoices/${jobId}`
+  } as PaymentDetails;
+});
 
       // Send email with comprehensive payment details
     // In the email sending section, replace the existing code with:
@@ -180,20 +248,33 @@ const emailResult = await step.run("send-invoice-email", async () => {
   const emailComponent = PaymentInvoiceEmail({
     companyName: jobData.company.name,
     jobTitle: jobData.jobTitle,
-    amount: `${paymentDetails.currency} ${paymentDetails.total.toFixed(2)}`,
+    amount: `${paymentDetails.total} ${paymentDetails.currency}`,
     paymentId: paymentData.id,
-    paymentDate: format(startDate, "MMMM dd, yyyy"),
+    paymentDate: format(new Date(paymentData.created * 1000), "MMMM dd, yyyy"),
     expirationDate: format(endDate, "MMMM dd, yyyy"),
     jobLocation: jobData.location,
     paymentStatus: "Completed",
+    jobPostInfo: {  // Add this object
+      id: jobData.id,
+      status: jobData.status,
+      createDate: format(new Date(jobData.createdAt), "MMMM dd, yyyy"),
+      activationDate: format(new Date(jobData.activatedAt || Date.now()), "MMMM dd, yyyy")
+    },
     paymentDetails: {
-      basePrice: `${paymentDetails.currency} ${paymentDetails.basePrice.toFixed(2)}`,
-      taxes: `${paymentDetails.currency} ${paymentDetails.taxes.toFixed(2)}`,
-      total: `${paymentDetails.currency} ${paymentDetails.total.toFixed(2)}`,
+  
+      basePrice: `${paymentDetails.basePrice} ${paymentDetails.currency}`,
+      taxes: `${paymentDetails.taxes} ${paymentDetails.currency}`,
+      total: `${paymentDetails.total} ${paymentDetails.currency}`,
       duration: `${paymentDetails.duration} months`,
       invoiceNumber: paymentDetails.invoiceNumber,
       billingAddress: paymentDetails.billingAddress,
       paymentMethod: paymentDetails.paymentMethod,
+      subscriptionInfo: {
+        planName: "6 Month Job Posting",
+        startDate: format(startDate, "MMMM dd, yyyy"),
+        endDate: format(endDate, "MMMM dd, yyyy"),
+        status: "ACTIVE"
+      },
       receiptUrl: paymentDetails.receiptUrl
     }
   });
