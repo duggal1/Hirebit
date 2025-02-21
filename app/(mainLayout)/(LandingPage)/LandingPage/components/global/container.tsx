@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@/functions";
+
 import { motion } from "framer-motion";
+import { cn } from "../../functions";
 
 interface Props {
     className?: string;

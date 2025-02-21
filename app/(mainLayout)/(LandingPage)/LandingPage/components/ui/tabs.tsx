@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
-
-import { cn } from "@/functions"
+import { cn } from "@/app/(mainLayout)/(LandingPage)/LandingPage/functions"
 
 const Tabs = TabsPrimitive.Root
 

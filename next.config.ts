@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         hostname: "blog.tmcnet.com",
         port: "",
       },
+      {
+        protocol: "https",
+       hostname: "randomuser.me",
+        port: "",
+      },
     ],
   },
 };

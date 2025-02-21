@@ -7,15 +7,17 @@ import Image from "next/image";
 
 const LoginPage = () => {
   return (
-  <div className="min-h-screen w-screen flex items-center justify-center bg-black">
+  <div className="min-h-screen w-screen flex items-center justify-center">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <Link href="/" className="flex flex-col items-center gap-2 self-center">
+        <Link href="/" className="flex flex-col justify-center items-center">
           <Image src={Logo} alt="Logo" className="h-20 w-20" />
          
         </Link>
-        <div className="text-6xl text-white font-black">
+        <div className="flex flex-col  justify-center items-center">
+        <div className="text-5xl  text-white font-black">
             Hire
             <span className="text-blue-600">bit</span>
+          </div>
           </div>
         <LoginForm />
       </div>

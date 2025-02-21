@@ -463,8 +463,8 @@ model SavedJobPost {
 }
 
 model JobApplication {
-  id String @id @default(uuid())
-  resume      String 
+  id          String    @id @default(uuid())
+  resume      String
   // Job Seeker relation
   jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
   jobSeekerId String
@@ -479,16 +479,16 @@ model JobApplication {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId String?
 
-  status       ApplicationStatus @default(PENDING)
-  coverLetter  String?
- 
-  includeLinks Boolean           @default(false)
+  status      ApplicationStatus @default(PENDING)
+  coverLetter String?
+
+  includeLinks Boolean  @default(false)
   answers      Json?
   aiScore      Int?
-  isActive     Boolean           @default(true)
-  lastActivity DateTime          @default(now())
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   expectedSalaryMin Int?
   expectedSalaryMax Int?

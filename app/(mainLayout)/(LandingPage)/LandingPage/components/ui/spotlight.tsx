@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/functions";
+import { cn } from "@/app/(mainLayout)/(LandingPage)/LandingPage/functions"
 
 type SpotlightProps = {
     className?: string;

@@ -1,4 +1,4 @@
-import { cn } from "@/functions";
+import { cn } from "@/app/(mainLayout)/(LandingPage)/LandingPage/functions"
 import React from 'react';
 
 interface Props {

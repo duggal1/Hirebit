@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/functions"
+import { cn } from "@/app/(mainLayout)/(LandingPage)/LandingPage/functions"
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}

@@ -1,4 +1,6 @@
-import { REVIEWS } from "@/constants";
+"use client";
+
+import { REVIEWS } from "../../constants/reviews";
 import Container from "../global/container";
 import Marquee from "../ui/marquee";
 import { SectionBadge } from "../ui/section-bade";
@@ -13,11 +15,11 @@ const Reviews = () => {
             <Container>
                 <div className="flex flex-col items-center text-center max-w-xl mx-auto">
                     <SectionBadge title="Our Customers" />
-                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-heading font-medium !leading-snug mt-6">
-                        What our customers say
+                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-heading font-black !leading-snug mt-6">
+                        What our customers say about Hirebit
                     </h2>
                     <p className="text-base md:text-lg text-center text-accent-foreground/80 mt-6">
-                        We are proud to have helped thousands of customers across the globe. Here are some of their stories
+                        We are proud to have helped thousands of customers across the globe. Here are some of their stories ✨
                     </p>
                 </div>
             </Container>

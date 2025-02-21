@@ -11,6 +11,7 @@ import { Providers as ResumeProviders } from "@/components/resume/src/app/compon
 import { AutoSaveHeaderWrapper } from "@/components/resume/src/app/components/header/AutoSaveHeaderWrapper";
 import Sidebar from "@/components/sidebar/sidebar";
 import { Footer } from "@/components/Landing/Footer/footer";
+import Navbar from "@/components/general/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
         <GlobalProviders>
           <ResumeProviders>
             <AutoSaveHeaderWrapper />
+            <Navbar />
     
             <main>{children}</main>
             <Footer />
