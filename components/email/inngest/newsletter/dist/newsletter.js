@@ -17,7 +17,7 @@ exports.NewsletterEmail = function (_a) {
                 React.createElement(components_1.Heading, { style: header },
                     company.name,
                     " Weekly Hiring Insights"),
-                React.createElement(components_1.Section, { style: metrics },
+                React.createElement(components_1.Section, { style: metricsStyle },
                     React.createElement(components_1.Heading, { style: subheader }, "Performance Overview"),
                     React.createElement(components_1.Row, { style: row },
                         React.createElement(components_1.Column, { style: column },
@@ -89,7 +89,8 @@ var subheader = {
     color: "#374151",
     marginTop: "24px"
 };
-var metrics = {
+// Renamed style object to metricsStyle to avoid conflict with the "metrics" prop
+var metricsStyle = {
     padding: "24px",
     backgroundColor: "#ffffff",
     borderRadius: "12px",
