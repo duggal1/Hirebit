@@ -1,3 +1,4 @@
+import { SplashCursor } from "@/components/ui/splash-cursor";
 import { Background, Companies, Connect, Container, CTA, Features, Hero, Perks, Pricing, Reviews, Wrapper } from "./LandingPage/components";
 import { Spotlight } from "./LandingPage/components/ui/spotlight";
 
@@ -6,11 +7,18 @@ const HomePage = () => {
     return (
    
             <Wrapper className="py-20 relative">
-                <Container className="relative">
-                    <Spotlight
+                 
+                <Container delay={0.0}
+               
+               duration={0.8}  // Longer duration for smoother animation
+               reverse={false} // Animate from bottom to top
+               simple={false}  className="relative">
+                <Spotlight
                         className="-top-40 left-0 md:left-60 md:-top-20"
                         fill="rgba(0, 122, 255, 0.5)" // Modern blue tone
                     />
+                <SplashCursor />
+                   
                     <Hero />
                 </Container>
                 <Container className="py-8 lg:py-20">

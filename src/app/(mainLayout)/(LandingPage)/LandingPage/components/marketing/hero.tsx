@@ -10,13 +10,13 @@ import { SplashCursor } from "@/components/ui/splash-cursor";
 const Hero = () => {
     return (
         <div>
-            <SplashCursor />
+         
             <div className="flex flex-col items-center text-center w-full max-w-5xl my-24 mx-auto z-40 relative">
-                <Container delay={0.0}
+                <Container delay={0.1}
                
-  duration={0.8}  // Longer duration for smoother animation
+  duration={0.5}  // Longer duration for smoother animation
   reverse={false} // Animate from bottom to top
-  simple={false}   >
+  simple={true}   >
                 <div className="pl-4 pr-3 py-2.5 rounded-full border border-foreground/5 hover:border-foreground/15 backdrop-blur-2xl cursor-pointer flex items-center gap-3 select-none w-max mx-auto group hover:bg-gradient-to-r hover:from-black/5 hover:to-transparent transition-all duration-500 hover:scale-105 hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.2)]">
   <div className="relative w-5 h-5">
     {/* Animated ring */}
@@ -41,12 +41,21 @@ const Hero = () => {
                     word={"Find the right talent\n without the noise"}
                     className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent py-2 md:py-0 lg:!leading-snug font-medium tracking-[-0.0125em] mt-6 font-heading"
                 />
-                <Container delay={0.1}>
+               {/* Heading Container - Dramatic entrance */}
+               <Container 
+                    delay={0.2}
+                    duration={0.7}
+                    reverse={true}
+                >
                     <p className="text-sm sm:text-base lg:text-lg mt-4 text-accent-foreground/60 max-w-2xl mx-auto backdrop-blur-sm py-2 px-4 rounded-full">
                         Every candidate is ID-verified and skill-tested. Our AI matches candidates to your exact job requirements. <span className="hidden sm:inline">Get detailed skill assessments and video introductions before the first interview.</span>
                     </p>
                 </Container>
-                <Container delay={0.2}>
+                <Container 
+                    delay={0.3}
+                    duration={0.6}
+                    simple={true}
+                >
                     <div className="flex items-center justify-center gap-x-4 mt-8">
                         <Button asChild size="lg" className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-105">
                             <Link href="/main">
@@ -60,7 +69,11 @@ const Hero = () => {
                         </Button>
                     </div>
                 </Container>
-                <Container delay={0.3}>
+                <Container 
+                    delay={0.4}
+                    duration={0.5}
+                    simple={true}
+                >
                     <div className="relative mx-auto max-w-7xl rounded-xl lg:rounded-[32px] border border-neutral-200/10 p-2 backdrop-blur-xl bg-transparent md:p-4 mt-12 shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500">
                         <div className="absolute top-1/4 left-1/2 -z-10 w-3/4 -translate-x-1/2 h-1/4 -translate-y-1/2 inset-0 blur-[10rem] bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
 

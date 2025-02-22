@@ -14,17 +14,17 @@ interface Props {
 const Container = ({ 
   children, 
   className, 
-  delay = 0.15, // Reduced delay for smoother start
+  delay = 0.05, // Even faster initial delay
   reverse, 
   simple,
-  duration = 1.2 // Increased duration for smoother animation
+  duration = 0.6 // Shorter duration for snappier feel
 }: Props) => {
-  // Enhanced spring settings for scrolling
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
-    stiffness: 70,    // Reduced stiffness for smoother movement
-    damping: 20,      // Balanced damping for natural feel
-    restDelta: 0.0001 // Smaller restDelta for more precise stopping
+    stiffness: 35,     // Reduced for silky smoothness
+    damping: 12,       // Optimized damping
+    mass: 0.05,        // Ultra-light mass for instant response
+    restDelta: 0.000001 // Extremely precise stopping
   });
 
   return (
@@ -32,8 +32,8 @@ const Container = ({
       className={cn("w-full h-full", className)}
       initial={{ 
         opacity: 0, 
-        y: reverse ? -15 : 15, // Reduced distance for smoother entrance
-        scale: 0.98 // Closer to 1 for subtler scale effect
+        y: reverse ? -6 : 6, // Even smaller distance for ultra-subtle movement
+        scale: 0.998 // Nearly imperceptible scale
       }}
       whileInView={{ 
         opacity: 1, 
@@ -42,27 +42,33 @@ const Container = ({
       }}
       viewport={{ 
         once: false,
-        margin: "-10%", // Adjusted margin for earlier animation trigger
-        amount: 0.2 // Reduced amount for earlier triggering
+        margin: "-20%", // Earlier trigger for buttery smooth transitions
+        amount: 0.05 // Ultra-responsive triggering
       }}
       transition={{
         delay,
-        duration: simple ? 0.6 : duration,
+        duration: simple ? 0.3 : duration,
         type: "spring",
-        stiffness: simple ? 80 : 50,     // Reduced stiffness for smoother motion
-        damping: simple ? 15 : 12,       // Reduced damping for smoother flow
-        mass: simple ? 0.8 : 1,          // Reduced mass for lighter feel
-        restDelta: 0.0001,               // More precise stopping point
-        restSpeed: 0.0001,               // More precise resting speed
-        bounce: 0.1                      // Added slight bounce for natural feel
+        stiffness: simple ? 45 : 35,    // Reduced stiffness for smoother motion
+        damping: simple ? 10 : 8,       // Lower damping for fluid movement
+        mass: simple ? 0.1 : 0.05,      // Ultra-light mass
+        restDelta: 0.000001,           // Ultra-precise stopping
+        restSpeed: 0.000001,           // Ultra-precise resting
+        bounce: 0.02                   // Minimal bounce for modern feel
       }}
       style={{
         willChange: "transform, opacity",
         backfaceVisibility: "hidden",
-        WebkitFontSmoothing: "subpixel-antialiased", // Enhanced text rendering
-        perspective: 2000,                           // Increased perspective
-        transformStyle: "preserve-3d",               // Better 3D rendering
-        touchAction: "pan-x pan-y",                 // Improved touch handling
+        WebkitFontSmoothing: "antialiased",
+        perspective: 4000,
+        transformStyle: "preserve-3d",
+        touchAction: "pan-x pan-y",
+        transform: "translate3d(0,0,0)", // Enhanced hardware acceleration
+        filter: "blur(0)", // Force GPU rendering
+        isolation: "isolate", // Optimize compositing
+        contain: "paint layout", // Performance optimization
+        contentVisibility: "auto", // Modern content optimization
+       // fontDisplay: "optional", // Optimize font loading
       }}
     >
       {children}
