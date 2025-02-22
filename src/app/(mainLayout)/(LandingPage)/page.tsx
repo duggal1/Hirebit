@@ -8,11 +8,7 @@ const HomePage = () => {
    
             <Wrapper className="py-20 relative">
                  
-                <Container delay={0.0}
-               
-               duration={0.8}  // Longer duration for smoother animation
-               reverse={false} // Animate from bottom to top
-               simple={false}  className="relative">
+                <Container  className="relative">
                 <Spotlight
                         className="-top-40 left-0 md:left-60 md:-top-20"
                         fill="rgba(0, 122, 255, 0.5)" // Modern blue tone

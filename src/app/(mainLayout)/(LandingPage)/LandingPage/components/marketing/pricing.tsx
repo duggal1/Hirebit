@@ -71,19 +71,15 @@ type Plan = "monthly" | "yearly";
 const Pricing = () => {
     return (
         <div className="flex flex-col items-center justify-center py-12 md:py-16 lg:py-32 w-full relative">
-        <div className="absolute inset-0 bg-transparent" />
+      
         <Container
         
-        delay={0.0}
-               
-  duration={0.8}  // Longer duration for smoother animation
-  reverse={false} // Animate from bottom to top
-  simple={false}  
+      
         
         >
             <div className="flex flex-col items-center text-center max-w-xl mx-auto">
                 <SectionBadge title="Recruitment Plans" />
-                <h2 className="text-2xl md:text-4xl lg:text-5xl font-heading font-medium !leading-snug mt-6 bg-gradient-to-r from-blue-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
+                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black !leading-snug mt-6 bg-gradient-to-r from-blue-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
                     Choose Your Hiring Power
                 </h2>
                 <p className="text-base md:text-lg text-center text-accent-foreground/80 mt-6">
@@ -172,7 +168,7 @@ const Plan = ({
 
     return (
         <div key={index} className="w-full relative flex flex-col saturate-150 rounded-2xl group hover:scale-[1.02] transition-all duration-500">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-violet-500/5 to-blue-500/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
+            <div className="absolute inset-0 bg-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
             <div
                 className={cn(
                     "flex flex-col size-full border rounded-2xl relative p-3",
@@ -201,11 +197,11 @@ const Plan = ({
                 <div className="relative flex flex-col flex-1 align-top w-full p-3 h-full break-words text-left gap-4">
                     <div className="flex items-end gap-2">
                         <div className="flex items-end gap-1 w-40">
-                            <span className="text-3xl md:text-3xl font-black">
+                            <span className="text-2xl md:text-2xl font-black">
                                 ${displayedPrice === 0 ? 0 : <NumberTicker value={displayedPrice} />}
                             </span>
                             {/* In here 120 * 0.8 = 96 and /12 to get monthly price */}
-                            <span className="text-lg text-muted-foreground font-medium font-headin">
+                            <span className="text-md text-muted-foreground font-medium font-headin">
                                 per {plan === "monthly" ? "month" : "month"}
                             </span>
                         </div>

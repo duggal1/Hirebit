@@ -74,7 +74,7 @@ const Hero = () => {
                     duration={0.5}
                     simple={true}
                 >
-                    <div className="relative mx-auto max-w-7xl rounded-xl lg:rounded-[32px] border border-neutral-200/10 p-2 backdrop-blur-xl bg-transparent md:p-4 mt-12 shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500">
+                    <div className="relative mx-auto max-w-7xl rounded-xl lg:rounded-[32px]  bg-transparent md:p-4 mt-12  transition-all duration-500">
                         <div className="absolute top-1/4 left-1/2 -z-10 w-3/4 -translate-x-1/2 h-1/4 -translate-y-1/2 inset-0 blur-[10rem] bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
 
                         <div className="rounded-lg lg:rounded-[24px] border p-2 border-neutral-800 bg-black/90 overflow-hidden group">
