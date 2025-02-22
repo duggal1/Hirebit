@@ -20,7 +20,7 @@ const Features = () => {
       <div className="bg-transparent z-0" />
       <Container delay={0.0}
                
-               duration={0.8}  // Longer duration for smoother animation
+               // Longer duration for smoother animation
                reverse={false} // Animate from bottom to top
                simple={false} className="relative z-10">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto">

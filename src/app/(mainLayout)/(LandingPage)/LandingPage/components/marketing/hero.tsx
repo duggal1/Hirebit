@@ -13,8 +13,7 @@ const Hero = () => {
          
             <div className="flex flex-col items-center text-center w-full max-w-5xl my-24 mx-auto z-40 relative">
                 <Container delay={0.1}
-               
-  duration={0.5}  // Longer duration for smoother animation
+       // Longer duration for smoother animation
   reverse={false} // Animate from bottom to top
   simple={true}   >
                 <div className="pl-4 pr-3 py-2.5 rounded-full border border-foreground/5 hover:border-foreground/15 backdrop-blur-2xl cursor-pointer flex items-center gap-3 select-none w-max mx-auto group hover:bg-gradient-to-r hover:from-black/5 hover:to-transparent transition-all duration-500 hover:scale-105 hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.2)]">
@@ -44,7 +43,7 @@ const Hero = () => {
                {/* Heading Container - Dramatic entrance */}
                <Container 
                     delay={0.2}
-                    duration={0.7}
+                   
                     reverse={true}
                 >
                     <p className="text-sm sm:text-base lg:text-lg mt-4 text-accent-foreground/60 max-w-2xl mx-auto backdrop-blur-sm py-2 px-4 rounded-full">
@@ -53,7 +52,7 @@ const Hero = () => {
                 </Container>
                 <Container 
                     delay={0.3}
-                    duration={0.6}
+                   
                     simple={true}
                 >
                     <div className="flex items-center justify-center gap-x-4 mt-8">
@@ -71,7 +70,7 @@ const Hero = () => {
                 </Container>
                 <Container 
                     delay={0.4}
-                    duration={0.5}
+                   
                     simple={true}
                 >
                     <div className="relative mx-auto max-w-7xl rounded-xl lg:rounded-[32px]  bg-transparent md:p-4 mt-12  transition-all duration-500">

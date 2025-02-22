@@ -15,7 +15,7 @@ const Reviews = () => {
             <Container
             delay={0.0}
                
-            duration={0.8}  // Longer duration for smoother animation
+           
             reverse={false} // Animate from bottom to top
             simple={false}  
             >

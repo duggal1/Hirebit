@@ -44,8 +44,7 @@ const Perks = () => {
             <div className="bg-transparent" />
             <Container          
             delay={0.0}
-               
-            duration={0.8}  // Longer duration for smoother animation
+           // Longer duration for smoother animation
             reverse={false} // Animate from bottom to top
             simple={false}  
             

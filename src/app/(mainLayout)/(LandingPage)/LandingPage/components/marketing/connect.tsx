@@ -11,7 +11,7 @@ const Connect = () => {
         <Container 
         delay={0.0}
                
-        duration={0.8}  // Longer duration for smoother animation
+       // Longer duration for smoother animation
         reverse={false} // Animate from bottom to top
         simple={false} >
             <div className="flex flex-col items-center text-center max-w-2xl mx-auto relative z-10">
